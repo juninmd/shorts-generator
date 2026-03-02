@@ -85,6 +85,9 @@ export interface PipelineConfig {
   telegramChatId: string;
   verticalWidth: number;
   verticalHeight: number;
+  youtubeCookiesBrowser?: string;
+  youtubeCookiesFile?: string;
+  youtubeCookiesBase64?: string;
 }
 
 export interface PipelineResult {
@@ -98,14 +101,14 @@ export interface PipelineResult {
 
 export interface PipelineProgress {
   stage:
-    | "downloading"
-    | "transcribing"
-    | "analyzing"
-    | "cutting"
-    | "subtitling"
-    | "uploading"
-    | "done"
-    | "error";
+  | "downloading"
+  | "transcribing"
+  | "analyzing"
+  | "cutting"
+  | "subtitling"
+  | "uploading"
+  | "done"
+  | "error";
   videoId: string;
   videoTitle: string;
   currentShort?: number;

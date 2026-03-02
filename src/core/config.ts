@@ -53,6 +53,9 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     telegramChatId: optionalEnv("TELEGRAM_CHAT_ID", ""),
     verticalWidth: 1080,
     verticalHeight: 1920,
+    youtubeCookiesBrowser: optionalEnv("YOUTUBE_COOKIES_BROWSER", ""),
+    youtubeCookiesFile: optionalEnv("YOUTUBE_COOKIES_FILE", ""),
+    youtubeCookiesBase64: optionalEnv("YOUTUBE_COOKIES_BASE64", ""),
     ...overrides,
   };
 

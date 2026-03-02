@@ -2,10 +2,24 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import type { VideoInfo, DownloadedVideo, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 
 const execFileAsync = promisify(execFile);
+
+function getYtDlpCookiesArgs(config?: PipelineConfig, tempCookieFile?: string): string[] {
+  const browser = config?.youtubeCookiesBrowser || process.env.YOUTUBE_COOKIES_BROWSER;
+  const file = tempCookieFile || config?.youtubeCookiesFile || process.env.YOUTUBE_COOKIES_FILE;
+
+  const args: string[] = [];
+  if (browser) {
+    args.push("--cookies-from-browser", browser);
+  } else if (file) {
+    args.push("--cookies", file);
+  }
+  return args;
+}
 
 /**
  * Get the list of recent videos from a YouTube channel.
@@ -21,9 +35,18 @@ export async function getChannelVideos(
   logger.info({ channel: channelIdentifier, daysBack }, "Fetching channel videos");
 
   try {
+    let tempCookiePath: string | undefined;
+    const base64Cookies = process.env.YOUTUBE_COOKIES_BASE64;
+
+    if (base64Cookies) {
+      tempCookiePath = path.join(process.cwd(), `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
+      fs.writeFileSync(tempCookiePath, Buffer.from(base64Cookies, "base64").toString("utf-8"));
+    }
+
     const { stdout } = await execFileAsync(
       "yt-dlp",
       [
+        ...getYtDlpCookiesArgs(undefined, tempCookiePath),
         "--flat-playlist",
         "--print",
         '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
@@ -39,6 +62,10 @@ export async function getChannelVideos(
       ],
       { maxBuffer: 10 * 1024 * 1024, timeout: 120_000 },
     );
+
+    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
+      fs.unlinkSync(tempCookiePath);
+    }
 
     const videos: VideoInfo[] = [];
     for (const line of stdout.trim().split("\n")) {
@@ -73,9 +100,18 @@ export async function getChannelVideos(
  */
 export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
   try {
+    let tempCookiePath: string | undefined;
+    const base64Cookies = process.env.YOUTUBE_COOKIES_BASE64;
+
+    if (base64Cookies) {
+      tempCookiePath = path.join(process.cwd(), `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
+      fs.writeFileSync(tempCookiePath, Buffer.from(base64Cookies, "base64").toString("utf-8"));
+    }
+
     const { stdout } = await execFileAsync(
       "yt-dlp",
       [
+        ...getYtDlpCookiesArgs(undefined, tempCookiePath),
         "--print",
         '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
         "--no-warnings",
@@ -84,6 +120,10 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
       ],
       { maxBuffer: 5 * 1024 * 1024, timeout: 60_000 },
     );
+
+    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
+      fs.unlinkSync(tempCookiePath);
+    }
 
     const raw = JSON.parse(stdout.trim());
     return {
@@ -117,10 +157,17 @@ export async function downloadVideo(
 
   logger.info({ videoId: video.id, title: video.title }, "Downloading video");
 
+  let tempCookiePath: string | undefined;
+  if (config.youtubeCookiesBase64) {
+    tempCookiePath = path.join(config.tempDir, `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
+    fs.writeFileSync(tempCookiePath, Buffer.from(config.youtubeCookiesBase64, "base64").toString("utf-8"));
+  }
+
   // Download video (best quality up to 1080p)
   await execFileAsync(
     "yt-dlp",
     [
+      ...getYtDlpCookiesArgs(config, tempCookiePath),
       "-f",
       "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
       "--merge-output-format",
