@@ -34,8 +34,8 @@ export async function getChannelVideos(
 
   logger.info({ channel: channelIdentifier, daysBack }, "Fetching channel videos");
 
+  let tempCookiePath: string | undefined;
   try {
-    let tempCookiePath: string | undefined;
     const base64Cookies = process.env.YOUTUBE_COOKIES_BASE64;
 
     if (base64Cookies) {
@@ -63,10 +63,6 @@ export async function getChannelVideos(
       { maxBuffer: 10 * 1024 * 1024, timeout: 120_000 },
     );
 
-    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
-      fs.unlinkSync(tempCookiePath);
-    }
-
     const videos: VideoInfo[] = [];
     for (const line of stdout.trim().split("\n")) {
       if (!line.trim()) continue;
@@ -92,6 +88,10 @@ export async function getChannelVideos(
   } catch (error) {
     logger.error({ error, channel: channelIdentifier }, "Failed to fetch channel videos");
     return [];
+  } finally {
+    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
+      fs.unlinkSync(tempCookiePath);
+    }
   }
 }
 
@@ -99,8 +99,8 @@ export async function getChannelVideos(
  * Get video info for a specific URL.
  */
 export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
+  let tempCookiePath: string | undefined;
   try {
-    let tempCookiePath: string | undefined;
     const base64Cookies = process.env.YOUTUBE_COOKIES_BASE64;
 
     if (base64Cookies) {
@@ -121,11 +121,22 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
       { maxBuffer: 5 * 1024 * 1024, timeout: 60_000 },
     );
 
-    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
-      fs.unlinkSync(tempCookiePath);
+    const outputLines = stdout.trim().split("\n");
+    let raw: any = null;
+    for (const line of outputLines.reverse()) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        try {
+          raw = JSON.parse(trimmed);
+          break;
+        } catch {}
+      }
     }
 
-    const raw = JSON.parse(stdout.trim());
+    if (!raw) {
+      throw new Error("Failed to parse video info from yt-dlp output");
+    }
+
     return {
       id: raw.id,
       title: raw.title ?? "Untitled",
@@ -139,6 +150,10 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
   } catch (error) {
     logger.error({ error, url }, "Failed to get video info");
     return null;
+  } finally {
+    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
+      fs.unlinkSync(tempCookiePath);
+    }
   }
 }
 
@@ -152,55 +167,74 @@ export async function downloadVideo(
   const videoDir = path.join(config.tempDir, video.id);
   fs.mkdirSync(videoDir, { recursive: true });
 
-  const videoPath = path.join(videoDir, `${video.id}.mp4`);
   const audioPath = path.join(videoDir, `${video.id}.wav`);
+  const outputTemplate = path.join(videoDir, `${video.id}.%(ext)s`);
 
   logger.info({ videoId: video.id, title: video.title }, "Downloading video");
 
   let tempCookiePath: string | undefined;
-  if (config.youtubeCookiesBase64) {
-    tempCookiePath = path.join(config.tempDir, `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
-    fs.writeFileSync(tempCookiePath, Buffer.from(config.youtubeCookiesBase64, "base64").toString("utf-8"));
+  try {
+    if (config.youtubeCookiesBase64) {
+      tempCookiePath = path.join(config.tempDir, `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
+      fs.writeFileSync(tempCookiePath, Buffer.from(config.youtubeCookiesBase64, "base64").toString("utf-8"));
+    }
+
+    // Download video (best quality up to 1080p)
+    await execFileAsync(
+      "yt-dlp",
+      [
+        ...getYtDlpCookiesArgs(config, tempCookiePath),
+        "-f",
+        "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
+        "--merge-output-format",
+        "mp4",
+        "-o",
+        outputTemplate,
+        "--no-playlist",
+        "--no-warnings",
+        "--",
+        video.url,
+      ],
+      { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 },
+    );
+
+    // Find the actual downloaded video file (it might not be .mp4 if it fell back to /best)
+    const files = fs.readdirSync(videoDir);
+    const videoFileName = files.find(
+      (f) => f.startsWith(video.id) && !f.endsWith(".wav") && !f.endsWith(".txt")
+    );
+
+    if (!videoFileName) {
+      throw new Error("Downloaded video file not found in output directory");
+    }
+
+    const actualVideoPath = path.join(videoDir, videoFileName);
+
+    // Extract audio as WAV (16kHz mono for Whisper)
+    await execFileAsync(
+      "ffmpeg",
+      ["-i", actualVideoPath, "-ar", "16000", "-ac", "1", "-f", "wav", "-y", audioPath],
+      { maxBuffer: 5 * 1024 * 1024, timeout: 300_000 },
+    );
+
+    const stats = fs.statSync(actualVideoPath);
+
+    logger.info(
+      { videoId: video.id, sizeMB: (stats.size / 1024 / 1024).toFixed(1) },
+      "Video downloaded",
+    );
+
+    return {
+      ...video,
+      filePath: actualVideoPath,
+      audioPath,
+      fileSize: stats.size,
+    };
+  } finally {
+    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
+      fs.unlinkSync(tempCookiePath);
+    }
   }
-
-  // Download video (best quality up to 1080p)
-  await execFileAsync(
-    "yt-dlp",
-    [
-      ...getYtDlpCookiesArgs(config, tempCookiePath),
-      "-f",
-      "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
-      "--merge-output-format",
-      "mp4",
-      "-o",
-      videoPath,
-      "--no-playlist",
-      "--no-warnings",
-      video.url,
-    ],
-    { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 },
-  );
-
-  // Extract audio as WAV (16kHz mono for Whisper)
-  await execFileAsync(
-    "ffmpeg",
-    ["-i", videoPath, "-ar", "16000", "-ac", "1", "-f", "wav", "-y", audioPath],
-    { maxBuffer: 5 * 1024 * 1024, timeout: 300_000 },
-  );
-
-  const stats = fs.statSync(videoPath);
-
-  logger.info(
-    { videoId: video.id, sizeMB: (stats.size / 1024 / 1024).toFixed(1) },
-    "Video downloaded",
-  );
-
-  return {
-    ...video,
-    filePath: videoPath,
-    audioPath,
-    fileSize: stats.size,
-  };
 }
 
 /**
