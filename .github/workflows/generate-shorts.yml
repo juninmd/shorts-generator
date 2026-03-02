@@ -46,6 +46,12 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -81,7 +87,7 @@ jobs:
         run: echo "YOUTUBE_CHANNELS=${{ github.event.inputs.channels }}" >> $GITHUB_ENV
 
       - name: Run shorts generation
-        run: npx tsx src/cli.ts generate
+        run: pnpm run generate
 
       - name: Upload generated shorts
         if: always()
