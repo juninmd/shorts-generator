@@ -32,6 +32,7 @@ env:
   PIP_CACHE_DIR: ~/.cache/pip
   WHISPER_CACHE_DIR: ~/.cache/whisper
   OLLAMA_MODELS_DIR: ~/.ollama/models
+  YOUTUBE_COOKIES_BASE64: ${{ secrets.YOUTUBE_COOKIES_BASE64 }}
 
 jobs:
   generate:
