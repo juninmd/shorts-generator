@@ -21,10 +21,11 @@ on:
         type: string
 
 env:
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   YOUTUBE_CHANNELS: ${{ vars.YOUTUBE_CHANNELS }}
+  OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen3-vl:4b' }}
+  WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'base' }}
   DAYS_BACK: ${{ github.event.inputs.days_back || vars.DAYS_BACK || '1' }}
   VIDEO_URLS: ${{ github.event.inputs.video_urls || '' }}
   OUTPUT_DIR: ./output
@@ -48,17 +49,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          pip install yt-dlp
+          pip install yt-dlp openai-whisper
+
+      - name: Install & start Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          sleep 5
+          ollama pull ${{ env.OLLAMA_MODEL }}
+          ollama list
 
       - name: Verify tools
         run: |
           node --version
           ffmpeg -version | head -1
           yt-dlp --version
+          whisper --help | head -3
+          ollama --version
 
       - name: Override channels (if provided)
         if: ${{ github.event.inputs.channels }}

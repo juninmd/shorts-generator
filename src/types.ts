@@ -78,8 +78,8 @@ export interface PipelineConfig {
   minShortDuration: number;
   outputDir: string;
   tempDir: string;
-  openaiApiKey: string;
-  openaiModel: string;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
   whisperModel: string;
   telegramBotToken: string;
   telegramChatId: string;

@@ -20,8 +20,7 @@
   },
   "dependencies": {
     "ai": "^4.1.0",
-    "@ai-sdk/openai": "^1.2.0",
-    "openai": "^4.78.0",
+    "ollama-ai-provider": "^1.2.0",
     "hono": "^4.6.0",
     "@hono/node-server": "^1.13.0",
     "grammy": "^1.31.0",

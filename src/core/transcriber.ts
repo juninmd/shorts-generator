@@ -1,4 +1,5 @@
-import OpenAI from "openai";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
 import type {
@@ -10,44 +11,71 @@ import type {
 } from "../types.js";
 import { logger } from "./logger.js";
 
-const MAX_WHISPER_FILE_SIZE = 25 * 1024 * 1024; // 25 MB limit for Whisper API
-const CHUNK_DURATION_SECONDS = 600; // 10 minutes per chunk
+const execFileAsync = promisify(execFile);
 
 /**
- * Transcribe a video using OpenAI Whisper API with word-level timestamps.
- * Handles large files by splitting audio into chunks.
+ * Transcribe a video using local openai-whisper CLI with word-level timestamps.
+ * Completely free — no API calls, runs entirely on CPU/GPU locally.
+ *
+ * Requires: pip install openai-whisper
  */
 export async function transcribeVideo(
   video: DownloadedVideo,
   config: PipelineConfig,
 ): Promise<Transcript> {
-  const openai = new OpenAI({ apiKey: config.openaiApiKey });
+  logger.info(
+    { videoId: video.id, title: video.title, model: config.whisperModel },
+    "Starting local Whisper transcription",
+  );
 
-  logger.info({ videoId: video.id, title: video.title }, "Starting transcription");
+  const outputDir = path.join(config.tempDir, video.id, "whisper_out");
+  fs.mkdirSync(outputDir, { recursive: true });
 
-  const audioSize = fs.statSync(video.audioPath).size;
-  let allSegments: TranscriptSegment[] = [];
-  let allWords: TranscriptWord[] = [];
-  let detectedLanguage = "pt";
+  // Run local whisper CLI — outputs JSON with word-level timestamps
+  await execFileAsync(
+    "whisper",
+    [
+      video.audioPath,
+      "--model",
+      config.whisperModel,
+      "--output_format",
+      "json",
+      "--output_dir",
+      outputDir,
+      "--word_timestamps",
+      "True",
+    ],
+    { maxBuffer: 50 * 1024 * 1024, timeout: 1_800_000 }, // 30 min timeout
+  );
 
-  if (audioSize <= MAX_WHISPER_FILE_SIZE) {
-    // Single file transcription
-    const result = await transcribeChunk(openai, video.audioPath, config, 0);
-    allSegments = result.segments;
-    allWords = result.words;
-    detectedLanguage = result.language;
-  } else {
-    // Split into chunks and transcribe each
-    logger.info({ audioSize, videoId: video.id }, "Audio too large, splitting into chunks");
-    const chunks = await splitAudio(video.audioPath, video.id, config);
+  // Find the generated JSON file
+  const audioBaseName = path.basename(video.audioPath, path.extname(video.audioPath));
+  const jsonPath = path.join(outputDir, `${audioBaseName}.json`);
 
-    for (const chunk of chunks) {
-      const result = await transcribeChunk(openai, chunk.path, config, chunk.offsetSeconds);
-      allSegments.push(...result.segments);
-      allWords.push(...result.words);
-      if (result.language) detectedLanguage = result.language;
-      // Clean up chunk file
-      fs.unlinkSync(chunk.path);
+  if (!fs.existsSync(jsonPath)) {
+    throw new Error(`Whisper output not found at ${jsonPath}`);
+  }
+
+  const raw = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+
+  const allSegments: TranscriptSegment[] = [];
+  const allWords: TranscriptWord[] = [];
+  let detectedLanguage = raw.language ?? "pt";
+
+  for (const seg of raw.segments ?? []) {
+    allSegments.push({
+      start: seg.start ?? 0,
+      end: seg.end ?? 0,
+      text: (seg.text ?? "").trim(),
+    });
+
+    // Extract word-level timestamps from segment
+    for (const w of seg.words ?? []) {
+      allWords.push({
+        word: (w.word ?? "").trim(),
+        start: w.start ?? 0,
+        end: w.end ?? 0,
+      });
     }
   }
 
@@ -64,6 +92,9 @@ export async function transcribeVideo(
     duration: video.duration,
   };
 
+  // Cleanup whisper output
+  fs.rmSync(outputDir, { recursive: true, force: true });
+
   logger.info(
     {
       videoId: video.id,
@@ -71,108 +102,8 @@ export async function transcribeVideo(
       wordCount: allWords.length,
       language: detectedLanguage,
     },
-    "Transcription complete",
+    "Local Whisper transcription complete",
   );
 
   return transcript;
-}
-
-interface ChunkInfo {
-  path: string;
-  offsetSeconds: number;
-}
-
-async function splitAudio(
-  audioPath: string,
-  videoId: string,
-  config: PipelineConfig,
-): Promise<ChunkInfo[]> {
-  const { execFile } = await import("node:child_process");
-  const { promisify } = await import("node:util");
-  const execFileAsync = promisify(execFile);
-
-  // Get audio duration
-  const { stdout: durationOut } = await execFileAsync("ffprobe", [
-    "-v",
-    "error",
-    "-show_entries",
-    "format=duration",
-    "-of",
-    "csv=p=0",
-    audioPath,
-  ]);
-  const totalDuration = parseFloat(durationOut.trim());
-
-  const chunks: ChunkInfo[] = [];
-  let offset = 0;
-  let chunkIndex = 0;
-
-  while (offset < totalDuration) {
-    const chunkPath = path.join(config.tempDir, videoId, `chunk_${chunkIndex}.wav`);
-    await execFileAsync("ffmpeg", [
-      "-i",
-      audioPath,
-      "-ss",
-      offset.toString(),
-      "-t",
-      CHUNK_DURATION_SECONDS.toString(),
-      "-ar",
-      "16000",
-      "-ac",
-      "1",
-      "-f",
-      "wav",
-      "-y",
-      chunkPath,
-    ]);
-    chunks.push({ path: chunkPath, offsetSeconds: offset });
-    offset += CHUNK_DURATION_SECONDS;
-    chunkIndex++;
-  }
-
-  return chunks;
-}
-
-interface TranscribeChunkResult {
-  segments: TranscriptSegment[];
-  words: TranscriptWord[];
-  language: string;
-}
-
-async function transcribeChunk(
-  openai: OpenAI,
-  audioPath: string,
-  config: PipelineConfig,
-  timeOffset: number,
-): Promise<TranscribeChunkResult> {
-  const audioFile = fs.createReadStream(audioPath);
-
-  const response = await openai.audio.transcriptions.create({
-    file: audioFile,
-    model: config.whisperModel,
-    response_format: "verbose_json",
-    timestamp_granularities: ["segment", "word"],
-  });
-
-  const raw = response as any;
-
-  const segments: TranscriptSegment[] = (raw.segments ?? []).map(
-    (seg: any) => ({
-      start: (seg.start ?? 0) + timeOffset,
-      end: (seg.end ?? 0) + timeOffset,
-      text: (seg.text ?? "").trim(),
-    }),
-  );
-
-  const words: TranscriptWord[] = (raw.words ?? []).map((w: any) => ({
-    word: (w.word ?? "").trim(),
-    start: (w.start ?? 0) + timeOffset,
-    end: (w.end ?? 0) + timeOffset,
-  }));
-
-  return {
-    segments,
-    words,
-    language: raw.language ?? "pt",
-  };
 }

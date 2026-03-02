@@ -1,5 +1,5 @@
-import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { ollama } from "ollama-ai-provider";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import type {
@@ -15,38 +15,20 @@ import { logger } from "./logger.js";
 const ClipSchema = z.object({
   clips: z.array(
     z.object({
-      title: z
-        .string()
-        .describe("Título chamativo e curto para o short (máx 60 chars)"),
-      description: z
-        .string()
-        .describe("Descrição curta para engajamento (máx 150 chars)"),
-      startTime: z
-        .number()
-        .describe("Tempo de início do corte em segundos"),
-      endTime: z
-        .number()
-        .describe("Tempo de fim do corte em segundos"),
-      viralScore: z
-        .number()
-        .min(1)
-        .max(10)
-        .describe("Score de potencial viral de 1 a 10"),
-      reason: z
-        .string()
-        .describe("Razão pela qual esse trecho tem potencial viral"),
-      hookLine: z
-        .string()
-        .describe("Frase de gancho para os primeiros 3 segundos do short"),
-      hashtags: z
-        .array(z.string())
-        .describe("3-5 hashtags relevantes para o short"),
+      title: z.string(),
+      description: z.string(),
+      startTime: z.number(),
+      endTime: z.number(),
+      viralScore: z.number().min(1).max(10),
+      reason: z.string(),
+      hookLine: z.string(),
+      hashtags: z.array(z.string()),
     }),
   ),
 });
 
 /**
- * Analyze transcript using LLM to identify the best moments for shorts.
+ * Analyze transcript using Ollama (local LLM) to identify the best moments for shorts.
  */
 export async function analyzeTranscript(
   transcript: Transcript,
@@ -65,28 +47,99 @@ export async function analyzeTranscript(
       videoId: transcript.videoId,
       maxCuts,
       duration: transcript.duration,
+      model: config.ollamaModel,
     },
-    "Analyzing transcript for viral moments",
+    "Analyzing transcript for viral moments (Ollama)",
   );
 
   // Format transcript with timestamps for the LLM
   const formattedTranscript = formatTranscriptForLLM(transcript.segments);
 
-  const { object } = await generateObject({
-    model: openai(config.openaiModel),
-    schema: ClipSchema,
-    prompt: buildAnalysisPrompt(
-      formattedTranscript,
-      videoTitle,
-      channelName,
-      maxCuts,
-      config.minShortDuration,
-      config.maxShortDuration,
-      transcript.duration,
-    ),
-    temperature: 0.7,
+  const prompt = buildAnalysisPrompt(
+    formattedTranscript,
+    videoTitle,
+    channelName,
+    maxCuts,
+    config.minShortDuration,
+    config.maxShortDuration,
+    transcript.duration,
+  );
+
+  const model = ollama(config.ollamaModel, {
+    structuredOutputs: false,
   });
 
+  // Use generateText + manual JSON parsing for maximum compatibility with small models
+  const { text } = await generateText({
+    model,
+    prompt,
+    temperature: 0.7,
+    maxTokens: 4096,
+  });
+
+  // Extract JSON from the response (handle markdown code blocks)
+  const parsed = extractAndParseJSON(text);
+
+  if (!parsed) {
+    logger.warn({ videoId: transcript.videoId, rawResponse: text.slice(0, 500) }, "LLM returned invalid JSON, retrying once...");
+
+    // Single retry with stricter prompt
+    const { text: retryText } = await generateText({
+      model,
+      prompt: prompt + "\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation. Just the JSON object.",
+      temperature: 0.3,
+      maxTokens: 4096,
+    });
+
+    const retryParsed = extractAndParseJSON(retryText);
+    if (!retryParsed) {
+      logger.error({ videoId: transcript.videoId }, "LLM failed to produce valid JSON after retry");
+      return [];
+    }
+
+    return processClips(retryParsed, transcript, config, maxCuts);
+  }
+
+  return processClips(parsed, transcript, config, maxCuts);
+}
+
+/**
+ * Extract JSON from LLM response, handling markdown code blocks and extra text.
+ */
+function extractAndParseJSON(text: string): z.infer<typeof ClipSchema> | null {
+  try {
+    // Try direct parse first
+    const direct = ClipSchema.safeParse(JSON.parse(text));
+    if (direct.success) return direct.data;
+  } catch { /* not pure JSON */ }
+
+  // Try extracting from markdown code block
+  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (codeBlockMatch?.[1]) {
+    try {
+      const parsed = ClipSchema.safeParse(JSON.parse(codeBlockMatch[1]));
+      if (parsed.success) return parsed.data;
+    } catch { /* invalid JSON in code block */ }
+  }
+
+  // Try finding JSON object in text
+  const jsonMatch = text.match(/\{[\s\S]*"clips"[\s\S]*\}/);
+  if (jsonMatch?.[0]) {
+    try {
+      const parsed = ClipSchema.safeParse(JSON.parse(jsonMatch[0]));
+      if (parsed.success) return parsed.data;
+    } catch { /* invalid JSON fragment */ }
+  }
+
+  return null;
+}
+
+function processClips(
+  object: z.infer<typeof ClipSchema>,
+  transcript: Transcript,
+  config: PipelineConfig,
+  maxCuts: number,
+): ShortClip[] {
   const clips: ShortClip[] = object.clips
     .filter((clip) => {
       const duration = clip.endTime - clip.startTime;
@@ -158,36 +211,52 @@ function buildAnalysisPrompt(
   maxDuration: number,
   totalDuration: number,
 ): string {
-  return `Você é um especialista em conteúdo viral para YouTube Shorts, TikTok e Instagram Reels.
+  return `You are an expert in viral content for YouTube Shorts, TikTok and Instagram Reels.
 
-Analise a transcrição do vídeo abaixo e identifique os **melhores momentos** que podem gerar shorts virais.
+Analyze the transcript below and identify the **best moments** that could generate viral shorts.
 
-## Informações do Vídeo
-- **Título:** ${videoTitle}
-- **Canal:** ${channelName}
-- **Duração total:** ${formatTime(totalDuration)}
+## Video Info
+- **Title:** ${videoTitle}
+- **Channel:** ${channelName}
+- **Total duration:** ${formatTime(totalDuration)}
 
-## Critérios para seleção de cortes:
-1. **Gancho forte** — os primeiros 3 segundos devem prender a atenção
-2. **Conteúdo autossuficiente** — o trecho deve fazer sentido sozinho, sem contexto adicional
-3. **Emoção ou surpresa** — momentos que geram reação (surpresa, humor, polêmica, inspiração)
-4. **Informação valiosa** — dicas, revelações, dados surpreendentes
-5. **Potencial de compartilhamento** — algo que as pessoas queiram enviar para outros
-6. **Início e fim limpos** — o corte deve começar e terminar em pausas naturais da fala
+## Selection criteria:
+1. **Strong hook** — first 3 seconds must grab attention
+2. **Self-contained** — the excerpt must make sense on its own
+3. **Emotion or surprise** — moments that generate reactions
+4. **Valuable info** — tips, revelations, surprising data
+5. **Shareability** — something people would want to share
+6. **Clean cuts** — start and end at natural speech pauses
 
-## Regras:
-- Encontre no máximo **${maxClips} cortes**
-- Cada corte deve ter entre **${minDuration}** e **${maxDuration} segundos**
-- Os cortes NÃO devem se sobrepor
-- Priorize qualidade sobre quantidade — é melhor 3 cortes excelentes do que ${maxClips} mediocres
-- Se não houver bons momentos, retorne menos cortes
-- Os tempos devem corresponder EXATAMENTE aos timestamps da transcrição
-- Inclua uma margem de ~1 segundo antes e depois do trecho para evitar cortes abruptos
+## Rules:
+- Find at most **${maxClips} clips**
+- Each clip must be between **${minDuration}** and **${maxDuration} seconds**
+- Clips must NOT overlap
+- Prioritize quality over quantity
+- Times must match EXACTLY the transcript timestamps
+- Add ~1 second margin before/after
 
-## Transcrição:
+## Transcript:
 ${transcript}
 
-Retorne os melhores cortes ordenados por potencial viral (maior score primeiro).`;
+## Response format:
+Respond ONLY with a JSON object (no markdown, no extra text) in this exact format:
+{
+  "clips": [
+    {
+      "title": "Short catchy title (max 60 chars)",
+      "description": "Short description for engagement (max 150 chars)",
+      "startTime": 120.5,
+      "endTime": 155.0,
+      "viralScore": 8,
+      "reason": "Why this moment has viral potential",
+      "hookLine": "Hook phrase for the first 3 seconds",
+      "hashtags": ["#tag1", "#tag2", "#tag3"]
+    }
+  ]
+}
+
+Return the best clips sorted by viral potential (highest score first).`;
 }
 
 function getSegmentsInRange(
