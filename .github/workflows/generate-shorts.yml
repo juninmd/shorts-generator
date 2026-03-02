@@ -29,6 +29,9 @@ env:
   DAYS_BACK: ${{ github.event.inputs.days_back || vars.DAYS_BACK || '1' }}
   VIDEO_URLS: ${{ github.event.inputs.video_urls || '' }}
   OUTPUT_DIR: ./output
+  PIP_CACHE_DIR: ~/.cache/pip
+  WHISPER_CACHE_DIR: ~/.cache/whisper
+  OLLAMA_MODELS_DIR: ~/.ollama/models
 
 jobs:
   generate:
@@ -51,6 +54,7 @@ jobs:
         with:
           node-version: "22"
           cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -60,11 +64,38 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PIP_CACHE_DIR }}
+          key: ${{ runner.os }}-pip-py311-openai-whisper-yt-dlp-v1
+          restore-keys: |
+            ${{ runner.os }}-pip-py311-
+
+      - name: Cache Whisper model files
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.WHISPER_CACHE_DIR }}
+          key: ${{ runner.os }}-whisper-${{ env.WHISPER_MODEL }}
+          restore-keys: |
+            ${{ runner.os }}-whisper-
+
+      - name: Cache Ollama model files
+        id: ollama-cache
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: ${{ env.OLLAMA_MODELS_DIR }}
+          key: ${{ runner.os }}-ollama-${{ env.OLLAMA_MODEL }}
+          restore-keys: |
+            ${{ runner.os }}-ollama-
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          pip install yt-dlp openai-whisper
+          python -m pip install --upgrade pip
+          python -m pip install yt-dlp openai-whisper
 
       - name: Install & start Ollama
         run: |
