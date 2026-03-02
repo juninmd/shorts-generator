@@ -192,6 +192,7 @@ export async function downloadVideo(
         outputTemplate,
         "--no-playlist",
         "--no-warnings",
+        "--",
         video.url,
       ],
       { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 },
