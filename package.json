@@ -1,11 +1,13 @@
 {
   "name": "shorts-generator",
   "version": "1.0.0",
+  "private": true,
   "description": "Automated YouTube Shorts generator — downloads videos, transcribes with Whisper, identifies viral moments via LLM, generates vertical shorts with captions, and sends to Telegram.",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
   },
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
     "dev": "tsx watch src/server/index.ts",
     "start": "tsx src/server/index.ts",
@@ -13,9 +15,9 @@
     "generate": "tsx src/cli.ts generate",
     "generate:url": "tsx src/cli.ts generate --url",
     "build": "tsc --noEmit",
-    "web:dev": "cd web && npm run dev",
-    "web:build": "cd web && npm run build",
-    "web:preview": "cd web && npm run preview",
+    "web:dev": "pnpm --dir web run dev",
+    "web:build": "pnpm --dir web run build",
+    "web:preview": "pnpm --dir web run preview",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

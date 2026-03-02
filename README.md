@@ -2,6 +2,9 @@
 
 Gerador automático de YouTube Shorts alimentado por IA **100% local e gratuito**. Baixa vídeos, transcreve com Whisper local, identifica momentos virais via Ollama (qwen3-vl:4b), gera vídeos verticais com legendas estilizadas e envia para o Telegram.
 
+> ✅ **Este projeto utiliza [pnpm](https://pnpm.io) como gerenciador de pacotes por padrão.**
+> Basta rodar `pnpm install` no diretório raiz (a workspace também instala o frontend em `web/`).
+
 ## Arquitetura
 
 ```
@@ -40,6 +43,7 @@ YouTube ──▶ yt-dlp ──▶ FFmpeg (audio) ──▶ Whisper local ──
 ### Pré-requisitos
 
 - **Node.js** ≥ 20
+- **pnpm** (instale globalmente via `npm install -g pnpm` ou consulte https://pnpm.io/installation)
 - **FFmpeg** instalado e no PATH
 - **yt-dlp** instalado e no PATH
 - **Python 3.9+** com `pip install openai-whisper`
@@ -55,11 +59,8 @@ YouTube ──▶ yt-dlp ──▶ FFmpeg (audio) ──▶ Whisper local ──
 git clone https://github.com/juninmd/shorts-generator.git
 cd shorts-generator
 
-# Instalar dependências do backend
-npm install
-
-# Instalar dependências do frontend
-cd web && npm install && cd ..
+# Instalar dependências (root e frontend) usando pnpm
+pnpm install
 
 # Instalar Whisper local
 pip install openai-whisper
@@ -97,29 +98,29 @@ cp .env.example .env
 
 ```bash
 # Gerar shorts dos canais configurados no .env
-npm run generate
+pnpm run generate
 
 # Gerar de uma URL específica
-npx tsx src/cli.ts generate --url "https://www.youtube.com/watch?v=VIDEO_ID"
+pnpm tsx src/cli.ts generate --url "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # Gerar de um canal específico
-npx tsx src/cli.ts generate --channel "@channelHandle"
+pnpm tsx src/cli.ts generate --channel "@channelHandle"
 
 # Buscar vídeos dos últimos 3 dias
-npx tsx src/cli.ts generate --days 3
+pnpm tsx src/cli.ts generate --days 3
 
 # Iniciar servidor API
-npm run dev
+pnpm run dev
 ```
 
 ### Frontend (Web UI)
 
 ```bash
 # Terminal 1: Backend
-npm run dev
+pnpm run dev
 
 # Terminal 2: Frontend
-npm run web:dev
+pnpm run web:dev
 ```
 
 Acesse `http://localhost:5173` para a interface web.
