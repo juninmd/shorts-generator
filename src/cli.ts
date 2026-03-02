@@ -98,7 +98,7 @@ async function main() {
 ╚══════════════════════════════════════════════╝
 
 Usage:
-  npx tsx src/cli.ts <command> [options]
+  pnpm run cli -- <command> [options]
 
 Commands:
   generate    Generate shorts from YouTube videos
@@ -110,9 +110,9 @@ Options (generate):
   --days <n>          Number of days back to fetch (default: 1)
 
 Examples:
-  npx tsx src/cli.ts generate --url "https://youtube.com/watch?v=xxx"
-  npx tsx src/cli.ts generate --channel "@channelHandle"
-  npx tsx src/cli.ts generate --days 3
+  pnpm run cli -- generate --url "https://youtube.com/watch?v=xxx"
+  pnpm run cli -- generate --channel "@channelHandle"
+  pnpm run cli -- generate --days 3
 
 Environment Variables:
   See .env.example for all configuration options.

@@ -43,7 +43,7 @@ YouTube ──▶ yt-dlp ──▶ FFmpeg (audio) ──▶ Whisper local ──
 ### Pré-requisitos
 
 - **Node.js** ≥ 20
-- **pnpm** (instale globalmente via `npm install -g pnpm` ou consulte https://pnpm.io/installation)
+- **pnpm** (recomendado via `corepack enable`; veja também https://pnpm.io/installation)
 - **FFmpeg** instalado e no PATH
 - **yt-dlp** instalado e no PATH
 - **Python 3.9+** com `pip install openai-whisper`
@@ -101,13 +101,13 @@ cp .env.example .env
 pnpm run generate
 
 # Gerar de uma URL específica
-pnpm tsx src/cli.ts generate --url "https://www.youtube.com/watch?v=VIDEO_ID"
+pnpm run cli -- generate --url "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # Gerar de um canal específico
-pnpm tsx src/cli.ts generate --channel "@channelHandle"
+pnpm run cli -- generate --channel "@channelHandle"
 
 # Buscar vídeos dos últimos 3 dias
-pnpm tsx src/cli.ts generate --days 3
+pnpm run cli -- generate --days 3
 
 # Iniciar servidor API
 pnpm run dev
