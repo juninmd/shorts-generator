@@ -185,7 +185,7 @@ export async function downloadVideo(
       [
         ...getYtDlpCookiesArgs(config, tempCookiePath),
         "-f",
-        "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+        "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
         "--merge-output-format",
         "mp4",
         "-o",
