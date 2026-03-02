@@ -1,0 +1,17 @@
+node_modules/
+dist/
+output/
+temp/
+*.mp4
+*.mp3
+*.wav
+*.webm
+*.ass
+*.srt
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+web/dist/
+web/node_modules/

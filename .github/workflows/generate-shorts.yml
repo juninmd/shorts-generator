@@ -1,0 +1,81 @@
+name: Generate Shorts
+
+on:
+  schedule:
+    # Runs daily at 06:00 UTC (03:00 BRT)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      video_urls:
+        description: "Comma-separated YouTube video URLs (optional, overrides channel scan)"
+        required: false
+        type: string
+      days_back:
+        description: "Number of days back to fetch videos"
+        required: false
+        default: "1"
+        type: string
+      channels:
+        description: "Comma-separated channel handles (optional, overrides env var)"
+        required: false
+        type: string
+
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+  YOUTUBE_CHANNELS: ${{ vars.YOUTUBE_CHANNELS }}
+  DAYS_BACK: ${{ github.event.inputs.days_back || vars.DAYS_BACK || '1' }}
+  VIDEO_URLS: ${{ github.event.inputs.video_urls || '' }}
+  OUTPUT_DIR: ./output
+
+jobs:
+  generate:
+    name: Generate YouTube Shorts
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install yt-dlp
+
+      - name: Verify tools
+        run: |
+          node --version
+          ffmpeg -version | head -1
+          yt-dlp --version
+
+      - name: Override channels (if provided)
+        if: ${{ github.event.inputs.channels }}
+        run: echo "YOUTUBE_CHANNELS=${{ github.event.inputs.channels }}" >> $GITHUB_ENV
+
+      - name: Run shorts generation
+        run: npx tsx src/cli.ts generate
+
+      - name: Upload generated shorts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shorts-${{ github.run_id }}
+          path: output/**/*.mp4
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf output/temp
