@@ -228,6 +228,23 @@ export async function downloadVideo(
     }
 
     if (!downloaded) {
+      logger.error({ videoId: video.id }, "All formats failed. Requesting available formats for debugging...");
+      try {
+        const { stdout } = await execFileAsync(
+          "yt-dlp",
+          [
+            ...getYtDlpCookiesArgs(config, tempCookiePath),
+            "--list-formats",
+            "--",
+            video.url,
+          ],
+          { maxBuffer: 10 * 1024 * 1024, timeout: 60_000 }
+        );
+        logger.info({ videoId: video.id, formats: stdout }, "Available formats for this video:");
+      } catch (listErr: any) {
+        logger.error({ error: listErr.message }, "Failed to fetch available formats listing.");
+      }
+
       throw new Error(`Failed to download video after trying all formats. Last error: ${lastError?.message || 'Unknown error'}`);
     }
 
