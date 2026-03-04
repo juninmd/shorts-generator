@@ -129,7 +129,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         try {
           raw = JSON.parse(trimmed);
           break;
-        } catch {}
+        } catch { }
       }
     }
 
@@ -185,7 +185,7 @@ export async function downloadVideo(
       [
         ...getYtDlpCookiesArgs(config, tempCookiePath),
         "-f",
-        "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
+        "bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b",
         "--merge-output-format",
         "mp4",
         "-o",
