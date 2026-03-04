@@ -179,13 +179,91 @@ export async function downloadVideo(
       fs.writeFileSync(tempCookiePath, Buffer.from(config.youtubeCookiesBase64, "base64").toString("utf-8"));
     }
 
-    const formatsToTry = [
+    // 1. Get available formats via user instruction: "antes de usar algum formato padrão, use --list-formats e pegue o formato melhor possível."
+    let dynamicallySelectedFormat: string | null = null;
+    try {
+      logger.info({ videoId: video.id }, "Fetching available formats via --list-formats...");
+      const { stdout } = await execFileAsync(
+        "yt-dlp",
+        [
+          ...getYtDlpCookiesArgs(config, tempCookiePath),
+          "--list-formats",
+          "--",
+          video.url,
+        ],
+        { maxBuffer: 10 * 1024 * 1024, timeout: 60_000 }
+      );
+
+      const lines = stdout.trim().split('\n');
+      let readingFormats = false;
+      const audioIds: string[] = [];
+      const videoIds: string[] = [];
+      const combinedIds: string[] = [];
+
+      for (const line of lines) {
+        if (line.match(/^ID\s+EXT\s+RESOLUTION/)) {
+          readingFormats = true;
+          continue;
+        }
+        if (line.includes('---')) continue;
+
+        if (readingFormats && line.trim()) {
+          // Skip storyboards which usually indicate the video is blocked or only serving thumbnails
+          if (line.includes('mhtml') || line.includes('storyboard') || line.includes('images')) {
+            continue;
+          }
+
+          const match = line.trim().match(/^([a-zA-Z0-9_\-]+)\s+/);
+          if (!match) continue;
+
+          const id = match[1];
+
+          if (line.includes('audio only')) {
+            audioIds.push(id);
+          } else if (line.includes('video only')) {
+            videoIds.push(id);
+          } else {
+            combinedIds.push(id);
+          }
+        }
+      }
+
+      if (audioIds.length === 0 && videoIds.length === 0 && combinedIds.length === 0) {
+        logger.error("Only storyboard formats available or no valid formats found! YouTube might be blocking the download (e.g., bot detection/cookies issue).");
+        throw new Error("No valid video formats found. Only storyboards available.");
+      }
+
+      // select best possible based on the list
+      if (videoIds.length > 0 && audioIds.length > 0) {
+        dynamicallySelectedFormat = `${videoIds[videoIds.length - 1]}+${audioIds[audioIds.length - 1]}`;
+      } else if (combinedIds.length > 0) {
+        dynamicallySelectedFormat = combinedIds[combinedIds.length - 1];
+      } else if (videoIds.length > 0) {
+        dynamicallySelectedFormat = videoIds[videoIds.length - 1]; // highly unlikely, but just in case
+      }
+
+      logger.info({ dynamicallySelectedFormat }, "Dynamically selected format from --list-formats");
+
+    } catch (listErr: any) {
+      if (listErr.message.includes("No valid video formats found")) {
+        throw listErr; // Propagate blocking issue
+      }
+      logger.warn({ error: listErr.message }, "Failed to parse --list-formats, proceeding with default formats...");
+    }
+
+    const formatsToTry = [];
+    if (dynamicallySelectedFormat) {
+      formatsToTry.push(dynamicallySelectedFormat);
+    }
+
+    // Default fallback formats
+    formatsToTry.push(
       "bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4][height<=1080]/bv*+ba/b",
       "bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b",
       "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
       "bestvideo+bestaudio/best",
-      "best",
-    ];
+      "best"
+    );
 
     let downloaded = false;
     let lastError: any = null;
@@ -228,23 +306,6 @@ export async function downloadVideo(
     }
 
     if (!downloaded) {
-      logger.error({ videoId: video.id }, "All formats failed. Requesting available formats for debugging...");
-      try {
-        const { stdout } = await execFileAsync(
-          "yt-dlp",
-          [
-            ...getYtDlpCookiesArgs(config, tempCookiePath),
-            "--list-formats",
-            "--",
-            video.url,
-          ],
-          { maxBuffer: 10 * 1024 * 1024, timeout: 60_000 }
-        );
-        logger.info({ videoId: video.id, formats: stdout }, "Available formats for this video:");
-      } catch (listErr: any) {
-        logger.error({ error: listErr.message }, "Failed to fetch available formats listing.");
-      }
-
       throw new Error(`Failed to download video after trying all formats. Last error: ${lastError?.message || 'Unknown error'}`);
     }
 
