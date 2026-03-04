@@ -179,13 +179,22 @@ export async function downloadVideo(
       fs.writeFileSync(tempCookiePath, Buffer.from(config.youtubeCookiesBase64, "base64").toString("utf-8"));
     }
 
-    // Download video (best quality up to 1080p)
-    await execFileAsync(
-      "yt-dlp",
-      [
+    const formatsToTry = [
+      "bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4][height<=1080]/bv*+ba/b",
+      "bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b",
+      "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+      "bestvideo+bestaudio/best",
+      "best",
+    ];
+
+    let downloaded = false;
+    let lastError: any = null;
+
+    for (const format of formatsToTry) {
+      const args = [
         ...getYtDlpCookiesArgs(config, tempCookiePath),
         "-f",
-        "bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b",
+        format,
         "--merge-output-format",
         "mp4",
         "-o",
@@ -194,9 +203,33 @@ export async function downloadVideo(
         "--no-warnings",
         "--",
         video.url,
-      ],
-      { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 },
-    );
+      ];
+
+      logger.info({ format, cmd: `yt-dlp ${args.join(" ")}` }, "Trying to download video with format");
+
+      try {
+        await execFileAsync("yt-dlp", args, { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 });
+
+        // Check if the file was created
+        const files = fs.readdirSync(videoDir);
+        const hasVideo = files.some(f => f.startsWith(video.id) && !f.endsWith(".wav") && !f.endsWith(".txt"));
+
+        if (hasVideo) {
+          downloaded = true;
+          logger.info({ format }, "Video downloaded successfully with format");
+          break;
+        } else {
+          logger.warn({ format }, "yt-dlp succeeded but no video file was found, trying next format...");
+        }
+      } catch (err: any) {
+        lastError = err;
+        logger.warn({ format, error: err.message }, "yt-dlp failed with format, trying next...");
+      }
+    }
+
+    if (!downloaded) {
+      throw new Error(`Failed to download video after trying all formats. Last error: ${lastError?.message || 'Unknown error'}`);
+    }
 
     // Find the actual downloaded video file (it might not be .mp4 if it fell back to /best)
     const files = fs.readdirSync(videoDir);
