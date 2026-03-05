@@ -15,3 +15,8 @@ temp/
 Thumbs.db
 web/dist/
 web/node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+coverage/
+cookies.txt
