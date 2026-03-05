@@ -80,15 +80,24 @@ function renderShort(
       .replace(/\\/g, "/")
       .replace(/:/g, "\\:");
 
-    // Video filter: crop to 9:16 center, scale to target resolution, burn subtitles
-    const videoFilter = [
+    // Escape watermark text
+    const watermarkText = (config.watermarkText || "").replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'").replace(/%/g, '\\%');
+
+    // Video filter: crop to 9:16 center, scale to target resolution, burn subtitles, draw watermark
+    const filters = [
       // Crop to 9:16 aspect ratio from center of frame
       `crop=min(iw\\,ih*${w}/${h}):min(ih\\,iw*${h}/${w})`,
       // Scale to target resolution
       `scale=${w}:${h}`,
       // Burn ASS subtitles
       `ass='${escapedSubPath}'`,
-    ].join(",");
+    ];
+
+    if (watermarkText) {
+      filters.push(`drawtext=text='${watermarkText}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.6:shadowcolor=black@0.6:shadowx=2:shadowy=2`);
+    }
+
+    const videoFilter = filters.join(",");
 
     ffmpeg(inputPath)
       .setStartTime(clip.startTime)
