@@ -11,6 +11,7 @@ import type {
 } from "../types.js";
 import { getMaxCuts } from "./config.js";
 import { logger } from "./logger.js";
+import { snapToSentenceBoundaries } from "./clip-boundary";
 
 const ClipSchema = z.object({
   clips: z.array(
@@ -152,25 +153,30 @@ function processClips(
     })
     .sort((a, b) => b.viralScore - a.viralScore)
     .slice(0, maxCuts)
-    .map((clip) => ({
-      id: nanoid(10),
-      videoId: transcript.videoId,
-      title: clip.title,
-      description: clip.description,
-      startTime: clip.startTime,
-      endTime: clip.endTime,
-      duration: clip.endTime - clip.startTime,
-      viralScore: clip.viralScore,
-      reason: clip.reason,
-      hookLine: clip.hookLine,
-      transcript: getSegmentsInRange(
-        transcript.segments,
-        clip.startTime,
-        clip.endTime,
-      ),
-      words: getWordsInRange(transcript.words, clip.startTime, clip.endTime),
-      hashtags: clip.hashtags,
-    }));
+    .map((clip) => {
+      const snapped = snapToSentenceBoundaries(
+        clip, transcript.segments, config,
+      );
+      return {
+        id: nanoid(10),
+        videoId: transcript.videoId,
+        title: clip.title,
+        description: clip.description,
+        startTime: snapped.startTime,
+        endTime: snapped.endTime,
+        duration: snapped.endTime - snapped.startTime,
+        viralScore: clip.viralScore,
+        reason: clip.reason,
+        hookLine: clip.hookLine,
+        transcript: getSegmentsInRange(
+          transcript.segments, snapped.startTime, snapped.endTime,
+        ),
+        words: getWordsInRange(
+          transcript.words, snapped.startTime, snapped.endTime,
+        ),
+        hashtags: clip.hashtags,
+      };
+    });
 
   logger.info(
     {
@@ -220,21 +226,28 @@ Analyze the transcript below and identify the **best moments** that could genera
 - **Channel:** ${channelName}
 - **Total duration:** ${formatTime(totalDuration)}
 
+## CRITICAL — Cut Boundaries (HIGHEST PRIORITY):
+- NEVER start a clip in the middle of a sentence
+- NEVER end a clip in the middle of a sentence
+- Each clip MUST start at the BEGINNING of a complete sentence/thought
+- Each clip MUST end at the END of a complete sentence/thought
+- The viewer must feel that the clip has a clear beginning, development, and conclusion
+- Use the transcript timestamps: startTime = segment start, endTime = segment end
+
 ## Selection criteria:
-1. **Strong hook** — first 3 seconds must grab attention
-2. **Self-contained** — the excerpt must make sense on its own
+1. **Self-contained** — the excerpt MUST make complete sense on its own, with a clear beginning and ending
+2. **Strong hook** — first 3 seconds must grab attention
 3. **Emotion or surprise** — moments that generate reactions
 4. **Valuable info** — tips, revelations, surprising data
 5. **Shareability** — something people would want to share
-6. **Clean cuts** — start and end at natural speech pauses
 
 ## Rules:
 - Find at most **${maxClips} clips**
 - Each clip must be between **${minDuration}** and **${maxDuration} seconds**
 - Clips must NOT overlap
 - Prioritize quality over quantity
-- Times must match EXACTLY the transcript timestamps
-- Add ~1 second margin before/after
+- startTime and endTime MUST align with transcript segment boundaries
+- The conversation in the clip must have a natural beginning and end
 
 ## Transcript:
 ${transcript}
