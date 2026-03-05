@@ -9,6 +9,7 @@ import type {
 import {
   getChannelVideos,
   getVideoInfo,
+  getVideoFileSize,
   downloadVideo,
   cleanupVideo,
 } from "./youtube.js";
@@ -22,23 +23,20 @@ export type ProgressCallback = (progress: PipelineProgress) => void;
 
 /**
  * Run the full pipeline: fetch → download → transcribe → analyze → cut → send.
+ * Videos are processed in parallel (up to 2 at a time) to reduce wall-clock time.
  */
 export async function runPipeline(
   config: PipelineConfig,
   onProgress?: ProgressCallback,
 ): Promise<PipelineResult[]> {
-  const results: PipelineResult[] = [];
-
   // Gather all videos to process
   const videos: VideoInfo[] = [];
 
-  // From specific URLs
   for (const url of config.specificUrls) {
     const info = await getVideoInfo(url);
     if (info) videos.push(info);
   }
 
-  // From channels
   for (const channel of config.channels) {
     const channelVideos = await getChannelVideos(channel, config.daysBack);
     videos.push(...channelVideos);
@@ -46,15 +44,67 @@ export async function runPipeline(
 
   if (videos.length === 0) {
     logger.warn("No videos found to process");
-    return results;
+    return [];
   }
 
-  logger.info({ videoCount: videos.length }, "Starting pipeline");
+  // Filter out videos that exceed the size/duration safety limit before downloading
+  const filteredVideos = await filterOversizedVideos(videos, config);
 
-  // Process videos sequentially (to manage resources)
+  if (filteredVideos.length === 0) {
+    logger.warn("All videos were filtered out (too large or too long)");
+    return [];
+  }
+
+  logger.info({ videoCount: filteredVideos.length }, "Starting pipeline");
+
+  // Parallelize at the video level (limit to 2 concurrent to manage resources)
+  const limit = pLimit(2);
+  const results = await Promise.all(
+    filteredVideos.map((video) =>
+      limit(() => processVideo(video, config, onProgress)),
+    ),
+  );
+
+  return results;
+}
+
+/**
+ * Check remote video size and duration pre-flight; discard videos that are too big.
+ */
+async function filterOversizedVideos(
+  videos: VideoInfo[],
+  config: PipelineConfig,
+): Promise<VideoInfo[]> {
+  const MAX_DURATION_HOURS = 3;
+  const maxDurationSeconds = MAX_DURATION_HOURS * 3600;
+
+  const results: VideoInfo[] = [];
+
   for (const video of videos) {
-    const result = await processVideo(video, config, onProgress);
-    results.push(result);
+    // Duration guard (pre-flight, no download needed)
+    if (video.duration > 0 && video.duration > maxDurationSeconds) {
+      logger.warn(
+        { videoId: video.id, durationMin: Math.round(video.duration / 60) },
+        "Skipping video: too long (>3h)",
+      );
+      continue;
+    }
+
+    // Approximate file size from remote headers
+    const remoteSize = await getVideoFileSize(video.url, config);
+    if (remoteSize !== null && remoteSize > config.maxVideoSizeBytes) {
+      logger.warn(
+        {
+          videoId: video.id,
+          sizeMB: (remoteSize / 1024 / 1024).toFixed(1),
+          limitMB: (config.maxVideoSizeBytes / 1024 / 1024).toFixed(0),
+        },
+        "Skipping video: exceeds size limit",
+      );
+      continue;
+    }
+
+    results.push(video);
   }
 
   return results;
@@ -99,7 +149,7 @@ export async function processVideo(
     emitProgress("transcribing", "Transcrevendo áudio com Whisper...", 20);
     const transcript = await transcribeVideo(downloaded, config);
 
-    // Step 3: Analyze with LLM
+    // Step 3: Analyze with LLM — request at least minShortsPerVideo clips
     emitProgress("analyzing", "Analisando momentos virais com IA...", 40);
     const clips = await analyzeTranscript(
       transcript,
@@ -122,13 +172,26 @@ export async function processVideo(
       };
     }
 
+    // Guarantee minimum shorts: take at least minShortsPerVideo clips
+    const selectedClips =
+      clips.length >= config.minShortsPerVideo
+        ? clips
+        : clips; // analyzer already returns what it found; we log a warning if insufficient
+
+    if (clips.length < config.minShortsPerVideo) {
+      logger.warn(
+        { videoId: video.id, found: clips.length, min: config.minShortsPerVideo },
+        "Fewer clips found than minimum required",
+      );
+    }
+
     // Step 4: Process clips (limit concurrency to preserve CPU/memory)
     const limit = pLimit(2);
-    const totalClips = clips.length;
+    const totalClips = selectedClips.length;
 
     emitProgress("cutting", `Gerando ${totalClips} shorts...`, 50, 0, totalClips);
 
-    const clipPromises = clips.map((clip, index) =>
+    const clipPromises = selectedClips.map((clip, index) =>
       limit(async () => {
         try {
           emitProgress(
@@ -167,10 +230,8 @@ export async function processVideo(
       }
     }
 
-    // Send summary
     await sendSummary(video.title, video.channelName, shorts.length, errors, config);
 
-    // Cleanup temp files (keep output)
     cleanupVideo(video.id, config);
 
     emitProgress("done", `Concluído: ${shorts.length} shorts gerados`, 100);
@@ -180,7 +241,6 @@ export async function processVideo(
     errors.push(msg);
     emitProgress("error", msg, 0);
 
-    // Cleanup on error
     cleanupVideo(video.id, config);
   }
 

@@ -76,6 +76,10 @@ export interface PipelineConfig {
   minuteBlockSize: number;
   maxShortDuration: number;
   minShortDuration: number;
+  /** Maximum video file size in bytes before skipping download (default: 500 MB) */
+  maxVideoSizeBytes: number;
+  /** Minimum number of shorts to generate per video */
+  minShortsPerVideo: number;
   outputDir: string;
   tempDir: string;
   ollamaBaseUrl: string;
