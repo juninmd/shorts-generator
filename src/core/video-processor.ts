@@ -81,7 +81,7 @@ function renderShort(
       .replace(/:/g, "\\:");
 
     // Escape watermark text
-    const watermarkText = (config.watermarkText || "").replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'").replace(/%/g, '\\%');
+    const watermarkText = (config.watermarkText || "").replace(/[\\':,=\[\];%]/g, (c) => `\\${c}`);
 
     // Video filter: crop to 9:16 center, scale to target resolution, burn subtitles, draw watermark
     const filters = [
