@@ -9,7 +9,7 @@ import type {
   TranscriptWord,
   PipelineConfig,
 } from "../types.js";
-import { getMaxCuts } from "./config.js";
+import { getMaxCuts, getMinCuts } from "./config.js";
 import { logger } from "./logger.js";
 import { snapToSentenceBoundaries } from "./clip-boundary";
 
@@ -37,15 +37,19 @@ export async function analyzeTranscript(
   channelName: string,
   config: PipelineConfig,
 ): Promise<ShortClip[]> {
-  const maxCuts = getMaxCuts(
-    transcript.duration,
-    config.maxCutsPerBlock,
-    config.minuteBlockSize,
-  );
+  const maxCuts = getMaxCuts(transcript.duration);
+  const minCuts = getMinCuts(transcript.duration);
+
+  // The LLM is instructed to generate a specific number of clips. The new requirement
+  // is to generate at least `minCuts` (2 per minute), which may be higher than `maxCuts`
+  // (1 per minute). We'll target the higher of the two values to ensure the minimum is met.
+  const targetCuts = Math.max(minCuts, maxCuts);
 
   logger.info(
     {
       videoId: transcript.videoId,
+      targetCuts,
+      minCuts,
       maxCuts,
       duration: transcript.duration,
       model: config.ollamaModel,
@@ -60,7 +64,7 @@ export async function analyzeTranscript(
     formattedTranscript,
     videoTitle,
     channelName,
-    maxCuts,
+    targetCuts,
     config.minShortDuration,
     config.maxShortDuration,
     transcript.duration,
@@ -98,10 +102,10 @@ export async function analyzeTranscript(
       return [];
     }
 
-    return processClips(retryParsed, transcript, config, maxCuts);
+    return processClips(retryParsed, transcript, config, targetCuts);
   }
 
-  return processClips(parsed, transcript, config, maxCuts);
+  return processClips(parsed, transcript, config, targetCuts);
 }
 
 /**
@@ -219,7 +223,8 @@ function buildAnalysisPrompt(
 ): string {
   return `You are an expert in viral content for YouTube Shorts, TikTok and Instagram Reels.
 
-Analyze the transcript below and identify the **best moments** that could generate viral shorts.
+Analyze the transcript below and identify the **most viral, highly engaging moments** that are practically guaranteed to perform well.
+You must find EXACTLY **${maxClips} clips**. Do not generate fewer clips than requested.
 
 ## Video Info
 - **Title:** ${videoTitle}
@@ -234,20 +239,19 @@ Analyze the transcript below and identify the **best moments** that could genera
 - The viewer must feel that the clip has a clear beginning, development, and conclusion
 - Use the transcript timestamps: startTime = segment start, endTime = segment end
 
-## Selection criteria:
-1. **Self-contained** — the excerpt MUST make complete sense on its own, with a clear beginning and ending
-2. **Strong hook** — first 3 seconds must grab attention
-3. **Emotion or surprise** — moments that generate reactions
-4. **Valuable info** — tips, revelations, surprising data
-5. **Shareability** — something people would want to share
+## Selection criteria for MAXIMUM VIRALITY:
+1. **High Retention Hook** — The very first sentence must be a scroll-stopper (curiosity gap, strong opinion, or direct question).
+2. **Pacing & Energy** — The excerpt must be dense with value or emotion. Cut out boring buildups.
+3. **Self-contained Story/Idea** — It MUST make complete sense to a viewer who has never seen the full video.
+4. **Strong Payoff** — The end of the clip should resolve the hook or deliver a punchline/revelation.
+5. **Shareability & Controversy** — Does this make someone want to send it to a friend or comment immediately?
 
 ## Rules:
-- Find at most **${maxClips} clips**
+- You MUST find EXACTLY **${maxClips} clips**. If you cannot find perfect clips, lower your standards slightly to meet the count.
 - Each clip must be between **${minDuration}** and **${maxDuration} seconds**
 - Clips must NOT overlap
-- Prioritize quality over quantity
-- startTime and endTime MUST align with transcript segment boundaries
-- The conversation in the clip must have a natural beginning and end
+- startTime and endTime MUST perfectly align with transcript segment boundaries
+- Generate clickbaity, punchy titles that provoke curiosity (e.g. "The TRUTH about X", "Why you've been doing Y wrong").
 
 ## Transcript:
 ${transcript}
