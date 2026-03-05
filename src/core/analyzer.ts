@@ -40,9 +40,9 @@ export async function analyzeTranscript(
   const maxCuts = getMaxCuts(transcript.duration);
   const minCuts = getMinCuts(transcript.duration);
 
-  // If minCuts > maxCuts (e.g. 2 per minute vs 1 per minute),
-  // we will adjust the prompt to generate between maxCuts and minCuts.
-  // Actually, we'll ask for exactly minCuts if they are contradictory.
+  // The LLM is instructed to generate a specific number of clips. The new requirement
+  // is to generate at least `minCuts` (2 per minute), which may be higher than `maxCuts`
+  // (1 per minute). We'll target the higher of the two values to ensure the minimum is met.
   const targetCuts = Math.max(minCuts, maxCuts);
 
   logger.info(
