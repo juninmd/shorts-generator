@@ -60,6 +60,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     youtubeCookiesBrowser: optionalEnv("YOUTUBE_COOKIES_BROWSER", ""),
     youtubeCookiesFile: optionalEnv("YOUTUBE_COOKIES_FILE", ""),
     youtubeCookiesBase64: optionalEnv("YOUTUBE_COOKIES_BASE64", ""),
+    watermarkText: optionalEnv("WATERMARK_TEXT", "santidade católica"),
     ...overrides,
   };
 
@@ -68,14 +69,16 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
 
 /**
  * Calculate maximum number of cuts allowed for a video based on its duration.
- * Rule: 10 cuts per 20 minutes of video.
+ * New Rule: a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo
  */
-export function getMaxCuts(
-  videoDurationSeconds: number,
-  cutsPerBlock: number = 10,
-  blockSizeMinutes: number = 20,
-): number {
-  const durationMinutes = videoDurationSeconds / 60;
-  const blocks = Math.ceil(durationMinutes / blockSizeMinutes);
-  return blocks * cutsPerBlock;
+export function getMaxCuts(videoDurationSeconds: number): number {
+  const durationMinutes = Math.floor(videoDurationSeconds / 60);
+  // Maximum cuts = amount of minutes
+  return Math.max(1, durationMinutes);
+}
+
+export function getMinCuts(videoDurationSeconds: number): number {
+  const durationMinutes = Math.floor(videoDurationSeconds / 60);
+  // Minimum cuts = 2 per minute of video
+  return Math.max(2, durationMinutes * 2);
 }
