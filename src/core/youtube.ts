@@ -360,3 +360,45 @@ export function cleanupVideo(videoId: string, config: PipelineConfig): void {
     logger.warn({ videoId }, "Failed to cleanup temp files");
   }
 }
+
+/**
+ * Estimate remote video file size (bytes) using yt-dlp without downloading.
+ * Returns null if the size cannot be determined.
+ */
+export async function getVideoFileSize(
+  url: string,
+  config: PipelineConfig,
+): Promise<number | null> {
+  let tempCookiePath: string | undefined;
+  try {
+    const base64Cookies = config.youtubeCookiesBase64 || process.env.YOUTUBE_COOKIES_BASE64;
+    if (base64Cookies) {
+      tempCookiePath = path.join(process.cwd(), `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
+      fs.writeFileSync(tempCookiePath, Buffer.from(base64Cookies, "base64").toString("utf-8"));
+    }
+
+    const { stdout } = await execFileAsync(
+      "yt-dlp",
+      [
+        ...getYtDlpBaseArgs(config, tempCookiePath),
+        "--print", "%(filesize_approx)s",
+        "--no-playlist",
+        "--no-warnings",
+        "--",
+        url,
+      ],
+      { maxBuffer: 1 * 1024 * 1024, timeout: 30_000 },
+    );
+
+    const raw = stdout.trim();
+    if (!raw || raw === "NA" || raw === "None" || raw === "null") return null;
+    const size = parseInt(raw, 10);
+    return isNaN(size) ? null : size;
+  } catch {
+    return null; // non-fatal: size check is best-effort
+  } finally {
+    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
+      fs.unlinkSync(tempCookiePath);
+    }
+  }
+}

@@ -2,8 +2,8 @@ name: Generate Shorts
 
 on:
   schedule:
-    # Runs daily at 06:00 UTC (03:00 BRT)
-    - cron: "0 6 * * *"
+    # Runs every hour
+    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
       video_urls:
@@ -13,7 +13,7 @@ on:
       days_back:
         description: "Number of days back to fetch videos"
         required: false
-        default: "1"
+        default: "0"
         type: string
       channels:
         description: "Comma-separated channel handles (optional, overrides env var)"
@@ -26,19 +26,23 @@ env:
   YOUTUBE_CHANNELS: ${{ vars.YOUTUBE_CHANNELS }}
   OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen3:1.7b' }}
   WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'base' }}
-  DAYS_BACK: ${{ github.event.inputs.days_back || vars.DAYS_BACK || '1' }}
+  # For hourly runs, only fetch videos from the last hour (0 = today, fine-grained via upload_date)
+  DAYS_BACK: ${{ github.event.inputs.days_back || vars.DAYS_BACK || '0' }}
   VIDEO_URLS: ${{ github.event.inputs.video_urls || '' }}
   OUTPUT_DIR: ./output
   PIP_CACHE_DIR: ~/.cache/pip
   WHISPER_CACHE_DIR: ~/.cache/whisper
   OLLAMA_MODELS_DIR: ~/.ollama/models
   YOUTUBE_COOKIES_BASE64: ${{ secrets.YOUTUBE_COOKIES_BASE64 }}
+  # Safety limits
+  MAX_VIDEO_SIZE_MB: ${{ vars.MAX_VIDEO_SIZE_MB || '500' }}
+  MIN_SHORTS_PER_VIDEO: ${{ vars.MIN_SHORTS_PER_VIDEO || '2' }}
 
 jobs:
   generate:
     name: Generate YouTube Shorts
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
