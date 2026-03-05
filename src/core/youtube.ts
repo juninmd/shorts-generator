@@ -8,11 +8,11 @@ import { logger } from "./logger.js";
 
 const execFileAsync = promisify(execFile);
 
-function getYtDlpCookiesArgs(config?: PipelineConfig, tempCookieFile?: string): string[] {
+function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): string[] {
   const browser = config?.youtubeCookiesBrowser || process.env.YOUTUBE_COOKIES_BROWSER;
   const file = tempCookieFile || config?.youtubeCookiesFile || process.env.YOUTUBE_COOKIES_FILE;
 
-  const args: string[] = [];
+  const args: string[] = ["--js-runtimes", "node"];
   if (browser) {
     args.push("--cookies-from-browser", browser);
   } else if (file) {
@@ -46,7 +46,7 @@ export async function getChannelVideos(
     const { stdout } = await execFileAsync(
       "yt-dlp",
       [
-        ...getYtDlpCookiesArgs(undefined, tempCookiePath),
+        ...getYtDlpBaseArgs(undefined, tempCookiePath),
         "--flat-playlist",
         "--print",
         '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
@@ -111,7 +111,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
     const { stdout } = await execFileAsync(
       "yt-dlp",
       [
-        ...getYtDlpCookiesArgs(undefined, tempCookiePath),
+        ...getYtDlpBaseArgs(undefined, tempCookiePath),
         "--print",
         '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
         "--no-warnings",
@@ -186,7 +186,7 @@ export async function downloadVideo(
       const { stdout } = await execFileAsync(
         "yt-dlp",
         [
-          ...getYtDlpCookiesArgs(config, tempCookiePath),
+          ...getYtDlpBaseArgs(config, tempCookiePath),
           "--list-formats",
           "--",
           video.url,
@@ -270,7 +270,7 @@ export async function downloadVideo(
 
     for (const format of formatsToTry) {
       const args = [
-        ...getYtDlpCookiesArgs(config, tempCookiePath),
+        ...getYtDlpBaseArgs(config, tempCookiePath),
         "-f",
         format,
         "--merge-output-format",

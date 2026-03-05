@@ -3,8 +3,9 @@ import { config as dotenvConfig } from "dotenv";
 dotenvConfig();
 
 import { loadConfig } from "./core/config.js";
-import { runPipeline, processUrl } from "./core/pipeline.js";
+import { runPipeline } from "./core/pipeline.js";
 import { logger } from "./core/logger.js";
+import { startServer } from "./server/index.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -86,8 +87,7 @@ async function main() {
     }
 
     case "server": {
-      // Dynamically import and start the server
-      await import("./server/index.js");
+      startServer();
       break;
     }
 
