@@ -5,7 +5,7 @@ import type { PipelineConfig } from "../types.js";
 
 dotenvConfig();
 
-function requiredEnv(key: string, fallback?: string): string {
+export function requiredEnv(key: string, fallback?: string): string {
   const value = process.env[key] ?? fallback;
   if (!value) {
     throw new Error(`Missing required environment variable: ${key}`);
@@ -13,7 +13,7 @@ function requiredEnv(key: string, fallback?: string): string {
   return value;
 }
 
-function optionalEnv(key: string, fallback: string): string {
+export function optionalEnv(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
@@ -70,16 +70,14 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
 
 /**
  * Calculate maximum number of cuts allowed for a video based on its duration.
- * New Rule: a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo
+ * Rule: a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo
  */
 export function getMaxCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
-  // Maximum cuts = amount of minutes
   return Math.max(1, durationMinutes);
 }
 
 export function getMinCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
-  // Minimum cuts = 2 per minute of video
   return Math.max(2, durationMinutes * 2);
 }
