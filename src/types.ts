@@ -84,6 +84,8 @@ export interface PipelineConfig {
   tempDir: string;
   ollamaBaseUrl: string;
   ollamaModel: string;
+  /** Timeout in milliseconds for Ollama HTTP requests (default: 300_000 = 5 min) */
+  ollamaTimeoutMs: number;
   whisperModel: string;
   telegramBotToken: string;
   telegramChatId: string;
