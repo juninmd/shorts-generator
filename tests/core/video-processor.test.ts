@@ -93,5 +93,47 @@ describe("video-processor", () => {
     expect(result.outputPath).toContain("clip1.mp4");
     expect(result.subtitlePath).toContain("clip1.ass");
     expect(result.status).toBe("completed");
+
+    // Verify watermark in videoFilters
+    const videoFiltersCall = vi.mocked(ffmpegModule.default().videoFilters).mock.calls[0];
+    const filtersParam = videoFiltersCall[0] as string;
+    expect(filtersParam).toContain("drawtext=text='Test Watermark':x=w-tw-10:y=h-th-10:fontsize=18");
+  });
+
+  it("processClip should handle ffmpeg start, progress, and error events", async () => {
+    const configWithoutWatermark = { ...mockConfig, watermarkText: "" };
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default().on).mockImplementation((event, handler) => {
+      if (event === "start") {
+        (handler as any)("ffmpeg -i test");
+      } else if (event === "progress") {
+        (handler as any)({ percent: 50.5 });
+        (handler as any)({}); // progress without percent
+      } else if (event === "error") {
+        setTimeout(() => (handler as any)(new Error("Test error")), 0);
+      }
+      return ffmpegModule.default();
+    });
+
+    await expect(processClip(mockVideo, mockClip, configWithoutWatermark)).rejects.toThrow("Test error");
+  });
+
+  it("getVideoDuration handles errors", async () => {
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(new Error("ffprobe error"), null as any);
+    });
+
+    await expect(getVideoDuration("test.mp4")).rejects.toThrow("ffprobe error");
+  });
+
+  it("getVideoDuration handles missing format duration", async () => {
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(null, {} as any);
+    });
+
+    const duration = await getVideoDuration("test.mp4");
+    expect(duration).toBe(0);
   });
 });
