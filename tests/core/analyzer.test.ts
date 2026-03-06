@@ -2,9 +2,22 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { analyzeTranscript } from "../../src/core/analyzer.js";
 import type { Transcript, PipelineConfig } from "../../src/types.js";
 import * as aiModule from "ai";
+import * as undiciModule from "undici";
 
 vi.mock("ai", () => ({
   generateText: vi.fn(),
+}));
+
+vi.mock("undici", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  Agent: vi.fn(function AgentMock() {}),
+  fetch: vi.fn(),
+}));
+
+vi.mock("ollama-ai-provider", () => ({
+  createOllama: vi.fn().mockReturnValue(
+    vi.fn().mockReturnValue({ id: "mock-model" }),
+  ),
 }));
 
 describe("analyzer", () => {
@@ -12,6 +25,8 @@ describe("analyzer", () => {
     minShortDuration: 15,
     maxShortDuration: 60,
     ollamaModel: "qwen3-vl:4b",
+    ollamaBaseUrl: "http://localhost:11434",
+    ollamaTimeoutMs: 300_000,
     minuteBlockSize: 20,
     maxCutsPerBlock: 10,
   } as PipelineConfig;
@@ -110,5 +125,45 @@ describe("analyzer", () => {
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
     expect(clips).toHaveLength(1);
+  });
+
+  it("should create an undici Agent with the configured ollamaTimeoutMs", async () => {
+    const customConfig: PipelineConfig = {
+      ...mockConfig,
+      ollamaTimeoutMs: 600_000,
+    };
+
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: '{"clips":[]}' } as any);
+
+    await analyzeTranscript(mockTranscript, "Title", "Channel", customConfig);
+
+    expect(undiciModule.Agent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headersTimeout: 600_000,
+        bodyTimeout: 600_000,
+      }),
+    );
+  });
+
+  it("should use default ollamaTimeoutMs of 300_000 when not overridden", async () => {
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: '{"clips":[]}' } as any);
+
+    await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+
+    expect(undiciModule.Agent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headersTimeout: 300_000,
+        bodyTimeout: 300_000,
+      }),
+    );
+  });
+
+  it("should return empty array when LLM fails after retry", async () => {
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: "not json" } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+
+    expect(aiModule.generateText).toHaveBeenCalledTimes(2);
+    expect(clips).toHaveLength(0);
   });
 });

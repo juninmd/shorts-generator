@@ -27,6 +27,18 @@ describe("config", () => {
       const config = loadConfig({ watermarkText: "custom watermark" });
       expect(config.watermarkText).toBe("custom watermark");
     });
+
+    it("should default ollamaTimeoutMs to 300000", () => {
+      const config = loadConfig();
+      expect(config.ollamaTimeoutMs).toBe(300_000);
+    });
+
+    it("should read OLLAMA_TIMEOUT_MS from environment", () => {
+      process.env.OLLAMA_TIMEOUT_MS = "600000";
+      const config = loadConfig();
+      expect(config.ollamaTimeoutMs).toBe(600_000);
+      delete process.env.OLLAMA_TIMEOUT_MS;
+    });
   });
 
   describe("getMaxCuts", () => {

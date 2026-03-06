@@ -1,5 +1,6 @@
 import { generateText } from "ai";
-import { ollama } from "ollama-ai-provider";
+import { createOllama } from "ollama-ai-provider";
+import { Agent, fetch as undiciFetch } from "undici";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import type {
@@ -27,6 +28,27 @@ const ClipSchema = z.object({
     }),
   ),
 });
+
+/**
+ * Build a fetch function backed by an undici Agent with extended timeouts for
+ * local Ollama LLM calls.  The default Node.js global fetch uses a 30-second
+ * headersTimeout which is far too short for a model generating a long JSON
+ * response — this allows at least 6× that value.
+ */
+function buildOllamaFetch(timeoutMs: number): typeof fetch {
+  const agent = new Agent({
+    headersTimeout: timeoutMs,
+    bodyTimeout: timeoutMs,
+    connectTimeout: 30_000,
+  });
+
+  // undici's fetch signature is compatible with the global fetch signature
+  return (input, init?) =>
+    undiciFetch(input as Parameters<typeof undiciFetch>[0], {
+      ...(init as Parameters<typeof undiciFetch>[1]),
+      dispatcher: agent,
+    }) as unknown as Promise<Response>;
+}
 
 /**
  * Analyze transcript using Ollama (local LLM) to identify the best moments for shorts.
@@ -70,7 +92,10 @@ export async function analyzeTranscript(
     transcript.duration,
   );
 
-  const model = ollama(config.ollamaModel, {
+  const model = createOllama({
+    baseURL: config.ollamaBaseUrl + "/api",
+    fetch: buildOllamaFetch(config.ollamaTimeoutMs),
+  })(config.ollamaModel, {
     structuredOutputs: false,
   });
 
