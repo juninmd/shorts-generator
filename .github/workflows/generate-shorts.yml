@@ -2,8 +2,8 @@ name: Generate Shorts
 
 on:
   schedule:
-    # Runs every hour
-    - cron: "0 * * * *"
+    # Runs 
+    - cron: "0 5 * * *"
   workflow_dispatch:
     inputs:
       video_urls:
@@ -48,7 +48,7 @@ jobs:
   generate:
     name: Generate YouTube Shorts
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 360
 
     steps:
       - name: Checkout repository
