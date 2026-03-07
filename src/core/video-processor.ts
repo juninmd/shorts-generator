@@ -94,7 +94,8 @@ function renderShort(
     ];
 
     if (watermarkText) {
-      filters.push(`drawtext=text='${watermarkText}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.6:shadowcolor=black@0.6:shadowx=2:shadowy=2`);
+      // Bottom right corner, well small
+      filters.push(`drawtext=text='${watermarkText}':x=w-tw-10:y=h-th-10:fontsize=18:fontcolor=white@0.6:shadowcolor=black@0.6:shadowx=1:shadowy=1`);
     }
 
     const videoFilter = filters.join(",");
@@ -153,7 +154,7 @@ export function getVideoDuration(filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, metadata) => {
       if (err) return reject(err);
-      resolve(metadata.format.duration ?? 0);
+      resolve(metadata?.format?.duration ?? 0);
     });
   });
 }

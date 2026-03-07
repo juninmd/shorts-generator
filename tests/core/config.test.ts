@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { loadConfig, getMaxCuts, getMinCuts } from "../../src/core/config.js";
+import { loadConfig, getMaxCuts, getMinCuts, requiredEnv } from "../../src/core/config.js";
 
 describe("config", () => {
   const originalEnv = process.env;
@@ -54,6 +54,14 @@ describe("config", () => {
       expect(getMinCuts(60)).toBe(2); // 1 min -> 2
       expect(getMinCuts(300)).toBe(10); // 5 min -> 10
       expect(getMinCuts(30)).toBe(2); // 0.5 min -> max(2, 0) = 2
+    });
+  });
+
+  describe("error handling", () => {
+    it("should throw error if required env is missing", () => {
+      delete process.env.TEST_REQUIRED_KEY;
+      expect(() => requiredEnv("TEST_REQUIRED_KEY")).toThrow("Missing required environment variable: TEST_REQUIRED_KEY");
+      expect(requiredEnv("TEST_REQUIRED_KEY", "fallback")).toBe("fallback");
     });
   });
 });
