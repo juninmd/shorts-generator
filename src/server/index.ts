@@ -15,3 +15,11 @@ export function startServer(): void {
     logger.info(`API docs: http://localhost:${info.port}/api/health`);
   });
 }
+
+// Start the server if this file is run directly
+import { fileURLToPath } from "node:url";
+const isMain = process.argv[1] && fileURLToPath(import.meta.url).includes(process.argv[1].replace(/\.[tj]s$/, ""));
+
+if (isMain) {
+  startServer();
+}

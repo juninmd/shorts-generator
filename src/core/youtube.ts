@@ -12,7 +12,8 @@ function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): str
   const browser = config?.youtubeCookiesBrowser || process.env.YOUTUBE_COOKIES_BROWSER;
   const file = tempCookieFile || config?.youtubeCookiesFile || process.env.YOUTUBE_COOKIES_FILE;
 
-  const args: string[] = ["--js-runtimes", "node"];
+  const args: string[] = [];
+
   if (browser) {
     args.push("--cookies-from-browser", browser);
   } else if (file) {
