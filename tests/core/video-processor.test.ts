@@ -97,7 +97,7 @@ describe("video-processor", () => {
     // Verify watermark in videoFilters
     const videoFiltersCall = vi.mocked(ffmpegModule.default().videoFilters).mock.calls[0];
     const filtersParam = videoFiltersCall[0] as string;
-    expect(filtersParam).toContain("drawtext=text='Test Watermark':x=w-tw-10:y=h-th-10:fontsize=18");
+    expect(filtersParam).toContain("drawtext=text='Test Watermark':x=w-tw-5:y=h-th-5:fontsize=12");
   });
 
   it("processClip should handle ffmpeg start, progress, and error events", async () => {
