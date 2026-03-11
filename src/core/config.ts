@@ -52,7 +52,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     tempDir,
     ollamaBaseUrl: optionalEnv("OLLAMA_BASE_URL", "http://localhost:11434"),
     ollamaModel: optionalEnv("OLLAMA_MODEL", "qwen3-vl:4b"),
-    ollamaTimeoutMs: parseInt(optionalEnv("OLLAMA_TIMEOUT_MS", "300000"), 10),
+    ollamaTimeoutMs: parseInt(optionalEnv("OLLAMA_TIMEOUT_MS", "400000"), 10),
     whisperModel: optionalEnv("WHISPER_MODEL", "base"),
     telegramBotToken: optionalEnv("TELEGRAM_BOT_TOKEN", ""),
     telegramChatId: optionalEnv("TELEGRAM_CHAT_ID", ""),
