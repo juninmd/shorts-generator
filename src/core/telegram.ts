@@ -27,7 +27,7 @@ export async function sendToTelegram(
   const caption = [
     `🎬 **${short.clip.title}**`,
     ``,
-    `📺 Canal: ${short.channelName}`,
+    `📺 Canal: ${short.channelName.replace(/[@_]/g, "\\$&")}`,
     `🎥 Vídeo original: ${short.originalVideoTitle}`,
     `🔗 ${short.originalVideoUrl}`,
     `⏱ Corte: ${timeRange}`,
@@ -92,7 +92,7 @@ export async function sendSummary(
     `📊 **Resumo do processamento**`,
     ``,
     `${status}`,
-    `📺 Canal: ${channelName}`,
+    `📺 Canal: ${channelName.replace(/[@_]/g, "\\$&")}`,
     `🎥 Vídeo: ${videoTitle}`,
     `✂️ Shorts gerados: ${shortsCount}`,
     errors.length > 0 ? `❌ Erros: ${errors.length}` : "",

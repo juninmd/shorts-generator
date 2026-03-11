@@ -61,20 +61,12 @@ export async function analyzeTranscript(
   const durationMinutes = Math.floor(transcript.duration / 60);
 
   // Rule: "Gere a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo"
-  // It translates to minimum 2 cuts per minute of video, and max cuts is the quantity of minutes of the video.
-  const minCuts = Math.max(2, durationMinutes * 2);
-  const maxCuts = Math.max(1, durationMinutes);
-
-  // The user requested a minimum of 2 cuts and a maximum equal to the duration in minutes.
-  // We'll target maxCuts, but ensure it's at least 2 to avoid generating 0 or 1 cuts for short videos.
-  const targetCuts = Math.max(2, maxCuts);
+  const targetCuts = Math.max(2, durationMinutes);
 
   logger.info(
     {
       videoId: transcript.videoId,
       targetCuts,
-      minCuts,
-      maxCuts,
       duration: transcript.duration,
       model: config.ollamaModel,
     },
@@ -267,7 +259,7 @@ You must find EXACTLY **${maxClips} clips**. Do not generate fewer clips than re
 - Use the transcript timestamps: startTime = segment start, endTime = segment end
 
 ## Selection criteria for MAXIMUM VIRALITY:
-1. **High Retention Hook** — The very first sentence must be an absolute scroll-stopper (curiosity gap, strong polarizing opinion, or direct question). The viewer MUST be compelled to keep watching.
+1. **High Retention Hook** — The very first sentence must be an absolute scroll-stopper (curiosity gap, strong polarizing opinion, or direct question). The viewer MUST be compelled to keep watching. Maximize retention at all costs.
 2. **Pacing & Energy** — The excerpt must be dense with value, high emotion, or shocking revelations. Cut out ALL boring buildups and filler words.
 3. **Self-contained Story/Idea** — It MUST make 100% complete sense to a viewer who has never seen the full video. It should feel like a standalone short film.
 4. **Strong Payoff** — The end of the clip should resolve the hook or deliver a massive punchline/revelation that leaves the viewer wanting more.
@@ -278,7 +270,7 @@ You must find EXACTLY **${maxClips} clips**. Do not generate fewer clips than re
 - Each clip must be between **${minDuration}** and **${maxDuration} seconds**
 - Clips must NOT overlap
 - startTime and endTime MUST perfectly align with transcript segment boundaries
-- Generate extreme, clickbaity, and punchy titles that provoke intense curiosity, urgency, or FOMO (e.g. "The TRUTH they are hiding about X", "Why everything you know about Y is WRONG!"). Titles MUST be highly attractive for TikTok/Shorts algorithms.
+- Generate extreme, extremely clickbaity, and punchy titles that provoke intense curiosity, urgency, or FOMO (e.g. "The TRUTH they are hiding about X", "Why everything you know about Y is WRONG!"). Titles MUST be highly attractive for TikTok/Shorts algorithms and guarantee virality.
 
 ## Transcript:
 ${transcript}
