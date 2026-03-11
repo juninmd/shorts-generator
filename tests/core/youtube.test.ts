@@ -98,4 +98,46 @@ describe("youtube", () => {
     cleanupVideo("vid1", mockConfig);
     expect(fs.rmSync).toHaveBeenCalled();
   });
+
+  it("getChannelVideos handles exec error gracefully", async () => {
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(new Error("Fail channel fetch"), { stdout: "", stderr: "err" });
+      return {} as any;
+    });
+
+    const videos = await getChannelVideos("mychannel", 1);
+    expect(videos).toEqual([]);
+  });
+
+  it("getVideoFileSize handles exec error gracefully", async () => {
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(new Error("Fail fetch size"), { stdout: "", stderr: "err" });
+      return {} as any;
+    });
+
+    const size = await getVideoFileSize("url", mockConfig);
+    expect(size).toBeNull();
+  });
+
+  it("getVideoFileSize returns null on invalid output", async () => {
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: "NA\n", stderr: "" });
+      return {} as any;
+    });
+
+    const size = await getVideoFileSize("url", mockConfig);
+    expect(size).toBeNull();
+  });
+
+  it("cleanupVideo handles rmSync error gracefully", () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.rmSync).mockImplementation(() => {
+      throw new Error("Failed to delete");
+    });
+
+    expect(() => cleanupVideo("vid1", mockConfig)).not.toThrow();
+  });
 });

@@ -127,10 +127,6 @@ function groupWordsIntoPhrases(
     }
   }
 
-  if (current.length > 0) {
-    phrases.push(current);
-  }
-
   return phrases;
 }
 

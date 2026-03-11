@@ -75,4 +75,54 @@ describe("clip-boundary", () => {
     expect(result.startTime).toBe(5);
     expect(result.endTime).toBe(5);
   });
+
+  it("should return maxEnd if no valid segments found during shrink", () => {
+    const customConfig = { ...mockConfig, maxShortDuration: 2 } as PipelineConfig;
+    // clip startTime: 6
+    // findClosestSegmentStart(6) -> 6
+    // findClosestSegmentEnd(20) -> 20
+    // start is 6, maxEnd is 8.
+    // validSegments: start>=6 && end<=8.
+    // Segments: {start:6, end:10}. None ends before 8.
+    // So validSegments is empty. Should return maxEnd (8).
+    // Wait, earlier the test passed but it didn't cover the line?
+    // Let's create an explicit array of segments that guarantees shrink is called and validSegments is empty.
+    const customSegments: TranscriptSegment[] = [
+      { start: 1, end: 5, text: "Seg 1" },
+      { start: 6, end: 15, text: "Seg 2" },
+      { start: 16, end: 20, text: "Seg 3" },
+    ];
+    // Start at 6. Max short duration is 2. So maxEnd is 8.
+    // We want end > start + maxDuration.
+    // The closest end for 18 is 15. So finalEnd is 15.
+    // duration = 15 - 6 = 9. 9 > maxDuration (2).
+    // so shrinkToMeetMaxDuration(6, customSegments, 2) is called.
+    // maxEnd = 8.
+    // validSegments = {start >= 6 && end <= 8}. Seg 2 is 6-15, which doesn't end <= 8.
+    // validSegments is empty. Returns maxEnd (8).
+    const clip = { startTime: 6, endTime: 18 };
+    const result = snapToSentenceBoundaries(clip, customSegments, customConfig);
+    expect(result.startTime).toBe(6);
+    expect(result.endTime).toBe(8);
+  });
+
+  it("should expand at the start if after expanding at the end it is still too short", () => {
+    // We want to cover expanding at the start.
+    const customConfig = { ...mockConfig, minShortDuration: 8, maxShortDuration: 20 } as PipelineConfig;
+    const customSegments: TranscriptSegment[] = [
+      { start: 1, end: 3, text: "Seg 1" }, // duration 2
+      { start: 4, end: 6, text: "Seg 2" }, // duration 2
+      { start: 7, end: 9, text: "Seg 3" }, // duration 2
+    ];
+    // clip: start 4.5, end 5.5
+    // snapped to 4, 6. duration = 2.
+    // minDuration = 8.
+    // It tries to expand at the end. segsAfter: [7-9]. currentEnd becomes 9. duration: 9-4 = 5.
+    // Still < 8.
+    // It expands at the start. segsBefore: [1-3]. currentStart becomes 1. duration: 9-1 = 8.
+    const clip = { startTime: 4.5, endTime: 5.5 };
+    const result = snapToSentenceBoundaries(clip, customSegments, customConfig);
+    expect(result.startTime).toBe(1);
+    expect(result.endTime).toBe(9);
+  });
 });

@@ -135,4 +135,66 @@ describe("pipeline", () => {
     expect(result).toBeDefined();
     expect(result?.videoId).toBe("vid1");
   });
+
+  it("processUrl returns null if videoInfo is null", async () => {
+    vi.mocked(youtube.getVideoInfo).mockResolvedValue(null);
+    const result = await processUrl("url_invalid", mockConfig);
+    expect(result).toBeNull();
+  });
+
+  it("processVideo handles errors in clip processing", async () => {
+    // Return multiple clips
+    vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip, mockClip]);
+    // Force first clip to fail and second to succeed
+    vi.mocked(processor.processClip)
+      .mockRejectedValueOnce(new Error("Clip process failed"))
+      .mockResolvedValueOnce(mockGeneratedShort);
+
+    const result = await processVideo(mockVideoInfo, mockConfig);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("Clip process failed");
+    expect(result.shorts).toHaveLength(1); // One succeeded
+  });
+
+  it("runPipeline handles no valid videos left after filtering", async () => {
+    // Both specificUrl and channel are processed but filtered out
+    vi.mocked(youtube.getVideoFileSize).mockResolvedValue(2000); // 2000 > 1000 limit
+    const results = await runPipeline(mockConfig);
+    expect(results).toHaveLength(0);
+  });
+
+  it("runPipeline filters videos exceeding max duration hours", async () => {
+    const longVideo = { ...mockVideoInfo, duration: 4 * 3600 + 1 }; // 4 hours
+    vi.mocked(youtube.getVideoInfo).mockResolvedValue(longVideo);
+    vi.mocked(youtube.getChannelVideos).mockResolvedValue([]);
+
+    const results = await runPipeline(mockConfig);
+    expect(results).toHaveLength(0); // Should be skipped
+  });
+
+  it("runPipeline handles empty initial video list", async () => {
+    const emptyConfig = { ...mockConfig, specificUrls: [], channels: [] } as PipelineConfig;
+    const results = await runPipeline(emptyConfig);
+    expect(results).toHaveLength(0);
+  });
+
+  it("processVideo logs warning if fewer clips found than minimum required", async () => {
+    // Requires minShortsPerVideo = 3, but returns 1
+    const localConfig = { ...mockConfig, minShortsPerVideo: 3 } as PipelineConfig;
+    vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip]);
+
+    const result = await processVideo(mockVideoInfo, localConfig);
+    expect(result.shorts).toHaveLength(1);
+    expect(processor.processClip).toHaveBeenCalledTimes(1);
+  });
+
+  it("processVideo handles telegram send error gracefully", async () => {
+    vi.mocked(telegram.sendToTelegram).mockRejectedValue(new Error("Telegram failed"));
+    const result = await processVideo(mockVideoInfo, mockConfig);
+
+    // Video still counts as successful processing, but error is logged
+    expect(result.shorts).toHaveLength(1);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("Telegram failed");
+  });
 });
