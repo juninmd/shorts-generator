@@ -101,4 +101,61 @@ describe("transcriber", () => {
 
     await expect(transcribeVideo(mockVideo, mockConfig)).rejects.toThrow(/Exec error/);
   });
+
+  it("should handle missing segments and words in whisper output safely", async () => {
+    const mockWhisperOutput = {}; // Missing language, segments, and words
+
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = callback || options || args;
+      if (typeof cb === "function") cb(null, "stdout", "stderr");
+      return {} as any;
+    });
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWhisperOutput));
+
+    const result = await transcribeVideo(mockVideo, mockConfig);
+
+    expect(result.segments).toHaveLength(0);
+    expect(result.words).toHaveLength(0);
+    expect(result.language).toBe("pt"); // default fallback
+  });
+
+  it("should handle partially missing properties in whisper segments", async () => {
+    const mockWhisperOutput = {
+      language: "en",
+      segments: [
+        {
+          // missing start, end, text, and words
+        },
+        {
+          text: "Some text",
+          words: [
+            {} // missing word, start, end
+          ]
+        }
+      ]
+    };
+
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = callback || options || args;
+      if (typeof cb === "function") cb(null, "stdout", "stderr");
+      return {} as any;
+    });
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockWhisperOutput));
+
+    const result = await transcribeVideo(mockVideo, mockConfig);
+
+    expect(result.segments).toHaveLength(2);
+    expect(result.segments[0].start).toBe(0);
+    expect(result.segments[0].end).toBe(0);
+    expect(result.segments[0].text).toBe("");
+    expect(result.segments[1].text).toBe("Some text");
+
+    expect(result.words).toHaveLength(1);
+    expect(result.words[0].word).toBe("");
+    expect(result.words[0].start).toBe(0);
+  });
 });
