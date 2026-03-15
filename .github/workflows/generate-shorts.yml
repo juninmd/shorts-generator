@@ -126,7 +126,9 @@ jobs:
 
       - name: Override channels (if provided)
         if: ${{ inputs.channels }}
-        run: echo "YOUTUBE_CHANNELS=${{ inputs.channels }}" >> $GITHUB_ENV
+        run: echo "YOUTUBE_CHANNELS=$INPUT_CHANNELS" >> $GITHUB_ENV
+        env:
+          INPUT_CHANNELS: ${{ inputs.channels }}
 
       - name: Run shorts generation
         run: pnpm run generate

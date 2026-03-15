@@ -6,9 +6,9 @@ import { logger } from "./logger.js";
 function escapeHtml(text: string): string {
   if (!text) return "";
   return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
 /**
@@ -104,7 +104,7 @@ export async function sendSummary(
     `🎥 Vídeo: ${escapeHtml(videoTitle)}`,
     `✂️ Shorts gerados: ${shortsCount}`,
     errors.length > 0 ? `❌ Erros: ${errors.length}` : "",
-    errors.length > 0 ? `\n${errors.map((e) => `• ${escapeHtml(e)}`).join("\n")}` : "",
+    errors.length > 0 ? "\n" + errors.map((e) => `• ${escapeHtml(e)}`).join("\n") : "",
   ]
     .filter(Boolean)
     .join("\n");
