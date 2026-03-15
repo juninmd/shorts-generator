@@ -28,9 +28,9 @@ describe("config", () => {
       expect(config.watermarkText).toBe("custom watermark");
     });
 
-    it("should default ollamaTimeoutMs to 300000", () => {
+    it("should default ollamaTimeoutMs to 400000", () => {
       const config = loadConfig();
-      expect(config.ollamaTimeoutMs).toBe(300_000);
+      expect(config.ollamaTimeoutMs).toBe(400_000);
     });
 
     it("should read OLLAMA_TIMEOUT_MS from environment", () => {
