@@ -62,8 +62,8 @@ export async function analyzeTranscript(
   const durationMinutes = Math.floor(transcript.duration / 60);
 
   // Rule: "Gere a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo"
-  const minCuts = getMinCuts(transcript.duration);
-  const maxCuts = Math.max(minCuts, getMaxCuts(transcript.duration));
+  const minCuts = getMaxCuts(transcript.duration);
+  const maxCuts = getMinCuts(transcript.duration);
 
   logger.info(
     {
