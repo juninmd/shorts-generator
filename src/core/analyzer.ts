@@ -12,6 +12,7 @@ import type {
 } from "../types.js";
 import { logger } from "./logger.js";
 import { snapToSentenceBoundaries } from "./clip-boundary";
+import { getMinCuts, getMaxCuts } from "./config.js";
 
 const ClipSchema = z.object({
   clips: z.array(
@@ -61,12 +62,14 @@ export async function analyzeTranscript(
   const durationMinutes = Math.floor(transcript.duration / 60);
 
   // Rule: "Gere a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo"
-  const targetCuts = Math.max(2, durationMinutes);
+  const minCuts = getMinCuts(transcript.duration);
+  const maxCuts = Math.max(minCuts, getMaxCuts(transcript.duration));
 
   logger.info(
     {
       videoId: transcript.videoId,
-      targetCuts,
+      minCuts,
+      maxCuts,
       duration: transcript.duration,
       model: config.ollamaModel,
     },
@@ -80,7 +83,8 @@ export async function analyzeTranscript(
     formattedTranscript,
     videoTitle,
     channelName,
-    targetCuts,
+    minCuts,
+    maxCuts,
     config.minShortDuration,
     config.maxShortDuration,
     transcript.duration,
@@ -121,10 +125,10 @@ export async function analyzeTranscript(
       return [];
     }
 
-    return processClips(retryParsed, transcript, config, targetCuts);
+    return processClips(retryParsed, transcript, config, maxCuts);
   }
 
-  return processClips(parsed, transcript, config, targetCuts);
+  return processClips(parsed, transcript, config, maxCuts);
 }
 
 /**
@@ -235,15 +239,16 @@ function buildAnalysisPrompt(
   transcript: string,
   videoTitle: string,
   channelName: string,
+  minClips: number,
   maxClips: number,
   minDuration: number,
   maxDuration: number,
   totalDuration: number,
 ): string {
-  return `You are an expert in viral content for YouTube Shorts, TikTok and Instagram Reels.
+  return `You are an expert in viral content for YouTube Shorts, TikTok and Instagram Reels targeting the Brazilian audience (PT-BR).
 
 Analyze the transcript below and identify the **most viral, highly engaging moments** that are practically guaranteed to perform well.
-You must find EXACTLY **${maxClips} clips**. Do not generate fewer clips than requested.
+You must find between **${minClips} and ${maxClips} clips**. Do not generate fewer clips than requested.
 
 ## Video Info
 - **Title:** ${videoTitle}
@@ -259,18 +264,18 @@ You must find EXACTLY **${maxClips} clips**. Do not generate fewer clips than re
 - Use the transcript timestamps: startTime = segment start, endTime = segment end
 
 ## Selection criteria for MAXIMUM VIRALITY:
-1. **High Retention Hook** — The very first sentence must be an absolute scroll-stopper (curiosity gap, strong polarizing opinion, or direct question). The viewer MUST be compelled to keep watching. Maximize retention at all costs.
+1. **High Retention Hook** — The very first sentence must be an absolute scroll-stopper (curiosity gap, strong polarizing opinion, or direct question). Focus on shocking statistics or dropping a bombshell. Start the clip at the exact moment of peak curiosity. The viewer MUST be compelled to keep watching. Maximize retention at all costs.
 2. **Pacing & Energy** — The excerpt must be dense with value, high emotion, or shocking revelations. Cut out ALL boring buildups and filler words.
 3. **Self-contained Story/Idea** — It MUST make 100% complete sense to a viewer who has never seen the full video. It should feel like a standalone short film.
 4. **Strong Payoff** — The end of the clip should resolve the hook or deliver a massive punchline/revelation that leaves the viewer wanting more.
 5. **Shareability & Controversy** — Does this make someone want to send it to a friend, bookmark it, or argue in the comments? Maximize engagement!
 
 ## Rules:
-- You MUST find EXACTLY **${maxClips} clips**. If you cannot find perfect clips, lower your standards slightly to meet the count, but try to maintain the highest virality possible.
+- You MUST find between **${minClips} and ${maxClips} clips**. If you cannot find perfect clips, lower your standards slightly to meet the count, but try to maintain the highest virality possible.
 - Each clip must be between **${minDuration}** and **${maxDuration} seconds**
 - Clips must NOT overlap
 - startTime and endTime MUST perfectly align with transcript segment boundaries
-- Generate extreme, extremely clickbaity, and punchy titles that provoke intense curiosity, urgency, or FOMO (e.g. "The TRUTH they are hiding about X", "Why everything you know about Y is WRONG!"). Titles MUST be highly attractive for TikTok/Shorts algorithms and guarantee virality.
+- Generate extreme, extremely clickbaity, and punchy titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or FOMO. Titles MUST be highly attractive for TikTok/Shorts algorithms and guarantee virality.
 
 ## Transcript:
 ${transcript}

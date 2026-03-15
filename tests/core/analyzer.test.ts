@@ -192,6 +192,42 @@ describe("analyzer", () => {
     expect(clips[0].title).toBe("Clip 2");
   });
 
+  it("should sort clips by viralScore in descending order", async () => {
+    const mockResponse = {
+      clips: [
+        {
+          title: "Clip 1",
+          description: "Desc",
+          startTime: 10,
+          endTime: 40,
+          viralScore: 5,
+          reason: "Reason",
+          hookLine: "Hook",
+          hashtags: ["#test"],
+        },
+        {
+          title: "Clip 2",
+          description: "Desc",
+          startTime: 40,
+          endTime: 70,
+          viralScore: 9,
+          reason: "Reason",
+          hookLine: "Hook",
+          hashtags: ["#test"],
+        },
+      ],
+    };
+
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: JSON.stringify(mockResponse),
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(2);
+    expect(clips[0].title).toBe("Clip 2");
+    expect(clips[1].title).toBe("Clip 1");
+  });
+
   it("should filter out clips that do not meet minDuration or maxDuration or start/endTime limits", async () => {
     const mockResponse = {
       clips: [
@@ -295,6 +331,15 @@ describe("analyzer", () => {
     const clips = await analyzeTranscript(transcriptWithWords, "Title", "Channel", mockConfig);
     expect(clips).toHaveLength(1);
     expect(clips[0].words).toHaveLength(0);
+  });
+
+  it("should return null inside extractAndParseJSON if parsed json fragment data is not valid schema", async () => {
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: `some text { "clips": "invalid" } some text`,
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
   });
 
   it("should successfully extract JSON fragment from text when other methods fail", async () => {
