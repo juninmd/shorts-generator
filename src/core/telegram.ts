@@ -37,7 +37,7 @@ export async function sendToTelegram(
     ``,
     `📺 Canal: ${escapeHtml(short.channelName)}`,
     `🎥 Vídeo original: ${escapeHtml(short.originalVideoTitle)}`,
-    `🔗 ${escapeHtml(short.originalVideoUrl)}`,
+    `🔗 <a href="${short.originalVideoUrl}">${escapeHtml(short.originalVideoUrl)}</a>`,
     `⏱ Corte: ${timeRange}`,
     `⭐ Score viral: ${short.clip.viralScore}/10`,
     ``,
