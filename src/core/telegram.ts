@@ -3,6 +3,14 @@ import fs from "node:fs";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 
+function escapeHtml(text: string): string {
+  if (!text) return "";
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
 /**
  * Send a generated short to a Telegram channel.
  */
@@ -25,17 +33,17 @@ export async function sendToTelegram(
   const timeRange = `${startMin}:${startSec.toString().padStart(2, "0")} - ${endMin}:${endSec.toString().padStart(2, "0")}`;
 
   const caption = [
-    `🎬 **${short.clip.title}**`,
+    `🎬 <b>${escapeHtml(short.clip.title)}</b>`,
     ``,
-    `📺 Canal: ${short.channelName.replace(/[@_]/g, "\\$&")}`,
-    `🎥 Vídeo original: ${short.originalVideoTitle}`,
-    `🔗 ${short.originalVideoUrl}`,
+    `📺 Canal: ${escapeHtml(short.channelName)}`,
+    `🎥 Vídeo original: ${escapeHtml(short.originalVideoTitle)}`,
+    `🔗 <a href="${short.originalVideoUrl}">${escapeHtml(short.originalVideoUrl)}</a>`,
     `⏱ Corte: ${timeRange}`,
     `⭐ Score viral: ${short.clip.viralScore}/10`,
     ``,
-    `💡 ${short.clip.reason}`,
+    `💡 ${escapeHtml(short.clip.reason)}`,
     ``,
-    short.clip.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
+    short.clip.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).map(escapeHtml).join(" "),
   ].join("\n");
 
   try {
@@ -48,7 +56,7 @@ export async function sendToTelegram(
         "Video too large for Telegram, sending link instead",
       );
       const msg = await bot.api.sendMessage(config.telegramChatId, caption, {
-        parse_mode: "Markdown",
+        parse_mode: "HTML",
       });
       return msg.message_id;
     }
@@ -56,7 +64,7 @@ export async function sendToTelegram(
     const videoFile = new InputFile(short.outputPath);
     const msg = await bot.api.sendVideo(config.telegramChatId, videoFile, {
       caption,
-      parse_mode: "Markdown",
+      parse_mode: "HTML",
       supports_streaming: true,
     });
 
@@ -89,21 +97,21 @@ export async function sendSummary(
   const status = errors.length === 0 ? "✅ Sucesso" : "⚠️ Com erros";
 
   const message = [
-    `📊 **Resumo do processamento**`,
+    `📊 <b>Resumo do processamento</b>`,
     ``,
     `${status}`,
-    `📺 Canal: ${channelName.replace(/[@_]/g, "\\$&")}`,
-    `🎥 Vídeo: ${videoTitle}`,
+    `📺 Canal: ${escapeHtml(channelName)}`,
+    `🎥 Vídeo: ${escapeHtml(videoTitle)}`,
     `✂️ Shorts gerados: ${shortsCount}`,
     errors.length > 0 ? `❌ Erros: ${errors.length}` : "",
-    errors.length > 0 ? `\n${errors.map((e) => `• ${e}`).join("\n")}` : "",
+    errors.length > 0 ? "\n" + errors.map((e) => `• ${escapeHtml(e)}`).join("\n") : "",
   ]
     .filter(Boolean)
     .join("\n");
 
   try {
     await bot.api.sendMessage(config.telegramChatId, message, {
-      parse_mode: "Markdown",
+      parse_mode: "HTML",
     });
   } catch (error) {
     logger.error({ error }, "Failed to send summary to Telegram");
