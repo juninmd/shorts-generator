@@ -32,14 +32,14 @@ env:
   OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen3:1.7b' }}
   WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'base' }}
   # For hourly runs, only fetch videos from the last hour (0 = today, fine-grained via upload_date)
-  DAYS_BACK: ${{ github.event.inputs.days_back || vars.DAYS_BACK || '0' }}
-  VIDEO_URLS: ${{ github.event.inputs.video_urls || '' }}
+  DAYS_BACK: ${{ inputs.days_back || vars.DAYS_BACK || '0' }}
+  VIDEO_URLS: ${{ inputs.video_urls || '' }}
   OUTPUT_DIR: ./output
   PIP_CACHE_DIR: ~/.cache/pip
   WHISPER_CACHE_DIR: ~/.cache/whisper
   OLLAMA_MODELS_DIR: ~/.ollama/models
   YOUTUBE_COOKIES_BASE64: ${{ secrets.YOUTUBE_COOKIES_BASE64 }}
-  WATERMARK_TEXT: ${{ github.event.inputs.watermark_text || vars.WATERMARK_TEXT || 'santidade católica' }}
+  WATERMARK_TEXT: ${{ inputs.watermark_text || vars.WATERMARK_TEXT || 'santidade católica' }}
   # Safety limits
   MAX_VIDEO_SIZE_MB: ${{ vars.MAX_VIDEO_SIZE_MB || '500' }}
   MIN_SHORTS_PER_VIDEO: ${{ vars.MIN_SHORTS_PER_VIDEO || '2' }}
@@ -125,8 +125,8 @@ jobs:
           ollama --version
 
       - name: Override channels (if provided)
-        if: ${{ github.event.inputs.channels }}
-        run: echo "YOUTUBE_CHANNELS=${{ github.event.inputs.channels }}" >> $GITHUB_ENV
+        if: ${{ inputs.channels }}
+        run: echo "YOUTUBE_CHANNELS=${{ inputs.channels }}" >> $GITHUB_ENV
 
       - name: Run shorts generation
         run: pnpm run generate
