@@ -74,10 +74,9 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
  */
 export function getMaxCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
-  return Math.max(1, durationMinutes);
+  return Math.max(2, durationMinutes);
 }
 
 export function getMinCuts(videoDurationSeconds: number): number {
-  const durationMinutes = Math.floor(videoDurationSeconds / 60);
-  return Math.max(2, durationMinutes * 2);
+  return 2;
 }
