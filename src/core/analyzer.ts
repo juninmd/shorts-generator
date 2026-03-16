@@ -101,8 +101,8 @@ export async function analyzeTranscript(
   const { text } = await generateText({
     model,
     prompt,
-    temperature: 0.8,
-    maxTokens: 4096,
+    temperature: 0.5,
+    maxTokens: 2048,
   });
 
   // Extract JSON from the response (handle markdown code blocks)
@@ -115,8 +115,8 @@ export async function analyzeTranscript(
     const { text: retryText } = await generateText({
       model,
       prompt: prompt + "\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation. Just the JSON object.",
-      temperature: 0.3,
-      maxTokens: 4096,
+      temperature: 0.2,
+      maxTokens: 2048,
     });
 
     const retryParsed = extractAndParseJSON(retryText);

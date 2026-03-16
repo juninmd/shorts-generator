@@ -2,7 +2,7 @@ name: Generate Shorts
 
 on:
   schedule:
-    # Runs 
+    # Runs
     - cron: "0 5 * * *"
   workflow_dispatch:
     inputs:
@@ -29,8 +29,9 @@ env:
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   YOUTUBE_CHANNELS: ${{ vars.YOUTUBE_CHANNELS }}
-  OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen3:1.7b' }}
-  WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'base' }}
+  OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'tinyllama' }}
+  WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'tiny' }}
+  OLLAMA_TIMEOUT_MS: 120000
   # For hourly runs, only fetch videos from the last hour (0 = today, fine-grained via upload_date)
   DAYS_BACK: ${{ inputs.days_back || vars.DAYS_BACK || '0' }}
   VIDEO_URLS: ${{ inputs.video_urls || '' }}

@@ -57,8 +57,8 @@ export async function runPipeline(
 
   logger.info({ videoCount: filteredVideos.length }, "Starting pipeline");
 
-  // Parallelize at the video level (limit to 2 concurrent to manage resources)
-  const limit = pLimit(2);
+  // Parallelize at the video level (limit to 4 concurrent for faster processing)
+  const limit = pLimit(4);
   const results = await Promise.all(
     filteredVideos.map((video) =>
       limit(() => processVideo(video, config, onProgress)),
