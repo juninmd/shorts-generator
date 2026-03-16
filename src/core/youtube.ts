@@ -230,25 +230,20 @@ export async function downloadVideo(
       }
 
       if (audioIds.length === 0 && videoIds.length === 0 && combinedIds.length === 0) {
-        logger.error("Only storyboard formats available or no valid formats found! YouTube might be blocking the download (e.g., bot detection/cookies issue).");
-        throw new Error("No valid video formats found. Only storyboards available.");
+        logger.warn("Only storyboard formats available or no valid formats found! YouTube might be blocking the download (e.g., bot detection/cookies issue).");
+      } else {
+        // select best possible based on the list
+        if (videoIds.length > 0 && audioIds.length > 0) {
+          dynamicallySelectedFormat = `${videoIds[videoIds.length - 1]}+${audioIds[audioIds.length - 1]}`;
+        } else if (combinedIds.length > 0) {
+          dynamicallySelectedFormat = combinedIds[combinedIds.length - 1];
+        } else if (videoIds.length > 0) {
+          dynamicallySelectedFormat = videoIds[videoIds.length - 1]; // highly unlikely, but just in case
+        }
+
+        logger.info({ dynamicallySelectedFormat }, "Dynamically selected format from --list-formats");
       }
-
-      // select best possible based on the list
-      if (videoIds.length > 0 && audioIds.length > 0) {
-        dynamicallySelectedFormat = `${videoIds[videoIds.length - 1]}+${audioIds[audioIds.length - 1]}`;
-      } else if (combinedIds.length > 0) {
-        dynamicallySelectedFormat = combinedIds[combinedIds.length - 1];
-      } else if (videoIds.length > 0) {
-        dynamicallySelectedFormat = videoIds[videoIds.length - 1]; // highly unlikely, but just in case
-      }
-
-      logger.info({ dynamicallySelectedFormat }, "Dynamically selected format from --list-formats");
-
     } catch (listErr: any) {
-      if (listErr.message.includes("No valid video formats found")) {
-        throw listErr; // Propagate blocking issue
-      }
       logger.warn({ error: listErr.message }, "Failed to parse --list-formats, proceeding with default formats...");
     }
 
