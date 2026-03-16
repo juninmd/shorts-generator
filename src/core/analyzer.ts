@@ -275,7 +275,7 @@ You must find between **${minClips} and ${maxClips} clips**. Do not generate few
 - Each clip must be between **${minDuration}** and **${maxDuration} seconds**
 - Clips must NOT overlap
 - startTime and endTime MUST perfectly align with transcript segment boundaries
-- Generate extreme, extremely clickbaity, and punchy titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or FOMO. Titles MUST be highly attractive for TikTok/Shorts algorithms and guarantee virality.
+- Generate extreme, EXTREMELY clickbaity, and punchy titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or FOMO. Titles MUST be highly attractive for TikTok/Shorts algorithms, practically forcing the user to click. Emphasize controversy or mind-blowing facts in the title.
 
 ## Transcript:
 ${transcript}
