@@ -51,7 +51,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     outputDir,
     tempDir,
     ollamaBaseUrl: optionalEnv("OLLAMA_BASE_URL", "http://localhost:11434"),
-    ollamaModel: optionalEnv("OLLAMA_MODEL", "tinyllama"),
+    ollamaModel: optionalEnv("OLLAMA_MODEL", "gemma3:1b"),
     ollamaTimeoutMs: parseInt(optionalEnv("OLLAMA_TIMEOUT_MS", "120000"), 10),
     whisperModel: optionalEnv("WHISPER_MODEL", "tiny"),
     telegramBotToken: optionalEnv("TELEGRAM_BOT_TOKEN", ""),
