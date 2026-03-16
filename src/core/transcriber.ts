@@ -44,8 +44,10 @@ export async function transcribeVideo(
       outputDir,
       "--word_timestamps",
       "True",
+      "--verbose",
+      "False",
     ],
-    { maxBuffer: 50 * 1024 * 1024, timeout: 1_800_000 }, // 30 min timeout
+    { maxBuffer: 50 * 1024 * 1024, timeout: 600_000 }, // 10 min timeout for small models
   );
 
   // Find the generated JSON file
