@@ -17,6 +17,7 @@ import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
 import { processClip } from "./video-processor.js";
 import { sendToTelegram, sendSummary } from "./telegram.js";
+import { generateYoutubeMetadata, uploadToYouTube } from "./youtube.service.js";
 import { logger } from "./logger.js";
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
@@ -216,15 +217,25 @@ export async function processVideo(
 
     await Promise.all(clipPromises);
 
-    // Step 5: Send to Telegram
-    emitProgress("uploading", "Enviando para o Telegram...", 85);
+    // Step 5: Send to Telegram & YouTube
+    emitProgress("uploading", "Enviando para o Telegram e YouTube...", 85);
 
     for (const short of shorts) {
       try {
-        const msgId = await sendToTelegram(short, config);
+        // 1. Post to YouTube (if enabled) - Do this first to get the URL
+        const youtubeMeta = await generateYoutubeMetadata(short, config);
+        const youtubeUrl = await uploadToYouTube(
+          short.outputPath,
+          youtubeMeta.title,
+          youtubeMeta.description,
+          config
+        );
+
+        // 2. Post to Telegram with the YouTube link
+        const msgId = await sendToTelegram(short, config, youtubeUrl);
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
-        const msg = `Erro ao enviar ${short.id} para o Telegram: ${err instanceof Error ? err.message : String(err)}`;
+        const msg = `Erro no envio de ${short.id}: ${err instanceof Error ? err.message : String(err)}`;
         logger.error({ clipId: short.id, error: err }, msg);
         errors.push(msg);
       }

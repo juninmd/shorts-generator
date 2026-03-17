@@ -17,6 +17,7 @@ function escapeHtml(text: string): string {
 export async function sendToTelegram(
   short: GeneratedShort,
   config: PipelineConfig,
+  youtubeUrl?: string | null,
 ): Promise<number | undefined> {
   if (!config.telegramBotToken || !config.telegramChatId) {
     logger.warn("Telegram not configured, skipping upload");
@@ -37,14 +38,15 @@ export async function sendToTelegram(
     ``,
     `📺 Canal: ${escapeHtml(short.channelName)}`,
     `🎥 Vídeo original: ${escapeHtml(short.originalVideoTitle)}`,
-    `🔗 <a href="${short.originalVideoUrl}">${escapeHtml(short.originalVideoUrl)}</a>`,
+    youtubeUrl ? `🔴 Assistir no YouTube: <a href="${youtubeUrl}">${youtubeUrl}</a>` : "",
+    `🔗 Link original: <a href="${short.originalVideoUrl}">${escapeHtml(short.originalVideoUrl)}</a>`,
     `⏱ Corte: ${timeRange}`,
     `⭐ Score viral: ${short.clip.viralScore}/10`,
     ``,
     `💡 ${escapeHtml(short.clip.reason)}`,
     ``,
     short.clip.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).map(escapeHtml).join(" "),
-  ].join("\n");
+  ].filter(line => line !== "").join("\n");
 
   try {
     const fileSize = fs.statSync(short.outputPath).size;
