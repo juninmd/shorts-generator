@@ -95,7 +95,7 @@ function renderShort(
 
     if (watermarkText) {
       // Bottom right corner, well small
-      filters.push(`drawtext=text='${watermarkText}':x=w-tw-5:y=h-th-5:fontsize=12:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`);
+      filters.push(`drawtext=text='${watermarkText}':x=w-tw-5:y=h-th-5:fontsize=10:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`);
     }
 
     const videoFilter = filters.join(",");
