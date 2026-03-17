@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type {
   Transcript,
@@ -12,6 +13,57 @@ import type {
 import { logger } from "./logger.js";
 
 const execFileAsync = promisify(execFile);
+
+/**
+ * Locate a uv binary that supports the `run` subcommand (>= 0.2.0).
+ * Checks the system PATH first, then common install locations used by the
+ * official uv installer on both Linux and Windows.
+ */
+async function findUvBinary(): Promise<string> {
+  const isWindows = process.platform === "win32";
+  const home = os.homedir();
+
+  // Candidates: system PATH first, then known installer locations
+  const candidates = [
+    "uv",
+    path.join(home, ".local", "bin", isWindows ? "uv.exe" : "uv"),
+    path.join(home, ".cargo", "bin", isWindows ? "uv.exe" : "uv"),
+    path.join(home, "bin", isWindows ? "uv.exe" : "uv"),
+    // winget / scoop / manual installs on Windows
+    ...(isWindows
+      ? [
+          path.join(home, ".local", "bin", "uv.exe"),
+          path.join(process.env.LOCALAPPDATA ?? "", "uv", "bin", "uv.exe"),
+        ]
+      : []),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const { stdout } = await execFileAsync(candidate, ["--version"], {
+        timeout: 5_000,
+      });
+      const match = stdout.trim().match(/uv (\d+)\.(\d+)/);
+      if (match) {
+        const [, majorStr, minorStr] = match;
+        const major = parseInt(majorStr!, 10);
+        const minor = parseInt(minorStr!, 10);
+        // uv run was introduced in 0.2.0
+        if (major > 0 || minor >= 2) {
+          logger.debug({ binary: candidate, version: stdout.trim() }, "Using uv binary");
+          return candidate;
+        }
+      }
+    } catch {
+      /* not found or too old — try next */
+    }
+  }
+
+  throw new Error(
+    "No compatible uv installation found (requires uv >= 0.2.0). " +
+      "Install from https://docs.astral.sh/uv/getting-started/installation/",
+  );
+}
 
 /**
  * Transcribe a video using local openai-whisper CLI with word-level timestamps.
@@ -35,8 +87,10 @@ export async function transcribeVideo(
   const scriptPath = path.join(process.cwd(), "scripts", "transcribe_faster.py");
   const pyProjectDir = path.join(process.cwd(), "tests", "yt-download");
 
+  const uvBin = await findUvBinary();
+
   await execFileAsync(
-    "uv",
+    uvBin,
     [
       "run",
       "--project",

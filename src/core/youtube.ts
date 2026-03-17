@@ -232,13 +232,33 @@ export async function downloadVideo(
       if (audioIds.length === 0 && videoIds.length === 0 && combinedIds.length === 0) {
         logger.warn("Only storyboard formats available or no valid formats found! YouTube might be blocking the download (e.g., bot detection/cookies issue).");
       } else {
-        // select best possible based on the list
-        if (videoIds.length > 0 && audioIds.length > 0) {
+        // Prefer H.264 MP4 ≤720p for reliable FFmpeg compatibility on all platforms.
+        // Lines look like: 137  mp4  1280x720  720p ... video only
+        const preferred720 = lines.find(
+          (l) =>
+            l.includes("mp4") &&
+            !l.includes("audio only") &&
+            l.includes("video only") &&
+            (l.includes("720p") || l.match(/\b720\b/)) &&
+            !l.match(/\bav01?\b/i) &&
+            !l.match(/\bvp9\b/i),
+        );
+
+        if (preferred720) {
+          const m = preferred720.trim().match(/^([a-zA-Z0-9_\-]+)\s+/);
+          if (m) {
+            const vid = m[1];
+            // Pick the best audio track
+            const best = audioIds[audioIds.length - 1] ?? null;
+            dynamicallySelectedFormat = best ? `${vid}+${best}` : vid;
+          }
+        } else if (videoIds.length > 0 && audioIds.length > 0) {
+          // Fallback: pick the last available combination (may be high resolution)
           dynamicallySelectedFormat = `${videoIds[videoIds.length - 1]}+${audioIds[audioIds.length - 1]}`;
         } else if (combinedIds.length > 0) {
           dynamicallySelectedFormat = combinedIds[combinedIds.length - 1];
         } else if (videoIds.length > 0) {
-          dynamicallySelectedFormat = videoIds[videoIds.length - 1]; // highly unlikely, but just in case
+          dynamicallySelectedFormat = videoIds[videoIds.length - 1];
         }
 
         logger.info({ dynamicallySelectedFormat }, "Dynamically selected format from --list-formats");

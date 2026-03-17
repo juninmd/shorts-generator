@@ -47,7 +47,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     maxShortDuration: parseInt(optionalEnv("MAX_SHORT_DURATION", "59"), 10),
     minShortDuration: parseInt(optionalEnv("MIN_SHORT_DURATION", "15"), 10),
     maxVideoSizeBytes: maxVideoSizeMb * 1024 * 1024,
-    minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "2"), 10),
+    minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "1"), 10),
     outputDir,
     tempDir,
     ollamaBaseUrl: optionalEnv("OLLAMA_BASE_URL", "http://localhost:11434"),

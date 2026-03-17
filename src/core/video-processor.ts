@@ -1,5 +1,8 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import ffmpeg from "fluent-ffmpeg";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type {
   ShortClip,
@@ -62,95 +65,93 @@ export async function processClip(
   return result;
 }
 
+const execFileAsync = promisify(execFile);
+
+/**
+ * Resolve the FFmpeg binary path via fluent-ffmpeg's configured path.
+ */
+function getFfmpegPath(): string {
+  // fluent-ffmpeg exposes this on the constructor
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (ffmpeg as any).ffmpegPath?.() ?? "ffmpeg";
+}
+
 /**
  * Render the short video using FFmpeg with vertical crop and burnt subtitles.
+ * Uses execFile directly (not fluent-ffmpeg) to avoid Windows spawn issues.
  */
-function renderShort(
+async function renderShort(
   inputPath: string,
   outputPath: string,
   subtitlePath: string,
   clip: ShortClip,
   config: PipelineConfig,
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const { verticalWidth: w, verticalHeight: h } = config;
+  const { verticalWidth: w, verticalHeight: h } = config;
 
-    // Escape subtitle path for FFmpeg filter (handle backslashes and colons on Windows)
-    const escapedSubPath = subtitlePath
-      .replace(/\\/g, "/")
-      .replace(/:/g, "\\:");
+  // Escape subtitle path for FFmpeg filter (handle backslashes and colons on Windows)
+  const escapedSubPath = subtitlePath
+    .replace(/\\/g, "/")
+    .replace(/:/g, "\\:");
 
-    // Escape watermark text
-    const watermarkText = (config.watermarkText || "").replace(/[\\':,=\[\];%]/g, (c) => `\\${c}`);
+  // Escape watermark text
+  const watermarkText = (config.watermarkText || "").replace(
+    /[\\':,=\[\];%]/g,
+    (c) => `\\${c}`,
+  );
 
-    // Video filter: crop to 9:16 center, scale to target resolution, burn subtitles, draw watermark
-    const filters = [
-      // Crop to 9:16 aspect ratio from center of frame
-      `crop=min(iw\\,ih*${w}/${h}):min(ih\\,iw*${h}/${w})`,
-      // Scale to target resolution
-      `scale=${w}:${h}`,
-      // Burn ASS subtitles
-      `ass='${escapedSubPath}'`,
-    ];
+  // Video filter: crop to 9:16 center, scale to target resolution, burn subtitles
+  const filters = [
+    `crop=min(iw\\,ih*${w}/${h}):min(ih\\,iw*${h}/${w})`,
+    `scale=${w}:${h}`,
+    `ass='${escapedSubPath}'`,
+  ];
 
-    if (watermarkText) {
-      // Bottom right corner, well small
-      filters.push(`drawtext=text='${watermarkText}':x=w-tw-5:y=h-th-5:fontsize=10:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`);
-    }
+  if (watermarkText) {
+    filters.push(
+      `drawtext=text='${watermarkText}':x=w-tw-5:y=h-th-5:fontsize=10:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`,
+    );
+  }
 
-    const videoFilter = filters.join(",");
+  // Build env — use forward-slash FONTCONFIG_FILE to prevent libass crash on Windows
+  const fontsConfNative = path.resolve(process.cwd(), "fonts.conf");
+  const fontsConfFwd = fontsConfNative.replace(/\\/g, "/");
+  const cacheDir = path.join(os.homedir(), ".cache", "fontconfig");
+  if (fs.existsSync(fontsConfNative)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+  const spawnEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    FONTCONFIG_FILE: fs.existsSync(fontsConfNative) ? fontsConfFwd : undefined,
+  };
 
-    // Set FONTCONFIG_FILE to point to our local config to avoid crashes on Windows
-    const fontsConfPath = path.resolve(process.cwd(), "fonts.conf");
-    if (fs.existsSync(fontsConfPath)) {
-      process.env.FONTCONFIG_FILE = fontsConfPath;
-    }
+  const args = [
+    "-ss", String(clip.startTime),
+    "-i", inputPath,
+    "-y",
+    "-vf", filters.join(","),
+    "-t", String(clip.duration),
+    "-c:v", "libx264",
+    "-preset", "fast",
+    "-crf", "23",
+    "-c:a", "aac",
+    "-b:a", "128k",
+    "-ar", "44100",
+    "-movflags", "+faststart",
+    "-pix_fmt", "yuv420p",
+    "-r", "30",
+    outputPath,
+  ];
 
-    ffmpeg(inputPath)
-      .setStartTime(clip.startTime)
-      .setDuration(clip.duration)
-      .videoFilters(videoFilter)
-      .outputOptions([
-        "-c:v",
-        "libx264",
-        "-preset",
-        "fast",
-        "-crf",
-        "23",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "128k",
-        "-ar",
-        "44100",
-        "-movflags",
-        "+faststart",
-        "-pix_fmt",
-        "yuv420p",
-        "-r",
-        "30",
-      ])
-      .output(outputPath)
-      .on("start", (cmd) => {
-        logger.debug({ command: cmd }, "FFmpeg started");
-      })
-      .on("progress", (progress) => {
-        if (progress.percent) {
-          logger.debug(
-            { percent: progress.percent.toFixed(1) },
-            "FFmpeg progress",
-          );
-        }
-      })
-      .on("error", (err) => {
-        logger.error({ error: err.message }, "FFmpeg error");
-        reject(err);
-      })
-      .on("end", () => {
-        resolve();
-      })
-      .run();
+  const ffmpegBin = getFfmpegPath();
+  logger.debug({ command: [ffmpegBin, ...args].join(" ") }, "FFmpeg started");
+
+  const { stderr } = await execFileAsync(ffmpegBin, args, {
+    env: spawnEnv,
+    maxBuffer: 100 * 1024 * 1024,
   });
+
+  if (stderr) logger.debug({ stderr }, "FFmpeg stderr");
 }
 
 /**
