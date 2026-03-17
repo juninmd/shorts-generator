@@ -100,6 +100,12 @@ function renderShort(
 
     const videoFilter = filters.join(",");
 
+    // Set FONTCONFIG_FILE to point to our local config to avoid crashes on Windows
+    const fontsConfPath = path.resolve(process.cwd(), "fonts.conf");
+    if (fs.existsSync(fontsConfPath)) {
+      process.env.FONTCONFIG_FILE = fontsConfPath;
+    }
+
     ffmpeg(inputPath)
       .setStartTime(clip.startTime)
       .setDuration(clip.duration)
