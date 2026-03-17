@@ -31,23 +31,25 @@ export async function transcribeVideo(
   const outputDir = path.join(config.tempDir, video.id, "whisper_out");
   fs.mkdirSync(outputDir, { recursive: true });
 
-  // Run local whisper CLI — outputs JSON with word-level timestamps
+  // Run local faster-whisper script — outputs JSON with word-level timestamps
+  const scriptPath = path.join(process.cwd(), "scripts", "transcribe_faster.py");
+  const pyProjectDir = path.join(process.cwd(), "tests", "yt-download");
+
   await execFileAsync(
-    "whisper",
+    "uv",
     [
+      "run",
+      "--project",
+      pyProjectDir,
+      "python",
+      scriptPath,
       video.audioPath,
       "--model",
       config.whisperModel,
-      "--output_format",
-      "json",
       "--output_dir",
       outputDir,
-      "--word_timestamps",
-      "True",
-      "--verbose",
-      "False",
     ],
-    { maxBuffer: 50 * 1024 * 1024, timeout: 600_000 }, // 10 min timeout for small models
+    { maxBuffer: 50 * 1024 * 1024, timeout: 600_000 },
   );
 
   // Find the generated JSON file

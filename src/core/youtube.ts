@@ -252,11 +252,11 @@ export async function downloadVideo(
       formatsToTry.push(dynamicallySelectedFormat);
     }
 
-    // Default fallback formats
+    // Default fallback formats - Prioritizing 720p for speed
     formatsToTry.push(
-      "bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4][height<=1080]/bv*+ba/b",
-      "bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b",
-      "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+      "bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/bv*+ba/b",
+      "bv*[height<=720]+ba/b[height<=720]/bv*+ba/b",
+      "bestvideo[height<=720]+bestaudio/best[height<=720]",
       "bestvideo+bestaudio/best",
       "best"
     );
