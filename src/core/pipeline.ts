@@ -252,7 +252,7 @@ export async function processVideo(
 
     await sendSummary(video.title, video.channelName, shorts.length, errors, config);
 
-    cleanupVideo(video.id, config);
+    // cleanupVideo(video.id, config);
 
     emitProgress("done", `Concluído: ${shorts.length} shorts gerados`, 100);
   } catch (err) {
@@ -261,7 +261,7 @@ export async function processVideo(
     errors.push(msg);
     emitProgress("error", msg, 0);
 
-    cleanupVideo(video.id, config);
+    // cleanupVideo(video.id, config);
   }
 
   return {
