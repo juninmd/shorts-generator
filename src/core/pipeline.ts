@@ -1,4 +1,3 @@
-import pLimit from "p-limit";
 import type {
   PipelineConfig,
   PipelineResult,
@@ -24,23 +23,38 @@ export type ProgressCallback = (progress: PipelineProgress) => void;
 
 /**
  * Run the full pipeline: fetch → download → transcribe → analyze → cut → send.
- * Videos are processed in parallel (up to 2 at a time) to reduce wall-clock time.
+ *
+ * Business rule:
+ *   - For each channel: select the FIRST video that is under the size limit
+ *     (default 500 MB) and generate at least 1 clip from it.
+ *   - Specific URLs: apply the same size/duration pre-flight check before processing.
  */
 export async function runPipeline(
   config: PipelineConfig,
   onProgress?: ProgressCallback,
 ): Promise<PipelineResult[]> {
-  // Gather all videos to process
   const videos: VideoInfo[] = [];
 
+  // Specific URLs: fetch info then apply size/duration pre-flight check
   for (const url of config.specificUrls) {
     const info = await getVideoInfo(url);
-    if (info) videos.push(info);
+    if (info && (await isVideoWithinLimits(info, config))) {
+      videos.push(info);
+    }
   }
 
+  // Channels: pick exactly the first video per channel that fits within the size limit
   for (const channel of config.channels) {
     const channelVideos = await getChannelVideos(channel, config.daysBack);
-    videos.push(...channelVideos);
+    const selected = await selectFirstValidVideo(channelVideos, config);
+    if (selected) {
+      videos.push(selected);
+    } else {
+      logger.warn(
+        { channel },
+        "No suitable video found for channel (all exceed size/duration limit)",
+      );
+    }
   }
 
   if (videos.length === 0) {
@@ -48,67 +62,68 @@ export async function runPipeline(
     return [];
   }
 
-  // Filter out videos that exceed the size/duration safety limit before downloading
-  const filteredVideos = await filterOversizedVideos(videos, config);
+  logger.info({ videoCount: videos.length }, "Starting pipeline");
 
-  if (filteredVideos.length === 0) {
-    logger.warn("All videos were filtered out (too large or too long)");
-    return [];
+  // Process videos one at a time to avoid resource conflicts
+  const results: PipelineResult[] = [];
+  for (const video of videos) {
+    results.push(await processVideo(video, config, onProgress));
   }
-
-  logger.info({ videoCount: filteredVideos.length }, "Starting pipeline");
-
-  // Parallelize at the video level (limit to 4 concurrent for faster processing)
-  const limit = pLimit(4);
-  const results = await Promise.all(
-    filteredVideos.map((video) =>
-      limit(() => processVideo(video, config, onProgress)),
-    ),
-  );
 
   return results;
 }
 
 /**
- * Check remote video size and duration pre-flight; discard videos that are too big.
+ * Check whether a single video passes duration and size limits.
  */
-async function filterOversizedVideos(
-  videos: VideoInfo[],
+async function isVideoWithinLimits(
+  video: VideoInfo,
   config: PipelineConfig,
-): Promise<VideoInfo[]> {
-  const MAX_DURATION_HOURS = 3;
-  const maxDurationSeconds = MAX_DURATION_HOURS * 3600;
+): Promise<boolean> {
+  const MAX_DURATION_SECONDS = 3 * 3600;
 
-  const results: VideoInfo[] = [];
-
-  for (const video of videos) {
-    // Duration guard (pre-flight, no download needed)
-    if (video.duration > 0 && video.duration > maxDurationSeconds) {
-      logger.warn(
-        { videoId: video.id, durationMin: Math.round(video.duration / 60) },
-        "Skipping video: too long (>3h)",
-      );
-      continue;
-    }
-
-    // Approximate file size from remote headers
-    const remoteSize = await getVideoFileSize(video.url, config);
-    if (remoteSize !== null && remoteSize > config.maxVideoSizeBytes) {
-      logger.warn(
-        {
-          videoId: video.id,
-          sizeMB: (remoteSize / 1024 / 1024).toFixed(1),
-          limitMB: (config.maxVideoSizeBytes / 1024 / 1024).toFixed(0),
-        },
-        "Skipping video: exceeds size limit",
-      );
-      continue;
-    }
-
-    results.push(video);
+  if (video.duration > 0 && video.duration > MAX_DURATION_SECONDS) {
+    logger.warn(
+      { videoId: video.id, durationMin: Math.round(video.duration / 60) },
+      "Skipping video: too long (>3h)",
+    );
+    return false;
   }
 
-  return results;
+  const remoteSize = await getVideoFileSize(video.url, config);
+  if (remoteSize !== null && remoteSize > config.maxVideoSizeBytes) {
+    logger.warn(
+      {
+        videoId: video.id,
+        sizeMB: (remoteSize / 1024 / 1024).toFixed(1),
+        limitMB: (config.maxVideoSizeBytes / 1024 / 1024).toFixed(0),
+      },
+      "Skipping video: exceeds size limit",
+    );
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Iterate through a channel's video list and return the first video that
+ * passes size and duration limits.  Checks lazily — stops at the first match.
+ */
+async function selectFirstValidVideo(
+  videos: VideoInfo[],
+  config: PipelineConfig,
+): Promise<VideoInfo | null> {
+  for (const video of videos) {
+    if (await isVideoWithinLimits(video, config)) {
+      logger.info(
+        { videoId: video.id, title: video.title },
+        "Selected first valid video for channel",
+      );
+      return video;
+    }
+  }
+  return null;
 }
 
 /**
@@ -186,36 +201,30 @@ export async function processVideo(
       );
     }
 
-    // Step 4: Process clips (limit concurrency to preserve CPU/memory)
-    const limit = pLimit(2);
+    // Step 4: Process clips sequentially to avoid resource conflicts
     const totalClips = selectedClips.length;
 
     emitProgress("cutting", `Gerando ${totalClips} shorts...`, 50, 0, totalClips);
 
-    const clipPromises = selectedClips.map((clip, index) =>
-      limit(async () => {
-        try {
-          emitProgress(
-            "cutting",
-            `Processando corte ${index + 1}/${totalClips}`,
-            50 + ((index + 1) / totalClips) * 30,
-            index + 1,
-            totalClips,
-          );
+    for (let index = 0; index < selectedClips.length; index++) {
+      const clip = selectedClips[index]!;
+      try {
+        emitProgress(
+          "cutting",
+          `Processando corte ${index + 1}/${totalClips}`,
+          50 + ((index + 1) / totalClips) * 30,
+          index + 1,
+          totalClips,
+        );
 
-          const short = await processClip(downloaded, clip, config);
-          shorts.push(short);
-          return short;
-        } catch (err) {
-          const msg = `Erro no corte ${clip.id}: ${err instanceof Error ? err.message : String(err)}`;
-          logger.error({ clipId: clip.id, error: err }, msg);
-          errors.push(msg);
-          return null;
-        }
-      }),
-    );
-
-    await Promise.all(clipPromises);
+        const short = await processClip(downloaded, clip, config);
+        shorts.push(short);
+      } catch (err) {
+        const msg = `Erro no corte ${clip.id}: ${err instanceof Error ? err.message : String(err)}`;
+        logger.error({ clipId: clip.id, error: err }, msg);
+        errors.push(msg);
+      }
+    }
 
     // Step 5: Send to Telegram & YouTube
     emitProgress("uploading", "Enviando para o Telegram e YouTube...", 85);

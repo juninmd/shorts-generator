@@ -62,8 +62,8 @@ export async function analyzeTranscript(
   const durationMinutes = Math.floor(transcript.duration / 60);
 
   // Rule: "Gere a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo"
-  const minCuts = getMaxCuts(transcript.duration);
-  const maxCuts = getMinCuts(transcript.duration);
+  const minCuts = getMinCuts(transcript.duration);
+  const maxCuts = getMaxCuts(transcript.duration);
 
   logger.info(
     {
@@ -132,9 +132,31 @@ export async function analyzeTranscript(
 }
 
 /**
+ * Normalize LLM output before JSON.parse:
+ * - Convert bare MM:SS timestamps to seconds:  startTime: 01:30  →  "startTime": 90
+ * - Convert quoted MM:SS timestamps:           "startTime": "01:30"  →  "startTime": 90
+ */
+function normalizeTimestamps(text: string): string {
+  // Quoted string timestamps: "startTime": "01:30"
+  text = text.replace(
+    /"(startTime|endTime)":\s*"(\d{1,2}):(\d{2}(?:\.\d+)?)"/g,
+    (_, key, min, sec) => `"${key}": ${parseFloat(min) * 60 + parseFloat(sec)}`,
+  );
+  // Bare unquoted timestamps (JSON syntax error): "startTime": 01:30
+  text = text.replace(
+    /"(startTime|endTime)":\s*(\d{1,2}):(\d{2}(?:\.\d+)?)/g,
+    (_, key, min, sec) => `"${key}": ${parseFloat(min) * 60 + parseFloat(sec)}`,
+  );
+  return text;
+}
+
+/**
  * Extract JSON from LLM response, handling markdown code blocks and extra text.
  */
 function extractAndParseJSON(text: string): z.infer<typeof ClipSchema> | null {
+  // Normalize MM:SS timestamps to seconds before any JSON parsing
+  text = normalizeTimestamps(text);
+
   try {
     // Try direct parse first
     const direct = ClipSchema.safeParse(JSON.parse(text));
@@ -169,14 +191,43 @@ function processClips(
   maxCuts: number,
 ): ShortClip[] {
   const clips: ShortClip[] = object.clips
+    .map((clip) => {
+      // If clip is too short, extend end time to reach minShortDuration
+      const duration = clip.endTime - clip.startTime;
+      if (duration < config.minShortDuration) {
+        const targetEnd = clip.startTime + config.minShortDuration;
+        // Snap to the end of the last segment that starts before targetEnd
+        const expanded = transcript.segments
+          .filter((seg) => seg.start >= clip.startTime && seg.end <= targetEnd + 30)
+          .at(-1);
+        if (expanded && expanded.end > clip.endTime) {
+          return { ...clip, endTime: Math.min(expanded.end, transcript.duration) };
+        }
+      }
+      return clip;
+    })
     .filter((clip) => {
       const duration = clip.endTime - clip.startTime;
-      return (
+      const ok =
         duration >= config.minShortDuration &&
         duration <= config.maxShortDuration &&
         clip.startTime >= 0 &&
-        clip.endTime <= transcript.duration
-      );
+        clip.endTime <= transcript.duration;
+      if (!ok) {
+        logger.debug(
+          {
+            title: clip.title,
+            startTime: clip.startTime,
+            endTime: clip.endTime,
+            duration,
+            minShortDuration: config.minShortDuration,
+            maxShortDuration: config.maxShortDuration,
+            totalDuration: transcript.duration,
+          },
+          "Clip filtered out",
+        );
+      }
+      return ok;
     })
     .sort((a, b) => b.viralScore - a.viralScore)
     .slice(0, maxCuts)
