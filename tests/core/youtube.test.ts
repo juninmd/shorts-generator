@@ -163,36 +163,29 @@ describe("youtube", () => {
     expect(() => cleanupVideo("vid1", mockConfig)).not.toThrow();
   });
 
-  it("getVideoInfo handles non-number duration", async () => {
+  describe("handling non-number duration", () => {
     const mockOutput = {
       id: "vid1",
       duration: "invalid",
     };
 
-    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
-      const cb = typeof options === 'function' ? options : callback;
-      if (typeof cb === "function") cb(null, { stdout: JSON.stringify(mockOutput) + "\n", stderr: "" });
-      return {} as any;
+    beforeEach(() => {
+      vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+        const cb = typeof options === 'function' ? options : callback;
+        if (typeof cb === "function") cb(null, { stdout: JSON.stringify(mockOutput) + "\n", stderr: "" });
+        return {} as any;
+      });
     });
 
-    const info = await getVideoInfo("url");
-    expect(info?.duration).toBe(0);
-  });
-
-  it("getChannelVideos handles non-number duration", async () => {
-    const mockOutput = {
-      id: "vid1",
-      duration: "invalid",
-    };
-
-    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
-      const cb = typeof options === 'function' ? options : callback;
-      if (typeof cb === "function") cb(null, { stdout: JSON.stringify(mockOutput) + "\n", stderr: "" });
-      return {} as any;
+    it("getVideoInfo handles non-number duration", async () => {
+      const info = await getVideoInfo("url");
+      expect(info?.duration).toBe(0);
     });
 
-    const videos = await getChannelVideos("mychannel", 1);
-    expect(videos).toEqual([]);
+    it("getChannelVideos handles non-number duration", async () => {
+      const videos = await getChannelVideos("mychannel", 1);
+      expect(videos).toEqual([]);
+    });
   });
 
   it("downloadVideo uses default fallback formats", async () => {
