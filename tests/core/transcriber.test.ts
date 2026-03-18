@@ -63,7 +63,7 @@ describe("transcriber", () => {
 
     vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
       const cb = callback || options || args;
-      if (typeof cb === "function") cb(null, "stdout", "stderr");
+      if (typeof cb === "function") cb(null, { stdout: "uv 0.2.0", stderr: "" });
       return {} as any;
     });
 
@@ -83,7 +83,7 @@ describe("transcriber", () => {
   it("should fail if output file not found", async () => {
     vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
       const cb = callback || options || args;
-      if (typeof cb === "function") cb(null, "stdout", "stderr");
+      if (typeof cb === "function") cb(null, { stdout: "uv 0.2.0", stderr: "" });
       return {} as any;
     });
 
@@ -92,14 +92,56 @@ describe("transcriber", () => {
     await expect(transcribeVideo(mockVideo, mockConfig)).rejects.toThrow(/Whisper output not found/);
   });
 
-  it("should fail if exec errors", async () => {
+  it("should fail if exec errors during whisper run", async () => {
     vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
       const cb = callback || options || args;
-      if (typeof cb === "function") cb(new Error("Exec error"), "stdout", "stderr");
+      if (args && args.includes("--version")) {
+        // Return success for findUvBinary
+        if (typeof cb === "function") cb(null, { stdout: "uv 0.2.0", stderr: "" });
+      } else {
+        // Return error for the actual whisper run
+        if (typeof cb === "function") cb(new Error("Exec error"), { stdout: "", stderr: "" });
+      }
       return {} as any;
     });
 
     await expect(transcribeVideo(mockVideo, mockConfig)).rejects.toThrow(/Exec error/);
+  });
+
+  it("should throw if no compatible uv found", async () => {
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = callback || options || args;
+      if (typeof cb === "function") cb(new Error("Command not found"), { stdout: "", stderr: "" });
+      return {} as any;
+    });
+
+    await expect(transcribeVideo(mockVideo, mockConfig)).rejects.toThrow(/No compatible uv installation found/);
+  });
+
+  it("should skip invalid uv versions", async () => {
+    let callCount = 0;
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = callback || options || args;
+      if (args && args.includes("--version")) {
+        callCount++;
+        // First candidate returns old version
+        if (callCount === 1) {
+          if (typeof cb === "function") cb(null, { stdout: "uv 0.1.0", stderr: "" });
+        } else {
+          // Second candidate returns valid version
+          if (typeof cb === "function") cb(null, { stdout: "uv 0.2.0", stderr: "" });
+        }
+      } else {
+        if (typeof cb === "function") cb(null, { stdout: "success", stderr: "" });
+      }
+      return {} as any;
+    });
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ language: "en" }));
+
+    await transcribeVideo(mockVideo, mockConfig);
+    expect(callCount).toBeGreaterThan(1);
   });
 
   it("should handle missing segments and words in whisper output safely", async () => {
@@ -107,7 +149,7 @@ describe("transcriber", () => {
 
     vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
       const cb = callback || options || args;
-      if (typeof cb === "function") cb(null, "stdout", "stderr");
+      if (typeof cb === "function") cb(null, { stdout: "uv 0.2.0", stderr: "" });
       return {} as any;
     });
 
@@ -139,7 +181,7 @@ describe("transcriber", () => {
 
     vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
       const cb = callback || options || args;
-      if (typeof cb === "function") cb(null, "stdout", "stderr");
+      if (typeof cb === "function") cb(null, { stdout: "uv 0.2.0", stderr: "" });
       return {} as any;
     });
 

@@ -326,7 +326,7 @@ You must find between **${minClips} and ${maxClips} clips**. Do not generate few
 - Each clip must be between **${minDuration}** and **${maxDuration} seconds**
 - Clips must NOT overlap
 - startTime and endTime MUST perfectly align with transcript segment boundaries
-- Generate extreme, EXTREMELY clickbaity, and punchy titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or FOMO. Titles MUST be highly attractive for TikTok/Shorts algorithms, practically forcing the user to click. Emphasize controversy or mind-blowing facts in the title.
+- Generate extreme, EXTREMELY clickbaity, and punchy titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or FOMO. Titles MUST be highly attractive for TikTok/Shorts algorithms, practically forcing the user to click. Emphasize controversy, mind-blowing facts, or highly emotional hooks in the title. The title should be as viral and short as possible.
 
 ## Transcript:
 ${transcript}
@@ -336,7 +336,7 @@ Respond ONLY with a JSON object (no markdown, no extra text) in this exact forma
 {
   "clips": [
     {
-      "title": "Short catchy title (max 60 chars)",
+      "title": "Short catchy highly viral title in Portuguese (max 60 chars)",
       "description": "Short description for engagement (max 150 chars)",
       "startTime": 120.5,
       "endTime": 155.0,
