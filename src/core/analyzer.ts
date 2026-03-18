@@ -326,7 +326,7 @@ You must find between **${minClips} and ${maxClips} clips**. Do not generate few
 - Each clip must be between **${minDuration}** and **${maxDuration} seconds**
 - Clips must NOT overlap
 - startTime and endTime MUST perfectly align with transcript segment boundaries
-- Generate extreme, EXTREMELY clickbaity, and punchy titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or FOMO. Titles MUST be highly attractive for TikTok/Shorts algorithms, practically forcing the user to click. Emphasize controversy, mind-blowing facts, or highly emotional hooks in the title. The title should be as viral and short as possible.
+- Generate extreme, EXTREMELY clickbaity, and punchy titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or FOMO. Titles MUST be highly attractive for TikTok/Shorts/Reels algorithms, practically forcing the user to click. Emphasize controversy, mind-blowing facts, or highly emotional hooks in the title. The title should be as viral, impactful, and short as possible to guarantee maximum views.
 
 ## Transcript:
 ${transcript}

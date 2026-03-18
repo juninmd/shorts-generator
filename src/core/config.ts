@@ -73,8 +73,8 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
  */
 export function getMinCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
-  // Rule: 1 cut every 5 minutes, minimum 2, maximum 5
-  return Math.min(5, Math.max(2, Math.floor(durationMinutes / 5)));
+  // Rule: 2 cuts per minute minimum, maximum 10 to avoid token limit
+  return Math.min(10, Math.max(2, durationMinutes * 2));
 }
 
 /**
@@ -83,6 +83,6 @@ export function getMinCuts(videoDurationSeconds: number): number {
 export function getMaxCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
   const minCuts = getMinCuts(videoDurationSeconds);
-  // Rule: 1 cut every 2 minutes, maximum 15, at least minCuts + 1
-  return Math.min(15, Math.max(minCuts + 1, Math.floor(durationMinutes / 2)));
+  // Rule: Ensure max is at least min. Maximum 15 to avoid token limit.
+  return Math.min(15, Math.max(minCuts, durationMinutes * 2));
 }

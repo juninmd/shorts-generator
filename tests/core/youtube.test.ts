@@ -110,6 +110,28 @@ describe("youtube", () => {
     expect(videos).toEqual([]);
   });
 
+  it("getChannelVideos handles empty lines", async () => {
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: " \n", stderr: "" });
+      return {} as any;
+    });
+
+    const videos = await getChannelVideos("mychannel", 1);
+    expect(videos).toEqual([]);
+  });
+
+  it("getVideoInfo handles multiple lines", async () => {
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: "garbage\n{\"id\":\"vid1\",\"duration\":120}\n", stderr: "" });
+      return {} as any;
+    });
+
+    const info = await getVideoInfo("url");
+    expect(info?.id).toBe("vid1");
+  });
+
   it("getVideoFileSize handles exec error gracefully", async () => {
     vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
       const cb = typeof options === 'function' ? options : callback;
@@ -139,5 +161,98 @@ describe("youtube", () => {
     });
 
     expect(() => cleanupVideo("vid1", mockConfig)).not.toThrow();
+  });
+
+  it("getVideoInfo handles non-number duration", async () => {
+    const mockOutput = {
+      id: "vid1",
+      duration: "invalid",
+    };
+
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: JSON.stringify(mockOutput) + "\n", stderr: "" });
+      return {} as any;
+    });
+
+    const info = await getVideoInfo("url");
+    expect(info?.duration).toBe(0);
+  });
+
+  it("getChannelVideos handles non-number duration", async () => {
+    const mockOutput = {
+      id: "vid1",
+      duration: "invalid",
+    };
+
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: JSON.stringify(mockOutput) + "\n", stderr: "" });
+      return {} as any;
+    });
+
+    const videos = await getChannelVideos("mychannel", 1);
+    expect(videos).toEqual([]);
+  });
+
+  it("downloadVideo uses default fallback formats", async () => {
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (args && args.includes("--list-formats")) {
+        // Mock fail list-formats
+        if (typeof cb === "function") cb(new Error("Fail list formats"), { stdout: "", stderr: "" });
+      } else {
+        if (typeof cb === "function") cb(null, { stdout: "Done", stderr: "" });
+      }
+      return {} as any;
+    });
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.statSync).mockReturnValue({ size: 1024 } as any);
+    vi.mocked(fs.readdirSync).mockReturnValue(["vid1.mp4"] as any);
+
+    const video = {
+      id: "vid1",
+      title: "Title",
+      url: "url",
+      channelName: "channel",
+      channelUrl: "curl",
+      duration: 120,
+      publishedAt: "20230101",
+    };
+
+    const downloaded = await downloadVideo(video, mockConfig);
+    expect(downloaded.fileSize).toBe(1024);
+  });
+
+  it("downloadVideo fails when all formats fail", async () => {
+    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(new Error("Fail download"), { stdout: "", stderr: "" });
+      return {} as any;
+    });
+
+    const video = {
+      id: "vid1",
+      title: "Title",
+      url: "url",
+      channelName: "channel",
+      channelUrl: "curl",
+      duration: 120,
+      publishedAt: "20230101",
+    };
+
+    await expect(downloadVideo(video, mockConfig)).rejects.toThrow("Failed to download video after trying all formats. Last error: Fail download");
+  });
+
+  it("getVideoFileSize handles non-number sizes gracefully", async () => {
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: "invalid\n", stderr: "" });
+      return {} as any;
+    });
+
+    const size = await getVideoFileSize("url", mockConfig);
+    expect(size).toBeNull();
   });
 });

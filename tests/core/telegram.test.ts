@@ -86,4 +86,36 @@ describe("telegram", () => {
     await sendSummary("Title", "Channel", 2, [], emptyConfig);
     expect(mockSendMessage).not.toHaveBeenCalled();
   });
+
+  it("should handle error in sendToTelegram gracefully", async () => {
+    vi.mocked(fs.statSync).mockReturnValue({ size: 10 * 1024 * 1024 } as any);
+    mockSendVideo.mockRejectedValue(new Error("Network Error"));
+    const result = await sendToTelegram(mockShort, mockConfig);
+    expect(result).toBeUndefined();
+  });
+
+  it("should handle error in sendSummary gracefully", async () => {
+    mockSendMessage.mockRejectedValue(new Error("Network Error"));
+    await sendSummary("Title", "Channel", 2, ["Error 1"], mockConfig);
+    // Just ensuring it doesn't throw
+  });
+
+  it("should include youtube url when provided", async () => {
+    vi.mocked(fs.statSync).mockReturnValue({ size: 10 * 1024 * 1024 } as any);
+    mockSendVideo.mockResolvedValue({ message_id: 123 });
+    const result = await sendToTelegram(mockShort, mockConfig, "https://youtube.com/shorts/123");
+    expect(mockSendVideo).toHaveBeenCalledTimes(1);
+    expect(mockSendVideo.mock.calls[0][2].caption).toContain("https://youtube.com/shorts/123");
+  });
+
+  it("should escape html entities properly", async () => {
+    vi.mocked(fs.statSync).mockReturnValue({ size: 10 * 1024 * 1024 } as any);
+    mockSendVideo.mockResolvedValue({ message_id: 123 });
+    const nastyShort = {
+      ...mockShort,
+      clip: { ...mockShort.clip, title: "<Nasty&Title>" }
+    };
+    await sendToTelegram(nastyShort as any, mockConfig);
+    expect(mockSendVideo.mock.calls[0][2].caption).toContain("&lt;Nasty&amp;Title&gt;");
+  });
 });

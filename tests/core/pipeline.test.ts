@@ -8,6 +8,7 @@ import * as transcriber from "../../src/core/transcriber.js";
 import * as analyzer from "../../src/core/analyzer.js";
 import * as processor from "../../src/core/video-processor.js";
 import * as telegram from "../../src/core/telegram.js";
+import * as youtubeService from "../../src/core/youtube.service.js";
 
 vi.mock("../../src/core/youtube.js", () => ({
   getChannelVideos: vi.fn(),
@@ -32,6 +33,11 @@ vi.mock("../../src/core/video-processor.js", () => ({
 vi.mock("../../src/core/telegram.js", () => ({
   sendToTelegram: vi.fn(),
   sendSummary: vi.fn(),
+}));
+
+vi.mock("../../src/core/youtube.service.js", () => ({
+  generateYoutubeMetadata: vi.fn(),
+  uploadToYouTube: vi.fn(),
 }));
 
 describe("pipeline", () => {
@@ -74,6 +80,8 @@ describe("pipeline", () => {
     vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip]);
     vi.mocked(processor.processClip).mockResolvedValue(mockGeneratedShort);
     vi.mocked(telegram.sendToTelegram).mockResolvedValue(123);
+    vi.mocked(youtubeService.generateYoutubeMetadata).mockResolvedValue({ title: "YT Title", description: "YT Desc" });
+    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/123");
   });
 
   it("runPipeline aggregates specificUrls and channels correctly", async () => {
@@ -196,5 +204,32 @@ describe("pipeline", () => {
     expect(result.shorts).toHaveLength(1);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("Telegram failed");
+  });
+
+  it("processVideo handles generic error inside loop", async () => {
+    vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip]);
+    // Throw a string error instead of Error object
+    vi.mocked(processor.processClip).mockRejectedValue("String error");
+
+    const result = await processVideo(mockVideoInfo, mockConfig);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("String error");
+  });
+
+  it("processVideo handles generic error in telegram loop", async () => {
+    vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip]);
+    vi.mocked(youtubeService.generateYoutubeMetadata).mockRejectedValue("String YT error");
+
+    const result = await processVideo(mockVideoInfo, mockConfig);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("String YT error");
+  });
+
+  it("processVideo handles generic fatal error", async () => {
+    vi.mocked(transcriber.transcribeVideo).mockRejectedValue("Fatal string error");
+    const result = await processVideo(mockVideoInfo, mockConfig);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("Fatal string error");
   });
 });
