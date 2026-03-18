@@ -113,6 +113,13 @@ describe("youtube.service", () => {
   });
 
   describe("uploadToYouTube", () => {
+    beforeEach(() => {
+      process.env.ENABLE_YOUTUBE = "true";
+      process.env.YOUTUBE_CLIENT_ID = "dummy_client_id";
+      process.env.YOUTUBE_CLIENT_SECRET = "dummy_client_secret_val";
+      process.env.YOUTUBE_REFRESH_TOKEN = "dummy_refresh_tkn";
+    });
+
     it("returns null if ENABLE_YOUTUBE is not true", async () => {
       process.env.ENABLE_YOUTUBE = "false";
       const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
@@ -120,18 +127,12 @@ describe("youtube.service", () => {
     });
 
     it("returns null if missing credentials", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
       process.env.YOUTUBE_CLIENT_ID = "";
       const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
       expect(result).toBeNull();
     });
 
     it("uploads and returns url successfully", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "id";
-      process.env.YOUTUBE_CLIENT_SECRET = "secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "token";
-
       const videosInsertMock = (await import("googleapis") as any).videosInsertMock;
       videosInsertMock.mockResolvedValue({ data: { id: "yt123" } });
       vi.mocked(fs.createReadStream).mockReturnValue({} as any);
@@ -141,26 +142,16 @@ describe("youtube.service", () => {
     });
 
     it("handles error and redacts secrets", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "my-id";
-      process.env.YOUTUBE_CLIENT_SECRET = "my-secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "my-token";
-
       const videosInsertMock = (await import("googleapis") as any).videosInsertMock;
-      videosInsertMock.mockRejectedValue(new Error("Failed with my-id and my-secret and my-token"));
+      videosInsertMock.mockRejectedValue(new Error("Failed with dummy_client_id and dummy_client_secret_val and dummy_refresh_tkn"));
 
       const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
       expect(result).toBeNull();
     });
 
     it("handles string error and redacts secrets", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "my-id";
-      process.env.YOUTUBE_CLIENT_SECRET = "my-secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "my-token";
-
       const videosInsertMock = (await import("googleapis") as any).videosInsertMock;
-      videosInsertMock.mockRejectedValue("Failed with my-id and my-secret and my-token");
+      videosInsertMock.mockRejectedValue("Failed with dummy_client_id and dummy_client_secret_val and dummy_refresh_tkn");
 
       const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
       expect(result).toBeNull();
