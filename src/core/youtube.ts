@@ -12,7 +12,7 @@ function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): str
   const browser = config?.youtubeCookiesBrowser || process.env.YOUTUBE_COOKIES_BROWSER;
   const file = tempCookieFile || config?.youtubeCookiesFile || process.env.YOUTUBE_COOKIES_FILE;
 
-  const args: string[] = [];
+  const args: string[] = ["--no-check-certificates"];
 
   if (browser) {
     args.push("--cookies-from-browser", browser);
@@ -308,18 +308,15 @@ export async function downloadVideo(
       logger.warn({ error: listErr.message }, "Failed to parse --list-formats, proceeding with default formats...");
     }
 
-    const formatsToTry = [];
-    if (dynamicallySelectedFormat) {
-      formatsToTry.push(dynamicallySelectedFormat);
-    }
-
-    formatsToTry.push(
+    const formatsToTry: (string | null)[] = [
+      dynamicallySelectedFormat,
       "bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/bv*+ba/b",
       "bv*[height<=720]+ba/b[height<=720]/bv*+ba/b",
       "bestvideo[height<=720]+bestaudio/best[height<=720]",
       "bestvideo+bestaudio/best",
-      "best"
-    );
+      "best",
+      null, // Final catch-all: no -f flag
+    ].filter((f, i, arr) => f !== undefined && f !== "" && arr.indexOf(f) === i);
 
     let downloaded = false;
     let lastError: any = null;
@@ -327,21 +324,29 @@ export async function downloadVideo(
     for (const format of formatsToTry) {
       const args = [
         ...getYtDlpBaseArgs(config, tempCookiePath),
-        "-f",
-        format,
-        "--merge-output-format",
-        "mp4",
-        "-o",
-        outputTemplate,
         "--no-playlist",
         "--no-warnings",
         "--concurrent-fragments",
         "5",
-        "--",
-        video.url,
       ];
 
-      logger.info({ format, cmd: `yt-dlp ${args.join(" ")}` }, "Trying to download video with format");
+      if (format) {
+        args.push("-f", format);
+      }
+
+      args.push(
+        "--merge-output-format",
+        "mp4",
+        "-o",
+        outputTemplate,
+        "--",
+        video.url
+      );
+
+      logger.info(
+        { format: format || "auto", cmd: `yt-dlp ${args.map(a => a.includes(" ") ? `"${a}"` : a).join(" ")}` },
+        "Trying to download video"
+      );
 
       try {
         await execYtDlp(args, { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 });
