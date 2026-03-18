@@ -42,18 +42,18 @@ describe("config", () => {
   });
 
   describe("getMaxCuts", () => {
-    it("should calculate max cuts based on minutes", () => {
-      expect(getMaxCuts(60)).toBe(2); // 1 min -> 2 (min bound)
-      expect(getMaxCuts(300)).toBe(5); // 5 min -> 5
-      expect(getMaxCuts(30)).toBe(2); // 0.5 min -> max(2, 0) = 2
+    it("should calculate max cuts based on minutes ensuring max >= min", () => {
+      expect(getMaxCuts(60)).toBe(2); // 1 min: min 2, max max(2, 1) = 2
+      expect(getMaxCuts(300)).toBe(10); // 5 min: min 10, max max(10, 5) = 10
+      expect(getMaxCuts(30)).toBe(2); // 0 min (rounded up to 1 for minCuts): min 2, max max(2, 0) = 2
     });
   });
 
   describe("getMinCuts", () => {
-    it("should return a fixed minimum of 2", () => {
-      expect(getMinCuts(60)).toBe(2);
-      expect(getMinCuts(300)).toBe(2);
-      expect(getMinCuts(30)).toBe(2);
+    it("should return at least 2 cuts per minute", () => {
+      expect(getMinCuts(60)).toBe(2); // 1 min -> 2 cuts
+      expect(getMinCuts(300)).toBe(10); // 5 min -> 10 cuts
+      expect(getMinCuts(30)).toBe(2); // 0.5 min -> at least 1 min * 2 = 2 cuts
     });
   });
 

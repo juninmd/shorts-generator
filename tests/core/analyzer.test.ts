@@ -232,10 +232,20 @@ describe("analyzer", () => {
     const mockResponse = {
       clips: [
         {
-          title: "Too Short",
+          title: "Too Short But Extends",
           description: "Desc",
           startTime: 10,
           endTime: 15, // duration 5 < minShortDuration 15
+          viralScore: 9,
+          reason: "Reason",
+          hookLine: "Hook",
+          hashtags: ["#test"],
+        },
+        {
+          title: "Too Short Cannot Extend",
+          description: "Desc",
+          startTime: 110,
+          endTime: 111,
           viralScore: 9,
           reason: "Reason",
           hookLine: "Hook",
@@ -278,8 +288,9 @@ describe("analyzer", () => {
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
 
-    expect(clips).toHaveLength(1);
-    expect(clips[0].title).toBe("Valid");
+    expect(clips).toHaveLength(2);
+    expect(clips[0].title).toBe("Too Short But Extends");
+    expect(clips[1].title).toBe("Valid");
   });
 
   it("should return null inside extractAndParseJSON if parsed data is not an object", async () => {
