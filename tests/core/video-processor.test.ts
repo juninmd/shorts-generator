@@ -2,11 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { processClip, getVideoDuration } from "../../src/core/video-processor.js";
 import type { DownloadedVideo, ShortClip, PipelineConfig } from "../../src/types.js";
 import fs from "node:fs";
+import { execFile } from "node:child_process";
+
+vi.mock("node:child_process", () => ({
+  execFile: vi.fn(),
+}));
 
 vi.mock("node:fs", () => ({
   default: {
     mkdirSync: vi.fn(),
     writeFileSync: vi.fn(),
+    existsSync: vi.fn(),
   },
 }));
 
@@ -78,13 +84,12 @@ describe("video-processor", () => {
   });
 
   it("processClip should resolve and run ffmpeg with correct params", async () => {
-    // We mock fluent-ffmpeg run to trigger the 'end' event.
-    const ffmpegModule = await import("fluent-ffmpeg");
-    vi.mocked(ffmpegModule.default().on).mockImplementation((event, handler) => {
-      if (event === "end") {
-        setTimeout(handler as any, 0); // simulate async completion
-      }
-      return ffmpegModule.default();
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+      const cb = callback || options || args;
+      if (typeof cb === "function") cb(null, { stdout: "", stderr: "" });
+      return {} as any;
     });
 
     const result = await processClip(mockVideo, mockClip, mockConfig);
@@ -94,25 +99,21 @@ describe("video-processor", () => {
     expect(result.subtitlePath).toContain("clip1.ass");
     expect(result.status).toBe("completed");
 
-    // Verify watermark in videoFilters
-    const videoFiltersCall = vi.mocked(ffmpegModule.default().videoFilters).mock.calls[0];
-    const filtersParam = videoFiltersCall[0] as string;
-    expect(filtersParam).toContain("drawtext=text='Test Watermark':x=w-tw-5:y=h-th-5:fontsize=10");
+    const execFileCalls = vi.mocked(execFile).mock.calls;
+    expect(execFileCalls.length).toBeGreaterThan(0);
+    const args = execFileCalls[0][1] as string[];
+    const vfArgIndex = args.indexOf("-vf");
+    expect(vfArgIndex).toBeGreaterThan(-1);
+    expect(args[vfArgIndex + 1]).toContain("drawtext=text='Test Watermark':x=w-tw-10:y=h-th-10:fontsize=10");
   });
 
-  it("processClip should handle ffmpeg start, progress, and error events", async () => {
+  it("processClip should handle ffmpeg error events", async () => {
     const configWithoutWatermark = { ...mockConfig, watermarkText: "" };
-    const ffmpegModule = await import("fluent-ffmpeg");
-    vi.mocked(ffmpegModule.default().on).mockImplementation((event, handler) => {
-      if (event === "start") {
-        (handler as any)("ffmpeg -i test");
-      } else if (event === "progress") {
-        (handler as any)({ percent: 50.5 });
-        (handler as any)({}); // progress without percent
-      } else if (event === "error") {
-        setTimeout(() => (handler as any)(new Error("Test error")), 0);
-      }
-      return ffmpegModule.default();
+
+    vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+      const cb = callback || options || args;
+      if (typeof cb === "function") cb(new Error("Test error"), { stdout: "", stderr: "Test error stderr" });
+      return {} as any;
     });
 
     await expect(processClip(mockVideo, mockClip, configWithoutWatermark)).rejects.toThrow("Test error");
