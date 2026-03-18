@@ -73,9 +73,9 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
  * Rule: a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo
  */
 export function getMinCuts(videoDurationSeconds: number): number {
-  const durationMinutes = Math.max(1, Math.floor(videoDurationSeconds / 60));
-  // a cada minuto de vídeo pelo menos 2 cortes
-  return durationMinutes * 2;
+  const durationMinutes = Math.floor(videoDurationSeconds / 60);
+  // Rule: at least 2 cuts per minute, with a minimum of 2 for videos < 1 min.
+  return Math.max(2, durationMinutes * 2);
 }
 
 export function getMaxCuts(videoDurationSeconds: number): number {
