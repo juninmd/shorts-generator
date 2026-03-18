@@ -107,11 +107,11 @@ async function renderShort(
     `ass='${escapedSubPath}'`,
   ];
 
-  if (watermarkText) {
-    filters.push(
-      `drawtext=text='${watermarkText}':x=w-tw-10:y=h-th-10:fontsize=10:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`,
-    );
-  }
+  // if (watermarkText) {
+  //   filters.push(
+  //     `drawtext=text='${watermarkText}':x=w-tw-10:y=h-th-10:fontsize=10:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`,
+  //   );
+  // }
 
   // Build env — use forward-slash FONTCONFIG_FILE to prevent libass crash on Windows
   const fontsConfNative = path.resolve(process.cwd(), "fonts.conf");

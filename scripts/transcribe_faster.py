@@ -1,11 +1,43 @@
 import sys
 import json
 import argparse
-from faster_whisper import WhisperModel
-
 def transcribe(audio_path, model_size, output_dir):
-    # Run on CPU by default for maximum compatibility, use "cuda" if GPU is available
-    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    # Lazy imports to avoid fatal crashes during script startup
+    import os
+    try:
+        from faster_whisper import WhisperModel
+        import ctranslate2
+    except ImportError as e:
+        print(f"Error importing faster-whisper: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Default to CPU for maximum stability (prevents fatal DLL crashes on local machines)
+    use_gpu = os.environ.get("WHISPER_USE_GPU", "false").lower() == "true"
+    
+    device = "cpu"
+    if use_gpu:
+        try:
+            if ctranslate2.get_cuda_device_count() > 0:
+                device = "cuda"
+            else:
+                print("GPU requested (WHISPER_USE_GPU=true) but no CUDA device found. Using CPU.")
+        except Exception as e:
+            print(f"GPU detection failed: {e}. Falling back to CPU.")
+            device = "cpu"
+            
+    compute_type = "float16" if device == "cuda" else "int8"
+    
+    print(f"Starting transcription on device: {device} (compute_type: {compute_type})")
+    
+    try:
+        model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    except Exception as e:
+        if device == "cuda":
+            print(f"GPU initialization failed (DLL missing or incompatible). Error: {e}")
+            print("Falling back to CPU...")
+            model = WhisperModel(model_size, device="cpu", compute_type="int8")
+        else:
+            raise e
     
     segments, info = model.transcribe(audio_path, beam_size=5, word_timestamps=True)
     
