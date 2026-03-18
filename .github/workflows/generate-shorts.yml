@@ -31,6 +31,7 @@ env:
   YOUTUBE_CHANNELS: ${{ vars.YOUTUBE_CHANNELS }}
   OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma3:1b' }}
   WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'tiny' }}
+  WHISPER_USE_GPU: 'true'
   OLLAMA_TIMEOUT_MS: 120000
   # For hourly runs, only fetch videos from the last hour (0 = today, fine-grained via upload_date)
   DAYS_BACK: ${{ inputs.days_back || vars.DAYS_BACK || '0' }}
@@ -102,12 +103,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ollama-
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          python -m pip install --upgrade pip
-          python -m pip install yt-dlp yt-dlp-ejs openai-whisper
+          uv pip install --system -r tests/yt-download/pyproject.toml
 
       - name: Install & start Ollama
         run: |

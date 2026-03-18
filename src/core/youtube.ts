@@ -23,6 +23,75 @@ function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): str
 }
 
 /**
+ * Helper to handle temporary cookies from Base64 env var.
+ */
+async function withCookies<T>(
+  config: PipelineConfig | undefined,
+  fn: (cookiePath?: string) => Promise<T>
+): Promise<T> {
+  const base64Cookies = config?.youtubeCookiesBase64 || process.env.YOUTUBE_COOKIES_BASE64;
+  let tempCookiePath: string | undefined;
+
+  if (base64Cookies) {
+    const tempDir = config?.tempDir || path.join(process.cwd(), "output", "temp");
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    tempCookiePath = path.join(tempDir, `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
+    const cookieBuffer = Buffer.from(base64Cookies, "base64");
+    fs.writeFileSync(tempCookiePath, cookieBuffer);
+
+    const stats = fs.statSync(tempCookiePath);
+    logger.debug({ path: tempCookiePath, size: stats.size }, "Temporary cookie file created");
+
+    if (stats.size < 10) {
+      logger.warn({ size: stats.size }, "Cookie file is suspiciously small, check YOUTUBE_COOKIES_BASE64 helper");
+    }
+  }
+
+  try {
+    return await fn(tempCookiePath);
+  } finally {
+    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
+      try {
+        fs.unlinkSync(tempCookiePath);
+      } catch (err) {
+        logger.warn({ err, path: tempCookiePath }, "Failed to delete temp cookie file");
+      }
+    }
+  }
+}
+
+/**
+ * Execute yt-dlp with better error reporting.
+ */
+async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: string; stderr: string }> {
+  try {
+    return (await execFileAsync("yt-dlp", args, { ...options, encoding: "utf8" })) as unknown as {
+      stdout: string;
+      stderr: string;
+    };
+  } catch (error: any) {
+    const stderr = error.stderr || "";
+    // Redact cookie path from args if present for extra safety
+    const safeArgs = args.map((arg, i) => {
+      if (i > 0 && args[i - 1] === "--cookies") return "[REDACTED_COOKIE_PATH]";
+      return arg;
+    });
+
+    const safeMessage = (error.message || "").replace(/cookies-[a-f0-9]+\.txt/g, "[REDACTED_COOKIE_FILE]");
+
+    logger.error({
+      args: safeArgs,
+      stderr: stderr.split("\n").filter((l: string) => l.includes("ERROR") || l.includes("warning")).join("\n"),
+      message: safeMessage
+    }, "yt-dlp execution failed");
+    throw error;
+  }
+}
+
+/**
  * Get the list of recent videos from a YouTube channel.
  */
 export async function getChannelVideos(
@@ -35,127 +104,111 @@ export async function getChannelVideos(
 
   logger.info({ channel: channelIdentifier, daysBack }, "Fetching channel videos");
 
-  let tempCookiePath: string | undefined;
-  try {
-    const base64Cookies = process.env.YOUTUBE_COOKIES_BASE64;
+  return withCookies(undefined, async (tempCookiePath) => {
+    try {
+      const { stdout } = await execYtDlp(
+        [
+          ...getYtDlpBaseArgs(undefined, tempCookiePath),
+          "--flat-playlist",
+          "--print",
+          '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
+          "--dateafter",
+          dateStr,
+          "--no-warnings",
+          "--ignore-errors",
+          "--playlist-end",
+          "30",
+          channelIdentifier.startsWith("http")
+            ? channelIdentifier
+            : `https://www.youtube.com/${channelIdentifier}/videos`,
+        ],
+        { maxBuffer: 10 * 1024 * 1024, timeout: 120_000 },
+      );
 
-    if (base64Cookies) {
-      tempCookiePath = path.join(process.cwd(), `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
-      fs.writeFileSync(tempCookiePath, Buffer.from(base64Cookies, "base64").toString("utf-8"));
-    }
-
-    const { stdout } = await execFileAsync(
-      "yt-dlp",
-      [
-        ...getYtDlpBaseArgs(undefined, tempCookiePath),
-        "--flat-playlist",
-        "--print",
-        '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
-        "--dateafter",
-        dateStr,
-        "--no-warnings",
-        "--ignore-errors",
-        "--playlist-end",
-        "30",
-        channelIdentifier.startsWith("http")
-          ? channelIdentifier
-          : `https://www.youtube.com/${channelIdentifier}/videos`,
-      ],
-      { maxBuffer: 10 * 1024 * 1024, timeout: 120_000 },
-    );
-
-    const videos: VideoInfo[] = [];
-    for (const line of stdout.trim().split("\n")) {
-      if (!line.trim()) continue;
-      try {
-        const raw = JSON.parse(line);
-        videos.push({
-          id: raw.id,
-          title: raw.title ?? "Untitled",
-          url: raw.url ?? `https://www.youtube.com/watch?v=${raw.id}`,
-          channelName: raw.channel ?? channelIdentifier,
-          channelUrl: raw.channel_url ?? "",
-          duration: typeof raw.duration === "number" ? raw.duration : 0,
-          publishedAt: raw.upload_date ?? "",
-          thumbnailUrl: raw.thumbnail,
-        });
-      } catch {
-        logger.warn({ line }, "Failed to parse video info line");
+      const videos: VideoInfo[] = [];
+      for (const line of stdout.trim().split("\n")) {
+        if (!line.trim()) continue;
+        try {
+          const raw = JSON.parse(line);
+          videos.push({
+            id: raw.id,
+            title: raw.title ?? "Untitled",
+            url: raw.url ?? `https://www.youtube.com/watch?v=${raw.id}`,
+            channelName: raw.channel ?? channelIdentifier,
+            channelUrl: raw.channel_url ?? "",
+            duration: typeof raw.duration === "number" ? raw.duration : 0,
+            publishedAt: raw.upload_date ?? "",
+            thumbnailUrl: raw.thumbnail,
+          });
+        } catch {
+          logger.warn({ line }, "Failed to parse video info line");
+        }
       }
-    }
 
-    logger.info({ channel: channelIdentifier, count: videos.length }, "Found videos");
-    return videos;
-  } catch (error) {
-    logger.error({ error, channel: channelIdentifier }, "Failed to fetch channel videos");
-    return [];
-  } finally {
-    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
-      fs.unlinkSync(tempCookiePath);
+      const maxDuration = 15 * 60; // 15 minutes
+      const filtered = videos.filter((v) => v.duration > 0 && v.duration <= maxDuration);
+
+      logger.info(
+        { channel: channelIdentifier, total: videos.length, filtered: filtered.length },
+        "Found videos (filtered by 15m duration)",
+      );
+      return filtered;
+    } catch (error) {
+      logger.error({ error, channel: channelIdentifier }, "Failed to fetch channel videos");
+      return [];
     }
-  }
+  });
 }
 
 /**
  * Get video info for a specific URL.
  */
 export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
-  let tempCookiePath: string | undefined;
-  try {
-    const base64Cookies = process.env.YOUTUBE_COOKIES_BASE64;
+  return withCookies(undefined, async (tempCookiePath) => {
+    try {
+      const { stdout } = await execYtDlp(
+        [
+          ...getYtDlpBaseArgs(undefined, tempCookiePath),
+          "--print",
+          '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
+          "--no-warnings",
+          "--no-playlist",
+          url,
+        ],
+        { maxBuffer: 5 * 1024 * 1024, timeout: 60_000 },
+      );
 
-    if (base64Cookies) {
-      tempCookiePath = path.join(process.cwd(), `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
-      fs.writeFileSync(tempCookiePath, Buffer.from(base64Cookies, "base64").toString("utf-8"));
-    }
-
-    const { stdout } = await execFileAsync(
-      "yt-dlp",
-      [
-        ...getYtDlpBaseArgs(undefined, tempCookiePath),
-        "--print",
-        '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
-        "--no-warnings",
-        "--no-playlist",
-        url,
-      ],
-      { maxBuffer: 5 * 1024 * 1024, timeout: 60_000 },
-    );
-
-    const outputLines = stdout.trim().split("\n");
-    let raw: any = null;
-    for (const line of outputLines.reverse()) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-        try {
-          raw = JSON.parse(trimmed);
-          break;
-        } catch { }
+      const outputLines = stdout.trim().split("\n");
+      let raw: any = null;
+      for (const line of outputLines.reverse()) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+          try {
+            raw = JSON.parse(trimmed);
+            break;
+          } catch { }
+        }
       }
-    }
 
-    if (!raw) {
-      throw new Error("Failed to parse video info from yt-dlp output");
-    }
+      if (!raw) {
+        throw new Error("Failed to parse video info from yt-dlp output");
+      }
 
-    return {
-      id: raw.id,
-      title: raw.title ?? "Untitled",
-      url: raw.url ?? url,
-      channelName: raw.channel ?? "Unknown",
-      channelUrl: raw.channel_url ?? "",
-      duration: typeof raw.duration === "number" ? raw.duration : 0,
-      publishedAt: raw.upload_date ?? "",
-      thumbnailUrl: raw.thumbnail,
-    };
-  } catch (error) {
-    logger.error({ error, url }, "Failed to get video info");
-    return null;
-  } finally {
-    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
-      fs.unlinkSync(tempCookiePath);
+      return {
+        id: raw.id,
+        title: raw.title ?? "Untitled",
+        url: raw.url ?? url,
+        channelName: raw.channel ?? "Unknown",
+        channelUrl: raw.channel_url ?? "",
+        duration: typeof raw.duration === "number" ? raw.duration : 0,
+        publishedAt: raw.upload_date ?? "",
+        thumbnailUrl: raw.thumbnail,
+      };
+    } catch (error) {
+      logger.error({ error, url }, "Failed to get video info");
+      return null;
     }
-  }
+  });
 }
 
 /**
@@ -173,19 +226,12 @@ export async function downloadVideo(
 
   logger.info({ videoId: video.id, title: video.title }, "Downloading video");
 
-  let tempCookiePath: string | undefined;
-  try {
-    if (config.youtubeCookiesBase64) {
-      tempCookiePath = path.join(config.tempDir, `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
-      fs.writeFileSync(tempCookiePath, Buffer.from(config.youtubeCookiesBase64, "base64").toString("utf-8"));
-    }
-
-    // 1. Get available formats via user instruction: "antes de usar algum formato padrão, use --list-formats e pegue o formato melhor possível."
+  return withCookies(config, async (tempCookiePath) => {
+    // 1. Get available formats
     let dynamicallySelectedFormat: string | null = null;
     try {
       logger.info({ videoId: video.id }, "Fetching available formats via --list-formats...");
-      const { stdout } = await execFileAsync(
-        "yt-dlp",
+      const { stdout } = await execYtDlp(
         [
           ...getYtDlpBaseArgs(config, tempCookiePath),
           "--list-formats",
@@ -209,7 +255,6 @@ export async function downloadVideo(
         if (line.includes('---')) continue;
 
         if (readingFormats && line.trim()) {
-          // Skip storyboards which usually indicate the video is blocked or only serving thumbnails
           if (line.includes('mhtml') || line.includes('storyboard') || line.includes('images')) {
             continue;
           }
@@ -232,8 +277,6 @@ export async function downloadVideo(
       if (audioIds.length === 0 && videoIds.length === 0 && combinedIds.length === 0) {
         logger.warn("Only storyboard formats available or no valid formats found! YouTube might be blocking the download (e.g., bot detection/cookies issue).");
       } else {
-        // Prefer H.264 MP4 ≤720p for reliable FFmpeg compatibility on all platforms.
-        // Lines look like: 137  mp4  1280x720  720p ... video only
         const preferred720 = lines.find(
           (l) =>
             l.includes("mp4") &&
@@ -248,12 +291,10 @@ export async function downloadVideo(
           const m = preferred720.trim().match(/^([a-zA-Z0-9_\-]+)\s+/);
           if (m) {
             const vid = m[1];
-            // Pick the best audio track
             const best = audioIds[audioIds.length - 1] ?? null;
             dynamicallySelectedFormat = best ? `${vid}+${best}` : vid;
           }
         } else if (videoIds.length > 0 && audioIds.length > 0) {
-          // Fallback: pick the last available combination (may be high resolution)
           dynamicallySelectedFormat = `${videoIds[videoIds.length - 1]}+${audioIds[audioIds.length - 1]}`;
         } else if (combinedIds.length > 0) {
           dynamicallySelectedFormat = combinedIds[combinedIds.length - 1];
@@ -272,7 +313,6 @@ export async function downloadVideo(
       formatsToTry.push(dynamicallySelectedFormat);
     }
 
-    // Default fallback formats - Prioritizing 720p for speed
     formatsToTry.push(
       "bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/bv*+ba/b",
       "bv*[height<=720]+ba/b[height<=720]/bv*+ba/b",
@@ -295,6 +335,8 @@ export async function downloadVideo(
         outputTemplate,
         "--no-playlist",
         "--no-warnings",
+        "--concurrent-fragments",
+        "5",
         "--",
         video.url,
       ];
@@ -302,9 +344,8 @@ export async function downloadVideo(
       logger.info({ format, cmd: `yt-dlp ${args.join(" ")}` }, "Trying to download video with format");
 
       try {
-        await execFileAsync("yt-dlp", args, { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 });
+        await execYtDlp(args, { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 });
 
-        // Check if the file was created
         const files = fs.readdirSync(videoDir);
         const hasVideo = files.some(f => f.startsWith(video.id) && !f.endsWith(".wav") && !f.endsWith(".txt"));
 
@@ -325,7 +366,6 @@ export async function downloadVideo(
       throw new Error(`Failed to download video after trying all formats. Last error: ${lastError?.message || 'Unknown error'}`);
     }
 
-    // Find the actual downloaded video file (it might not be .mp4 if it fell back to /best)
     const files = fs.readdirSync(videoDir);
     const videoFileName = files.find(
       (f) => f.startsWith(video.id) && !f.endsWith(".wav") && !f.endsWith(".txt")
@@ -337,7 +377,6 @@ export async function downloadVideo(
 
     const actualVideoPath = path.join(videoDir, videoFileName);
 
-    // Extract audio as WAV (16kHz mono for Whisper)
     await execFileAsync(
       "ffmpeg",
       ["-i", actualVideoPath, "-ar", "16000", "-ac", "1", "-f", "wav", "-y", audioPath],
@@ -357,11 +396,7 @@ export async function downloadVideo(
       audioPath,
       fileSize: stats.size,
     };
-  } finally {
-    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
-      fs.unlinkSync(tempCookiePath);
-    }
-  }
+  });
 }
 
 /**
@@ -385,36 +420,26 @@ export async function getVideoFileSize(
   url: string,
   config: PipelineConfig,
 ): Promise<number | null> {
-  let tempCookiePath: string | undefined;
-  try {
-    const base64Cookies = config.youtubeCookiesBase64 || process.env.YOUTUBE_COOKIES_BASE64;
-    if (base64Cookies) {
-      tempCookiePath = path.join(process.cwd(), `cookies-${crypto.randomBytes(4).toString("hex")}.txt`);
-      fs.writeFileSync(tempCookiePath, Buffer.from(base64Cookies, "base64").toString("utf-8"));
-    }
+  return withCookies(config, async (tempCookiePath) => {
+    try {
+      const { stdout } = await execYtDlp(
+        [
+          ...getYtDlpBaseArgs(config, tempCookiePath),
+          "--print", "%(filesize_approx)s",
+          "--no-playlist",
+          "--no-warnings",
+          "--",
+          url,
+        ],
+        { maxBuffer: 1 * 1024 * 1024, timeout: 30_000 },
+      );
 
-    const { stdout } = await execFileAsync(
-      "yt-dlp",
-      [
-        ...getYtDlpBaseArgs(config, tempCookiePath),
-        "--print", "%(filesize_approx)s",
-        "--no-playlist",
-        "--no-warnings",
-        "--",
-        url,
-      ],
-      { maxBuffer: 1 * 1024 * 1024, timeout: 30_000 },
-    );
-
-    const raw = stdout.trim();
-    if (!raw || raw === "NA" || raw === "None" || raw === "null") return null;
-    const size = parseInt(raw, 10);
-    return isNaN(size) ? null : size;
-  } catch {
-    return null; // non-fatal: size check is best-effort
-  } finally {
-    if (tempCookiePath && fs.existsSync(tempCookiePath)) {
-      fs.unlinkSync(tempCookiePath);
+      const raw = stdout.trim();
+      if (!raw || raw === "NA" || raw === "None" || raw === "null") return null;
+      const size = parseInt(raw, 10);
+      return isNaN(size) ? null : size;
+    } catch {
+      return null;
     }
-  }
+  });
 }
