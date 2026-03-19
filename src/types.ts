@@ -95,6 +95,7 @@ export interface PipelineConfig {
   youtubeCookiesFile?: string;
   youtubeCookiesBase64?: string;
   watermarkText: string;
+  videoEncoder: string;
 }
 
 export interface PipelineResult {

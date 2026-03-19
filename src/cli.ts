@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { config as dotenvConfig } from "dotenv";
-dotenvConfig();
+dotenvConfig({ override: true });
 
 import { loadConfig } from "./core/config.js";
 import { runPipeline } from "./core/pipeline.js";

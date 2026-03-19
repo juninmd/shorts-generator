@@ -190,7 +190,10 @@ export async function getChannelVideos(
       for (const line of stdout.trim().split("\n")) {
         if (!line.trim()) continue;
         try {
-          const raw = JSON.parse(line);
+          // yt-dlp might return NA for missing fields, which breaks JSON.parse
+          // We sanitize it to null
+          const sanitizedLine = line.replace(/:NA([,}])/g, ':null$1');
+          const raw = JSON.parse(sanitizedLine);
           videos.push({
             id: raw.id,
             title: raw.title ?? "Untitled",

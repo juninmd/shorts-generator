@@ -89,22 +89,48 @@ export async function transcribeVideo(
 
   const uvBin = await findUvBinary();
 
-  await execFileAsync(
-    uvBin,
-    [
-      "run",
-      "--project",
-      pyProjectDir,
-      "python",
-      scriptPath,
-      video.audioPath,
-      "--model",
-      config.whisperModel,
-      "--output_dir",
-      outputDir,
-    ],
-    { maxBuffer: 50 * 1024 * 1024, timeout: 600_000 },
-  );
+  const runTranscription = async (useGpu: boolean) => {
+    const env = {
+      ...process.env,
+      WHISPER_USE_GPU: useGpu ? "true" : "false",
+    };
+
+    await execFileAsync(
+      uvBin,
+      [
+        "run",
+        "--project",
+        pyProjectDir,
+        "python",
+        scriptPath,
+        video.audioPath,
+        "--model",
+        config.whisperModel,
+        "--output_dir",
+        outputDir,
+      ],
+      {
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: 600_000,
+        env,
+      },
+    );
+  };
+
+  try {
+    const initialGpuSetting = process.env.WHISPER_USE_GPU?.toLowerCase() === "true";
+    await runTranscription(initialGpuSetting);
+  } catch (error: any) {
+    if (process.env.WHISPER_USE_GPU?.toLowerCase() === "true") {
+      logger.warn(
+        { videoId: video.id, error: error.message },
+        "Whisper GPU transcription failed (possibly missing DLLs). Retrying with CPU...",
+      );
+      await runTranscription(false);
+    } else {
+      throw error;
+    }
+  }
 
   // Find the generated JSON file
   const audioBaseName = path.basename(video.audioPath, path.extname(video.audioPath));
