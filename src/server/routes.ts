@@ -31,7 +31,7 @@ const jobs = new Map<
 const GenerateBodySchema = z.object({
   urls: z.array(z.string().url()).optional().default([]),
   channels: z.array(z.string()).optional().default([]),
-  daysBack: z.number().int().positive().optional().default(1),
+  videoLimit: z.number().int().positive().optional().default(3),
 });
 
 // ─── Health check ───
@@ -46,7 +46,7 @@ app.post("/api/generate", async (c) => {
     return c.json({ error: "Invalid request", details: parsed.error.flatten() }, 400);
   }
 
-  const { urls, channels, daysBack } = parsed.data;
+  const { urls, channels, videoLimit } = parsed.data;
 
   if (urls.length === 0 && channels.length === 0) {
     return c.json({ error: "Provide at least one url or channel" }, 400);
@@ -56,7 +56,7 @@ app.post("/api/generate", async (c) => {
   const config = loadConfig({
     specificUrls: urls,
     channels,
-    daysBack,
+    videoLimit,
   });
 
   jobs.set(jobId, {

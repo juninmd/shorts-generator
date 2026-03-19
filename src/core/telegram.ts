@@ -48,6 +48,9 @@ export async function sendToTelegram(
     short.clip.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).map(escapeHtml).join(" "),
   ].filter(line => line !== "").join("\n");
 
+  // Truncate caption if it exceeds Telegram's 1024 character limit for media
+  const finalCaption = caption.length > 1000 ? caption.substring(0, 997) + "..." : caption;
+
   try {
     const fileSize = fs.statSync(short.outputPath).size;
 
@@ -57,7 +60,7 @@ export async function sendToTelegram(
         { clipId: short.id, sizeMB: (fileSize / 1024 / 1024).toFixed(1) },
         "Video too large for Telegram, sending link instead",
       );
-      const msg = await bot.api.sendMessage(config.telegramChatId, caption, {
+      const msg = await bot.api.sendMessage(config.telegramChatId, finalCaption, {
         parse_mode: "HTML",
       });
       return msg.message_id;
@@ -65,7 +68,7 @@ export async function sendToTelegram(
 
     const videoFile = new InputFile(short.outputPath);
     const msg = await bot.api.sendVideo(config.telegramChatId, videoFile, {
-      caption,
+      caption: finalCaption,
       parse_mode: "HTML",
       supports_streaming: true,
     });
@@ -106,7 +109,11 @@ export async function sendSummary(
     `🎥 Vídeo: ${escapeHtml(videoTitle)}`,
     `✂️ Shorts gerados: ${shortsCount}`,
     errors.length > 0 ? `❌ Erros: ${errors.length}` : "",
-    errors.length > 0 ? "\n" + errors.map((e) => `• ${escapeHtml(e)}`).join("\n") : "",
+    errors.length > 0 ? "\n" + errors.slice(0, 5).map((e) => {
+      const eStr = String(e);
+      const truncated = eStr.length > 300 ? eStr.substring(0, 300) + "..." : eStr;
+      return `• ${escapeHtml(truncated)}`;
+    }).join("\n") + (errors.length > 5 ? `\n• ...e mais ${errors.length - 5} erros` : "") : "",
   ]
     .filter(Boolean)
     .join("\n");

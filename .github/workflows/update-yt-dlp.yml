@@ -1,0 +1,40 @@
+name: Daily Dependencies Update
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Update yt-dlp version in pyproject.toml
+        run: |
+          # Encontrar a versão mais recente
+          LATEST_VERSION=$(curl -s https://pypi.org/pypi/yt-dlp/json | jq -r '.info.version')
+          echo "Latest yt-dlp version: $LATEST_VERSION"
+          
+          # Atualizar o arquivo pyproject.toml
+          # O comando sed abaixo procura pela linha do yt-dlp e substitui a versão
+          sed -i "s/\"yt-dlp>=.*\"/\"yt-dlp>=$LATEST_VERSION\"/" tests/yt-download/pyproject.toml
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: daily update of yt-dlp dependency"
+          file_pattern: "tests/yt-download/pyproject.toml"

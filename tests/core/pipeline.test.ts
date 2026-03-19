@@ -18,6 +18,11 @@ vi.mock("../../src/core/youtube.js", () => ({
   cleanupVideo: vi.fn(),
 }));
 
+vi.mock("../../src/core/youtube.service.js", () => ({
+  generateYoutubeMetadata: vi.fn(),
+  uploadToYouTube: vi.fn(),
+}));
+
 vi.mock("../../src/core/transcriber.js", () => ({
   transcribeVideo: vi.fn(),
 }));
@@ -46,6 +51,7 @@ describe("pipeline", () => {
     channels: ["channel1"],
     maxVideoSizeBytes: 1000,
     minShortsPerVideo: 1,
+    videoLimit: 3,
   } as PipelineConfig;
 
   const mockVideoInfo: VideoInfo = {
@@ -80,8 +86,8 @@ describe("pipeline", () => {
     vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip]);
     vi.mocked(processor.processClip).mockResolvedValue(mockGeneratedShort);
     vi.mocked(telegram.sendToTelegram).mockResolvedValue(123);
-    vi.mocked(youtubeService.generateYoutubeMetadata).mockResolvedValue({ title: "YT Title", description: "YT Desc" });
-    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/123");
+    vi.mocked(youtubeService.generateYoutubeMetadata).mockResolvedValue({ title: "Title", description: "Desc" });
+    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/xyz");
   });
 
   it("runPipeline aggregates specificUrls and channels correctly", async () => {
@@ -90,7 +96,7 @@ describe("pipeline", () => {
     // 1 from specificUrls, 1 from channels => 2 videos processed
     expect(results).toHaveLength(2);
     expect(youtube.getVideoInfo).toHaveBeenCalledWith("url1");
-    expect(youtube.getChannelVideos).toHaveBeenCalledWith("channel1", mockConfig.daysBack);
+    expect(youtube.getChannelVideos).toHaveBeenCalledWith("channel1", mockConfig.videoLimit);
   });
 
   it("runPipeline filters oversized videos", async () => {

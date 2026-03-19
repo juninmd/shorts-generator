@@ -106,7 +106,7 @@ describe("youtube", () => {
       return {} as any;
     });
 
-    const videos = await getChannelVideos("mychannel", 1);
+    const videos = await getChannelVideos("mychannel", 3);
     expect(videos).toEqual([]);
   });
 
