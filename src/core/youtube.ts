@@ -107,7 +107,7 @@ export async function getChannelVideos(
           ...getYtDlpBaseArgs(undefined, tempCookiePath),
           "--flat-playlist",
           "--print",
-          '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
+          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j}',
           "--no-warnings",
           "--ignore-errors",
           "--playlist-end",
