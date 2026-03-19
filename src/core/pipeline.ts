@@ -11,6 +11,7 @@ import {
   getVideoFileSize,
   downloadVideo,
   cleanupVideo,
+  verifyYoutubeAccess,
 } from "./youtube.js";
 import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
@@ -33,6 +34,15 @@ export async function runPipeline(
   config: PipelineConfig,
   onProgress?: ProgressCallback,
 ): Promise<PipelineResult[]> {
+  // 0. Sanity check: is YouTube blocking us?
+  try {
+    await verifyYoutubeAccess(config);
+  } catch (error: any) {
+    logger.fatal({ error: error.message }, "Pipeline aborted: YouTube access check failed");
+    // We throw here because this is a non-recoverable environment issue
+    throw error;
+  }
+
   const videos: VideoInfo[] = [];
 
   // Specific URLs: fetch info then apply size/duration pre-flight check

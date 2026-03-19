@@ -92,6 +92,36 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
 }
 
 /**
+ * Perform a pre-flight check to see if YouTube is blocking us.
+ * Returns true if okay, throws error if blocked.
+ */
+export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void> {
+  logger.info("Performing YouTube access sanity check...");
+  
+  // Use a reliable video for testing (YouTube's first video ever)
+  const testUrl = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
+  
+  return withCookies(config, async (tempCookiePath) => {
+    try {
+      await execYtDlp([
+        ...getYtDlpBaseArgs(config, tempCookiePath),
+        "--simulate",
+        "--no-playlist",
+        "--",
+        testUrl
+      ], { timeout: 30_000 });
+      logger.info("YouTube access check passed.");
+    } catch (error: any) {
+      const msg = error.stderr || error.message || "";
+      if (msg.includes("Sign in to confirm you are not a bot") || msg.includes("confirm your age")) {
+        throw new Error("YouTube is blocking this environment (Bot Detection). Update your YOUTUBE_COOKIES_BASE64.");
+      }
+      throw new Error(`YouTube access check failed: ${msg.split("\n")[0]}`);
+    }
+  });
+}
+
+/**
  * Get the list of recent videos from a YouTube channel.
  */
 export async function getChannelVideos(
