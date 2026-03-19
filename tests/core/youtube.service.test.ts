@@ -113,11 +113,15 @@ describe("youtube.service", () => {
   });
 
   describe("uploadToYouTube", () => {
-    beforeEach(() => {
+    let videosInsertMock: any;
+
+    beforeEach(async () => {
       process.env.ENABLE_YOUTUBE = "true";
       process.env.YOUTUBE_CLIENT_ID = "dummy_client_id";
-      process.env.YOUTUBE_CLIENT_SECRET = "dummy_client_secret_val";
-      process.env.YOUTUBE_REFRESH_TOKEN = "dummy_refresh_tkn";
+      process.env.YOUTUBE_CLIENT_SECRET = "dummy_client_key_val";
+      process.env.YOUTUBE_REFRESH_TOKEN = "dummy_refresh_key";
+
+      videosInsertMock = (await import("googleapis") as any).videosInsertMock;
     });
 
     it("returns null if ENABLE_YOUTUBE is not true", async () => {
@@ -133,7 +137,6 @@ describe("youtube.service", () => {
     });
 
     it("uploads and returns url successfully", async () => {
-      const videosInsertMock = (await import("googleapis") as any).videosInsertMock;
       videosInsertMock.mockResolvedValue({ data: { id: "yt123" } });
       vi.mocked(fs.createReadStream).mockReturnValue({} as any);
 
@@ -142,16 +145,14 @@ describe("youtube.service", () => {
     });
 
     it("handles error and redacts secrets", async () => {
-      const videosInsertMock = (await import("googleapis") as any).videosInsertMock;
-      videosInsertMock.mockRejectedValue(new Error("Failed with dummy_client_id and dummy_client_secret_val and dummy_refresh_tkn"));
+      videosInsertMock.mockRejectedValue(new Error("Failed with dummy_client_id and dummy_client_key_val and dummy_refresh_key"));
 
       const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
       expect(result).toBeNull();
     });
 
     it("handles string error and redacts secrets", async () => {
-      const videosInsertMock = (await import("googleapis") as any).videosInsertMock;
-      videosInsertMock.mockRejectedValue("Failed with dummy_client_id and dummy_client_secret_val and dummy_refresh_tkn");
+      videosInsertMock.mockRejectedValue("Failed with dummy_client_id and dummy_client_key_val and dummy_refresh_key");
 
       const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
       expect(result).toBeNull();
