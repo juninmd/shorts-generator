@@ -3,7 +3,7 @@ import path from "node:path";
 import fs from "node:fs";
 import type { PipelineConfig } from "../types.js";
 
-dotenvConfig();
+dotenvConfig({ override: true });
 
 export function requiredEnv(key: string, fallback?: string): string {
   const value = process.env[key] ?? fallback;
@@ -24,7 +24,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
   fs.mkdirSync(outputDir, { recursive: true });
   fs.mkdirSync(tempDir, { recursive: true });
 
-  const channelsRaw = optionalEnv("YOUTUBE_CHANNELS", "");
+  const channelsRaw = optionalEnv("YOUTUBE_CHANNELS", "").replace(/^"(.*)"$/, '$1');
   const channels = channelsRaw
     .split(",")
     .map((c) => c.trim())
@@ -62,6 +62,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     youtubeCookiesFile: optionalEnv("YOUTUBE_COOKIES_FILE", ""),
     youtubeCookiesBase64: optionalEnv("YOUTUBE_COOKIES_BASE64", ""),
     watermarkText: optionalEnv("WATERMARK_TEXT", "santidade católica"),
+    videoEncoder: optionalEnv("VIDEO_ENCODER", "libx264"),
     ...overrides,
   };
 

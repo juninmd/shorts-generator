@@ -145,9 +145,9 @@ async function renderShort(
     "-y",
     "-vf", filters.join(","),
     "-t", String(clip.duration),
-    "-c:v", "libx264",
-    "-preset", "fast",
-    "-crf", "23",
+    "-c:v", config.videoEncoder,
+    "-preset", config.videoEncoder.includes("nvenc") ? "p4" : "fast",
+    "-crf", config.videoEncoder.includes("nvenc") ? "23" : "23", // CRF doesn't strictly exist for NVENC in the same way, but many versions map it or we use -cq
     "-c:a", "aac",
     "-b:a", "128k",
     "-ar", "44100",
