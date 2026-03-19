@@ -47,7 +47,7 @@ def transcribe(audio_path, model_size, output_dir):
             import traceback
             traceback.print_exc()
             sys.exit(1)
-    
+
     if model is None:
         print("Failed to initialize Whisper model.")
         sys.exit(1)

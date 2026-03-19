@@ -38,24 +38,40 @@ describe("config", () => {
   });
 
   describe("getMaxCuts", () => {
+<<<<<<< Updated upstream
     it("should calculate max cuts based on minutes ensuring max >= min", () => {
       // 1 min (60s): min is 2, max is min+1 = 3
-      expect(getMaxCuts(60)).toBe(3); 
+      expect(getMaxCuts(60)).toBe(3);
       // 5 min (300s): min is 2, max is 2
-      // wait, let's check the logic: 
+      // wait, let's check the logic:
       // durationMinutes = 5. minCuts = min(5, max(2, floor(5/5))) = min(5, max(2, 1)) = 2.
       // maxCuts = min(15, max(2+1, floor(5/2))) = min(15, max(3, 2)) = 3.
       expect(getMaxCuts(300)).toBe(3);
       // 30s: min is 2, max is 3
       expect(getMaxCuts(30)).toBe(3);
+=======
+    it("should calculate max cuts based on minutes ensuring max >= min, capped at 15", () => {
+      expect(getMaxCuts(60)).toBe(2); // 1 min -> 2
+      expect(getMaxCuts(300)).toBe(10); // 5 min -> 10
+      expect(getMaxCuts(30)).toBe(2); // 0.5 min -> 2
+      expect(getMaxCuts(600)).toBe(15); // 10 min -> max 15
+>>>>>>> Stashed changes
     });
   });
 
   describe("getMinCuts", () => {
+<<<<<<< Updated upstream
     it("should return at least 2 cuts", () => {
       expect(getMinCuts(60)).toBe(2); // 1 min -> 2 cuts
       expect(getMinCuts(300)).toBe(2); // 5 min -> 2 cuts
       expect(getMinCuts(1500)).toBe(5); // 25 min -> 5 cuts (max)
+=======
+    it("should return at least 2 cuts per minute, capped at 10", () => {
+      expect(getMinCuts(60)).toBe(2); // 1 min -> 2 cuts
+      expect(getMinCuts(300)).toBe(10); // 5 min -> 10 cuts
+      expect(getMinCuts(30)).toBe(2); // 0.5 min -> 2 cuts
+      expect(getMinCuts(600)).toBe(10); // 10 min -> capped at 10 cuts
+>>>>>>> Stashed changes
     });
   });
 
