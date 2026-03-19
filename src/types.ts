@@ -71,7 +71,7 @@ export interface GeneratedShort {
 export interface PipelineConfig {
   channels: string[];
   specificUrls: string[];
-  daysBack: number;
+  videoLimit: number;
   maxCutsPerBlock: number;
   minuteBlockSize: number;
   maxShortDuration: number;
@@ -127,7 +127,7 @@ export interface PipelineProgress {
 export interface ApiGenerateRequest {
   urls?: string[];
   channels?: string[];
-  daysBack?: number;
+  videoLimit?: number;
 }
 
 export interface ApiGenerateResponse {

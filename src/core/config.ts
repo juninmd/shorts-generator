@@ -41,7 +41,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
   const config: PipelineConfig = {
     channels,
     specificUrls,
-    daysBack: parseInt(optionalEnv("DAYS_BACK", "1"), 10),
+    videoLimit: parseInt(optionalEnv("VIDEO_LIMIT", "3"), 10),
     maxCutsPerBlock: 10,
     minuteBlockSize: 20,
     maxShortDuration: parseInt(optionalEnv("MAX_SHORT_DURATION", "59"), 10),

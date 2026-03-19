@@ -107,11 +107,25 @@ async function renderShort(
     `ass='${escapedSubPath}'`,
   ];
 
-  // if (watermarkText) {
-  //   filters.push(
-  //     `drawtext=text='${watermarkText}':x=w-tw-10:y=h-th-10:fontsize=10:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`,
-  //   );
-  // }
+  if (watermarkText) {
+    // 1. Try local project font first (best for portability)
+    // 2. Fallback to system fonts if local is missing
+    const localFontPath = path.resolve(process.cwd(), "assets", "fonts", "font.ttf");
+    let fontfile = localFontPath;
+
+    if (!fs.existsSync(localFontPath)) {
+      fontfile = os.platform() === "win32"
+        ? "C:/Windows/Fonts/arial.ttf"
+        : "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+    }
+
+    // Escape for FFmpeg: handle Windows drive colons and backslashes
+    const escapedFontfile = fontfile.replace(/\\/g, "/").replace(/:/g, "\\:");
+
+    filters.push(
+      `drawtext=fontfile='${escapedFontfile}':text='${watermarkText}':x=w-tw-20:y=h-th-20:fontsize=36:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=2:shadowy=2`,
+    );
+  }
 
   // Build env — use forward-slash FONTCONFIG_FILE to prevent libass crash on Windows
   const fontsConfNative = path.resolve(process.cwd(), "fonts.conf");

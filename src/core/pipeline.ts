@@ -45,10 +45,10 @@ export async function runPipeline(
 
   // Channels: pick exactly the first video per channel that fits within the size limit
   for (const channel of config.channels) {
-    const channelVideos = await getChannelVideos(channel, config.daysBack);
-    const selected = await selectFirstValidVideo(channelVideos, config);
-    if (selected) {
-      videos.push(selected);
+    const channelVideos = await getChannelVideos(channel, config.videoLimit);
+    const selected = await selectValidVideos(channelVideos, config);
+    if (selected.length > 0) {
+      videos.push(...selected);
     } else {
       logger.warn(
         { channel },
@@ -107,23 +107,27 @@ async function isVideoWithinLimits(
 }
 
 /**
- * Iterate through a channel's video list and return the first video that
- * passes size and duration limits.  Checks lazily — stops at the first match.
+ * Iterate through a channel's video list and return the first X videos that
+ * pass size and duration limits.
  */
-async function selectFirstValidVideo(
+async function selectValidVideos(
   videos: VideoInfo[],
   config: PipelineConfig,
-): Promise<VideoInfo | null> {
+): Promise<VideoInfo[]> {
+  const selected: VideoInfo[] = [];
   for (const video of videos) {
     if (await isVideoWithinLimits(video, config)) {
       logger.info(
         { videoId: video.id, title: video.title },
-        "Selected first valid video for channel",
+        "Selected valid video for channel",
       );
-      return video;
+      selected.push(video);
+      if (selected.length >= config.videoLimit) {
+        break;
+      }
     }
   }
-  return null;
+  return selected;
 }
 
 /**

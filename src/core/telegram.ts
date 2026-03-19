@@ -106,7 +106,11 @@ export async function sendSummary(
     `🎥 Vídeo: ${escapeHtml(videoTitle)}`,
     `✂️ Shorts gerados: ${shortsCount}`,
     errors.length > 0 ? `❌ Erros: ${errors.length}` : "",
-    errors.length > 0 ? "\n" + errors.map((e) => `• ${escapeHtml(e)}`).join("\n") : "",
+    errors.length > 0 ? "\n" + errors.slice(0, 5).map((e) => {
+      const eStr = String(e);
+      const truncated = eStr.length > 300 ? eStr.substring(0, 300) + "..." : eStr;
+      return `• ${escapeHtml(truncated)}`;
+    }).join("\n") + (errors.length > 5 ? `\n• ...e mais ${errors.length - 5} erros` : "") : "",
   ]
     .filter(Boolean)
     .join("\n");

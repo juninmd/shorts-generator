@@ -96,13 +96,9 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
  */
 export async function getChannelVideos(
   channelIdentifier: string,
-  daysBack: number,
+  videoLimit: number,
 ): Promise<VideoInfo[]> {
-  const dateAfter = new Date();
-  dateAfter.setDate(dateAfter.getDate() - daysBack);
-  const dateStr = dateAfter.toISOString().split("T")[0]!.replace(/-/g, "");
-
-  logger.info({ channel: channelIdentifier, daysBack }, "Fetching channel videos");
+  logger.info({ channel: channelIdentifier, videoLimit }, "Fetching channel videos");
 
   return withCookies(undefined, async (tempCookiePath) => {
     try {
@@ -112,12 +108,10 @@ export async function getChannelVideos(
           "--flat-playlist",
           "--print",
           '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
-          "--dateafter",
-          dateStr,
           "--no-warnings",
           "--ignore-errors",
           "--playlist-end",
-          "30",
+          Math.max(videoLimit * 5, 30).toString(),
           channelIdentifier.startsWith("http")
             ? channelIdentifier
             : `https://www.youtube.com/${channelIdentifier}/videos`,
