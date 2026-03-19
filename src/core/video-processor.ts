@@ -108,6 +108,7 @@ async function renderShort(
   ];
 
   if (watermarkText) {
+<<<<<<< Updated upstream
     // 1. Try local project font first (best for portability)
     // 2. Fallback to system fonts if local is missing
     const localFontPath = path.resolve(process.cwd(), "assets", "fonts", "font.ttf");
@@ -124,6 +125,10 @@ async function renderShort(
 
     filters.push(
       `drawtext=fontfile='${escapedFontfile}':text='${watermarkText}':x=w-tw-20:y=h-th-20:fontsize=36:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=2:shadowy=2`,
+=======
+    filters.push(
+      `drawtext=text='${watermarkText}':x=w-tw-10:y=h-th-10:fontsize=10:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`,
+>>>>>>> Stashed changes
     );
   }
 

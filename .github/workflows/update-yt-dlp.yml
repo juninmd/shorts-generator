@@ -28,7 +28,7 @@ jobs:
           # Encontrar a versão mais recente
           LATEST_VERSION=$(curl -s https://pypi.org/pypi/yt-dlp/json | jq -r '.info.version')
           echo "Latest yt-dlp version: $LATEST_VERSION"
-          
+
           # Atualizar o arquivo pyproject.toml
           # O comando sed abaixo procura pela linha do yt-dlp e substitui a versão
           sed -i "s/\"yt-dlp>=.*\"/\"yt-dlp>=$LATEST_VERSION\"/" tests/yt-download/pyproject.toml
