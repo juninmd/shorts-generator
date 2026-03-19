@@ -84,6 +84,6 @@ export function getMinCuts(videoDurationSeconds: number): number {
 export function getMaxCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
   const minCuts = getMinCuts(videoDurationSeconds);
-  // Rule: Ensure max is at least min. Maximum 15 to avoid token limit.
-  return Math.min(15, Math.max(minCuts, durationMinutes * 2));
+  // Rule: Ensure max is at least min + 1. Maximum 15 to avoid token limit.
+  return Math.min(15, Math.max(minCuts + 1, durationMinutes * 2));
 }
