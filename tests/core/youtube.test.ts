@@ -208,24 +208,26 @@ describe("youtube", () => {
     expect(downloaded.fileSize).toBe(1024);
   });
 
-  it("downloadVideo fails when all formats fail", async () => {
-    vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
-      const cb = typeof options === 'function' ? options : callback;
-      if (typeof cb === "function") cb(new Error("Fail download"), { stdout: "", stderr: "" });
-      return {} as any;
+  describe("error handling for downloads and sizes", () => {
+    it("downloadVideo fails when all formats fail", async () => {
+      vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
+        const cb = typeof options === 'function' ? options : callback;
+        if (typeof cb === "function") cb(new Error("Fail download"), { stdout: "", stderr: "" });
+        return {} as any;
+      });
+
+      await expect(downloadVideo(mockVideoBase, mockConfig)).rejects.toThrow("Failed to download video after trying all formats. Last error: Fail download");
     });
 
-    await expect(downloadVideo(mockVideoBase, mockConfig)).rejects.toThrow("Failed to download video after trying all formats. Last error: Fail download");
-  });
+    it("getVideoFileSize handles non-number sizes gracefully", async () => {
+      vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+        const cb = typeof options === 'function' ? options : callback;
+        if (typeof cb === "function") cb(null, { stdout: "invalid\n", stderr: "" });
+        return {} as any;
+      });
 
-  it("getVideoFileSize handles non-number sizes gracefully", async () => {
-    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
-      const cb = typeof options === 'function' ? options : callback;
-      if (typeof cb === "function") cb(null, { stdout: "invalid\n", stderr: "" });
-      return {} as any;
+      const size = await getVideoFileSize("url", mockConfig);
+      expect(size).toBeNull();
     });
-
-    const size = await getVideoFileSize("url", mockConfig);
-    expect(size).toBeNull();
   });
 });
