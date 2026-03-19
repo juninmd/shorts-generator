@@ -98,8 +98,20 @@ describe("pipeline", () => {
 
     // 1 from specificUrls, 1 from channels => 2 videos processed
     expect(results).toHaveLength(2);
+    expect(youtube.verifyYoutubeAccess).toHaveBeenCalled();
     expect(youtube.getVideoInfo).toHaveBeenCalledWith("url1");
     expect(youtube.getChannelVideos).toHaveBeenCalledWith("channel1", mockConfig.videoLimit);
+  });
+
+  it("runPipeline aborts if verifyYoutubeAccess fails", async () => {
+    vi.mocked(youtube.verifyYoutubeAccess).mockRejectedValue(new Error("YouTube blocked"));
+    // Since runPipeline does not catch the error around verifyYoutubeAccess directly
+    // and throws up, we expect the pipeline promise to reject OR to log and return empty.
+    // Let's check the implementation. The try-catch block logs fatal and re-throws or returns?
+    // Actually in pipeline.ts:
+    // catch (error: any) { logger.fatal({ error: error.message }, "Pipeline aborted: YouTube access check failed"); throw error; }
+    await expect(runPipeline(mockConfig)).rejects.toThrow("YouTube blocked");
+    expect(youtube.getVideoInfo).not.toHaveBeenCalled();
   });
 
   it("runPipeline filters oversized videos", async () => {

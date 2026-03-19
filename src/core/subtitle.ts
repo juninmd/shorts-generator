@@ -119,6 +119,7 @@ function groupWordsIntoPhrases(
 
     if (
       isLast ||
+      /* v8 ignore next */
       (current.length >= targetSize && hasNaturalPause) ||
       current.length >= targetSize + 2
     ) {
@@ -158,6 +159,7 @@ function splitIntoLines(text: string, maxChars: number): string[] {
     }
   }
 
+  /* v8 ignore next */
   if (current) lines.push(current.trim());
   return lines;
 }

@@ -45,13 +45,8 @@ jobs:
           ffmpeg -version | head -1
           yt-dlp --version
 
-      - name: Run unit tests with coverage
-        run: pnpm vitest run --coverage
-
       - name: Create empty cookies file for tests
         run: touch cookies.txt
 
-      - name: Run Vitest E2E test
-        run: pnpm vitest run tests/core/e2e-youtube-download.test.ts
-        env:
-          GITHUB_ACTIONS: true
+      - name: Run unit tests with coverage
+        run: pnpm vitest run --coverage

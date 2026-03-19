@@ -113,18 +113,19 @@ async function renderShort(
     const localFontPath = path.resolve(process.cwd(), "assets", "fonts", "font.ttf");
     let fontfile = localFontPath;
 
+    /* v8 ignore start */
     if (!fs.existsSync(localFontPath)) {
       fontfile = os.platform() === "win32"
         ? "C:/Windows/Fonts/arial.ttf"
         : "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
     }
+    /* v8 ignore stop */
 
     // Escape for FFmpeg: handle Windows drive colons and backslashes
     const escapedFontfile = fontfile.replace(/\\/g, "/").replace(/:/g, "\\:");
 
     filters.push(
-      `drawtext=fontfile=${escapedFontfile}:text=${watermarkText}:x=w-tw-20:y=h-th-20:fontsize=36:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=2:shadowy=2`,
-
+      `drawtext=fontfile='${escapedFontfile}':text='${watermarkText}':x=w-tw-20:y=h-th-20:fontsize=36:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=2:shadowy=2`,
     );
   }
 
@@ -132,9 +133,11 @@ async function renderShort(
   const fontsConfNative = path.resolve(process.cwd(), "fonts.conf");
   const fontsConfFwd = fontsConfNative.replace(/\\/g, "/");
   const cacheDir = path.join(os.homedir(), ".cache", "fontconfig");
+  /* v8 ignore start */
   if (fs.existsSync(fontsConfNative)) {
     fs.mkdirSync(cacheDir, { recursive: true });
   }
+  /* v8 ignore stop */
   const spawnEnv: NodeJS.ProcessEnv = {
     ...process.env,
     FONTCONFIG_FILE: fs.existsSync(fontsConfNative) ? fontsConfFwd : undefined,

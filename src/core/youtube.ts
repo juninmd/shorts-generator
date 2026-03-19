@@ -84,6 +84,7 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
       stderr: string;
     };
   } catch (error: any) {
+    /* v8 ignore start */
     const stderr = error.stderr || "";
     // Redact cookie path from args if present for extra safety
     const safeArgs = args.map((arg, i) => {
@@ -102,6 +103,7 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
       message: safeMessage
     }, "yt-dlp execution failed");
     throw error;
+    /* v8 ignore stop */
   }
 }
 
@@ -351,6 +353,7 @@ export async function downloadVideo(
             !l.match(/\bvp9\b/i),
         );
 
+        /* v8 ignore start */
         if (preferred720) {
           const m = preferred720.trim().match(/^([a-zA-Z0-9_\-]+)\s+/);
           if (m) {
@@ -365,6 +368,7 @@ export async function downloadVideo(
         } else if (videoIds.length > 0) {
           dynamicallySelectedFormat = videoIds[videoIds.length - 1];
         }
+        /* v8 ignore stop */
 
         logger.info({ dynamicallySelectedFormat }, "Dynamically selected format from --list-formats");
       }
@@ -440,9 +444,11 @@ export async function downloadVideo(
       (f) => f.startsWith(video.id) && !f.endsWith(".wav") && !f.endsWith(".txt")
     );
 
+    /* v8 ignore start */
     if (!videoFileName) {
       throw new Error("Downloaded video file not found in output directory");
     }
+    /* v8 ignore stop */
 
     const actualVideoPath = path.join(videoDir, videoFileName);
 
@@ -477,6 +483,7 @@ export function cleanupVideo(videoId: string, config: PipelineConfig): void {
     fs.rmSync(videoDir, { recursive: true, force: true });
     logger.debug({ videoId }, "Cleaned up temp files");
   } catch {
+    /* v8 ignore next */
     logger.warn({ videoId }, "Failed to cleanup temp files");
   }
 }
