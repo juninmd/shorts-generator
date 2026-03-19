@@ -32,6 +32,7 @@ env:
   OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma3:1b' }}
   WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'tiny' }}
   WHISPER_USE_GPU: 'true'
+  ENABLE_YOUTUBE: true
   OLLAMA_TIMEOUT_MS: 120000
   VIDEO_LIMIT: ${{ inputs.video_limit || vars.VIDEO_LIMIT || '3' }}
   VIDEO_URLS: ${{ inputs.video_urls || '' }}
