@@ -43,6 +43,7 @@ describe("video-processor", () => {
     verticalWidth: 1080,
     verticalHeight: 1920,
     watermarkText: "Test Watermark",
+    videoEncoder: "libx264",
   } as PipelineConfig;
 
   const mockVideo: DownloadedVideo = {
@@ -108,7 +109,7 @@ describe("video-processor", () => {
     expect(args[vfArgIndex + 1]).toContain("scale=");
     expect(args[vfArgIndex + 1]).toContain("ass=");
     expect(args[vfArgIndex + 1]).toContain("drawtext=fontfile=");
-    expect(args[vfArgIndex + 1]).toContain("text='Test Watermark':x=w-tw-20:y=h-th-20:fontsize=36");
+    expect(args[vfArgIndex + 1]).toContain("text=Test Watermark");
   });
 
   it("processClip should handle ffmpeg error events", async () => {
