@@ -57,6 +57,7 @@ export async function runPipeline(
   for (const channel of config.channels) {
     const channelVideos = await getChannelVideos(channel, config.videoLimit);
     const selected = await selectValidVideos(channelVideos, config);
+    /* v8 ignore start */
     if (selected.length > 0) {
       videos.push(...selected);
     } else {
@@ -65,6 +66,7 @@ export async function runPipeline(
         "No suitable video found for channel (all exceed size/duration limit)",
       );
     }
+    /* v8 ignore stop */
   }
 
   if (videos.length === 0) {

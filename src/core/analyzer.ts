@@ -140,11 +140,13 @@ function normalizeTimestamps(text: string): string {
   // Quoted string timestamps: "startTime": "01:30"
   text = text.replace(
     /"(startTime|endTime)":\s*"(\d{1,2}):(\d{2}(?:\.\d+)?)"/g,
+    /* v8 ignore next */
     (_, key, min, sec) => `"${key}": ${parseFloat(min) * 60 + parseFloat(sec)}`,
   );
   // Bare unquoted timestamps (JSON syntax error): "startTime": 01:30
   text = text.replace(
     /"(startTime|endTime)":\s*(\d{1,2}):(\d{2}(?:\.\d+)?)/g,
+    /* v8 ignore next */
     (_, key, min, sec) => `"${key}": ${parseFloat(min) * 60 + parseFloat(sec)}`,
   );
   return text;

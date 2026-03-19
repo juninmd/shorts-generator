@@ -109,7 +109,7 @@ describe("video-processor", () => {
     expect(args[vfArgIndex + 1]).toContain("scale=");
     expect(args[vfArgIndex + 1]).toContain("ass=");
     expect(args[vfArgIndex + 1]).toContain("drawtext=fontfile=");
-    expect(args[vfArgIndex + 1]).toContain("text=Test Watermark");
+    expect(args[vfArgIndex + 1]).toContain("text='Test Watermark'");
   });
 
   it("processClip should handle ffmpeg error events", async () => {

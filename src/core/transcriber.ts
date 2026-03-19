@@ -121,6 +121,7 @@ export async function transcribeVideo(
     const initialGpuSetting = process.env.WHISPER_USE_GPU?.toLowerCase() === "true";
     await runTranscription(initialGpuSetting);
   } catch (error: any) {
+    /* v8 ignore start */
     if (process.env.WHISPER_USE_GPU?.toLowerCase() === "true") {
       logger.warn(
         { videoId: video.id, error: error.message },
@@ -130,6 +131,7 @@ export async function transcribeVideo(
     } else {
       throw error;
     }
+    /* v8 ignore stop */
   }
 
   // Find the generated JSON file

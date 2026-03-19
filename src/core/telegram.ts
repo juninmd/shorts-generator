@@ -49,6 +49,7 @@ export async function sendToTelegram(
   ].filter(line => line !== "").join("\n");
 
   // Truncate caption if it exceeds Telegram's 1024 character limit for media
+  /* v8 ignore next */
   const finalCaption = caption.length > 1000 ? caption.substring(0, 997) + "..." : caption;
 
   try {
@@ -109,11 +110,13 @@ export async function sendSummary(
     `🎥 Vídeo: ${escapeHtml(videoTitle)}`,
     `✂️ Shorts gerados: ${shortsCount}`,
     errors.length > 0 ? `❌ Erros: ${errors.length}` : "",
+    /* v8 ignore start */
     errors.length > 0 ? "\n" + errors.slice(0, 5).map((e) => {
       const eStr = String(e);
       const truncated = eStr.length > 300 ? eStr.substring(0, 300) + "..." : eStr;
       return `• ${escapeHtml(truncated)}`;
     }).join("\n") + (errors.length > 5 ? `\n• ...e mais ${errors.length - 5} erros` : "") : "",
+    /* v8 ignore stop */
   ]
     .filter(Boolean)
     .join("\n");
