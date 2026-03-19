@@ -16,6 +16,7 @@ vi.mock("../../src/core/youtube.js", () => ({
   getVideoFileSize: vi.fn(),
   downloadVideo: vi.fn(),
   cleanupVideo: vi.fn(),
+  verifyYoutubeAccess: vi.fn(),
 }));
 
 vi.mock("../../src/core/youtube.service.js", () => ({
@@ -77,6 +78,7 @@ describe("pipeline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    vi.mocked(youtube.verifyYoutubeAccess).mockResolvedValue(undefined as any);
     vi.mocked(youtube.getVideoInfo).mockResolvedValue(mockVideoInfo);
     vi.mocked(youtube.getChannelVideos).mockResolvedValue([mockVideoInfo]);
     vi.mocked(youtube.getVideoFileSize).mockResolvedValue(500); // within limit
@@ -86,13 +88,9 @@ describe("pipeline", () => {
     vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip]);
     vi.mocked(processor.processClip).mockResolvedValue(mockGeneratedShort);
     vi.mocked(telegram.sendToTelegram).mockResolvedValue(123);
-<<<<<<< Updated upstream
-    vi.mocked(youtubeService.generateYoutubeMetadata).mockResolvedValue({ title: "Title", description: "Desc" });
-    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/xyz");
-=======
     vi.mocked(youtubeService.generateYoutubeMetadata).mockResolvedValue({ title: "YT Title", description: "YT Desc" });
     vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/123");
->>>>>>> Stashed changes
+
   });
 
   it("runPipeline aggregates specificUrls and channels correctly", async () => {
