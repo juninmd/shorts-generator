@@ -25,6 +25,16 @@ describe("youtube", () => {
     maxVideoSizeBytes: 10000,
   } as PipelineConfig;
 
+  const mockVideoBase = {
+    id: "vid1",
+    title: "Title",
+    url: "url",
+    channelName: "channel",
+    channelUrl: "curl",
+    duration: 120,
+    publishedAt: "20230101",
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -79,17 +89,7 @@ describe("youtube", () => {
     vi.mocked(fs.statSync).mockReturnValue({ size: 1024 } as any);
     vi.mocked(fs.readdirSync).mockReturnValue(["vid1.mp4"] as any);
 
-    const video = {
-      id: "vid1",
-      title: "Title",
-      url: "url",
-      channelName: "channel",
-      channelUrl: "curl",
-      duration: 120,
-      publishedAt: "20230101",
-    };
-
-    const downloaded = await downloadVideo(video, mockConfig);
+    const downloaded = await downloadVideo(mockVideoBase, mockConfig);
     expect(downloaded.fileSize).toBe(1024);
   });
 
@@ -204,17 +204,7 @@ describe("youtube", () => {
     vi.mocked(fs.statSync).mockReturnValue({ size: 1024 } as any);
     vi.mocked(fs.readdirSync).mockReturnValue(["vid1.mp4"] as any);
 
-    const video = {
-      id: "vid1",
-      title: "Title",
-      url: "url",
-      channelName: "channel",
-      channelUrl: "curl",
-      duration: 120,
-      publishedAt: "20230101",
-    };
-
-    const downloaded = await downloadVideo(video, mockConfig);
+    const downloaded = await downloadVideo(mockVideoBase, mockConfig);
     expect(downloaded.fileSize).toBe(1024);
   });
 
@@ -225,17 +215,7 @@ describe("youtube", () => {
       return {} as any;
     });
 
-    const video = {
-      id: "vid1",
-      title: "Title",
-      url: "url",
-      channelName: "channel",
-      channelUrl: "curl",
-      duration: 120,
-      publishedAt: "20230101",
-    };
-
-    await expect(downloadVideo(video, mockConfig)).rejects.toThrow("Failed to download video after trying all formats. Last error: Fail download");
+    await expect(downloadVideo(mockVideoBase, mockConfig)).rejects.toThrow("Failed to download video after trying all formats. Last error: Fail download");
   });
 
   it("getVideoFileSize handles non-number sizes gracefully", async () => {

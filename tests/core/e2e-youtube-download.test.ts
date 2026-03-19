@@ -11,12 +11,6 @@ vi.unmock("node:fs");
 vi.unmock("../../src/core/youtube.js");
 
 describe("E2E: YouTube Download", () => {
-  // A very short, known video to prevent long downloads during tests
-  // This validates the actual yt-dlp connection to YouTube
-  // Using a less restrictive video than "Me at the zoo" to avoid 403 Forbidden issues
-  const TEST_VIDEO_ID = "dQw4w9WgXcQ"; // Rick Astley - Never Gonna Give You Up (short enough format available)
-  const TEST_VIDEO_URL = `https://www.youtube.com/watch?v=${TEST_VIDEO_ID}`;
-
   // Use real config but ensure temp dir exists
   const config = loadConfig();
 
@@ -39,7 +33,7 @@ describe("E2E: YouTube Download", () => {
   afterAll(() => {
     // We try to clean up the specific video folder
     try {
-      cleanupVideo(TEST_VIDEO_ID, config);
+      cleanupVideo("dQw4w9WgXcQ", config);
     } catch {
       // Ignore cleanup errors
     }
@@ -49,6 +43,12 @@ describe("E2E: YouTube Download", () => {
   const runE2E = process.env.GITHUB_ACTIONS === "true" || process.env.RUN_E2E === "true";
 
   (runE2E ? it : it.skip)("should fetch video info and download successfully", async () => {
+    // A very short, known video to prevent long downloads during tests
+    // This validates the actual yt-dlp connection to YouTube
+    // Using a less restrictive video than "Me at the zoo" to avoid 403 Forbidden issues
+    const TEST_VIDEO_ID = "dQw4w9WgXcQ"; // Rick Astley - Never Gonna Give You Up (short enough format available)
+    const TEST_VIDEO_URL = `https://www.youtube.com/watch?v=${TEST_VIDEO_ID}`;
+
     // 1. Get Info
     const info = await getVideoInfo(TEST_VIDEO_URL);
     expect(info).toBeDefined();
