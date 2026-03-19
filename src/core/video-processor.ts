@@ -108,8 +108,22 @@ async function renderShort(
   ];
 
   if (watermarkText) {
+    // 1. Try local project font first (best for portability)
+    // 2. Fallback to system fonts if local is missing
+    const localFontPath = path.resolve(process.cwd(), "assets", "fonts", "font.ttf");
+    let fontfile = localFontPath;
+
+    if (!fs.existsSync(localFontPath)) {
+      fontfile = os.platform() === "win32"
+        ? "C:/Windows/Fonts/arial.ttf"
+        : "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+    }
+
+    // Escape for FFmpeg: handle Windows drive colons and backslashes
+    const escapedFontfile = fontfile.replace(/\\/g, "/").replace(/:/g, "\\:");
+
     filters.push(
-      `drawtext=text='${watermarkText}':x=w-tw-10:y=h-th-10:fontsize=10:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=1:shadowy=1`,
+      `drawtext=fontfile='${escapedFontfile}':text='${watermarkText}':x=w-tw-20:y=h-th-20:fontsize=36:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=2:shadowy=2`,
     );
   }
 
@@ -131,9 +145,9 @@ async function renderShort(
     "-y",
     "-vf", filters.join(","),
     "-t", String(clip.duration),
-    "-c:v", "libx264",
-    "-preset", "fast",
-    "-crf", "23",
+    "-c:v", config.videoEncoder,
+    "-preset", config.videoEncoder.includes("nvenc") ? "p4" : "fast",
+    "-crf", config.videoEncoder.includes("nvenc") ? "23" : "23", // CRF doesn't strictly exist for NVENC in the same way, but many versions map it or we use -cq
     "-c:a", "aac",
     "-b:a", "128k",
     "-ar", "44100",

@@ -10,10 +10,10 @@ on:
         description: "Comma-separated YouTube video URLs (optional, overrides channel scan)"
         required: false
         type: string
-      days_back:
-        description: "Number of days back to fetch videos"
+      video_limit:
+        description: "Number of videos to fetch per channel"
         required: false
-        default: "0"
+        default: "3"
         type: string
       channels:
         description: "Comma-separated channel handles (optional, overrides env var)"
@@ -32,9 +32,9 @@ env:
   OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma3:1b' }}
   WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'tiny' }}
   WHISPER_USE_GPU: 'true'
+  ENABLE_YOUTUBE: true
   OLLAMA_TIMEOUT_MS: 120000
-  # For hourly runs, only fetch videos from the last hour (0 = today, fine-grained via upload_date)
-  DAYS_BACK: ${{ inputs.days_back || vars.DAYS_BACK || '0' }}
+  VIDEO_LIMIT: ${{ inputs.video_limit || vars.VIDEO_LIMIT || '3' }}
   VIDEO_URLS: ${{ inputs.video_urls || '' }}
   OUTPUT_DIR: ./output
   PIP_CACHE_DIR: ~/.cache/pip

@@ -29,15 +29,28 @@ def transcribe(audio_path, model_size, output_dir):
     
     print(f"Starting transcription on device: {device} (compute_type: {compute_type})")
     
+    model = None
     try:
         model = WhisperModel(model_size, device=device, compute_type=compute_type)
-    except Exception as e:
+    except:
         if device == "cuda":
-            print(f"GPU initialization failed (DLL missing or incompatible). Error: {e}")
+            import traceback
+            print("GPU initialization failed (DLL missing or incompatible).")
+            traceback.print_exc()
             print("Falling back to CPU...")
-            model = WhisperModel(model_size, device="cpu", compute_type="int8")
+            try:
+                model = WhisperModel(model_size, device="cpu", compute_type="int8")
+            except Exception as e:
+                print(f"CPU fallback also failed: {e}")
+                sys.exit(1)
         else:
-            raise e
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+    
+    if model is None:
+        print("Failed to initialize Whisper model.")
+        sys.exit(1)
     
     segments, info = model.transcribe(audio_path, beam_size=5, word_timestamps=True)
     

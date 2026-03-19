@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { config as dotenvConfig } from "dotenv";
-dotenvConfig();
+dotenvConfig({ override: true });
 
 import { loadConfig } from "./core/config.js";
 import { runPipeline } from "./core/pipeline.js";
@@ -15,7 +15,7 @@ async function main() {
     case "generate": {
       const urlIndex = args.indexOf("--url");
       const channelIndex = args.indexOf("--channel");
-      const daysIndex = args.indexOf("--days");
+      const limitIndex = args.indexOf("--limit");
 
       const overrides: Record<string, any> = {};
 
@@ -27,8 +27,8 @@ async function main() {
         overrides.channels = args[channelIndex + 1]!.split(",").map((c) => c.trim());
       }
 
-      if (daysIndex !== -1 && args[daysIndex + 1]) {
-        overrides.daysBack = parseInt(args[daysIndex + 1]!, 10);
+      if (limitIndex !== -1 && args[limitIndex + 1]) {
+        overrides.videoLimit = parseInt(args[limitIndex + 1]!, 10);
       }
 
       const config = loadConfig(overrides);
@@ -44,7 +44,7 @@ async function main() {
         {
           channels: config.channels,
           urls: config.specificUrls,
-          daysBack: config.daysBack,
+          videoLimit: config.videoLimit,
         },
         "Starting shorts generation",
       );
@@ -107,12 +107,12 @@ Commands:
 Options (generate):
   --url <urls>        Comma-separated YouTube video URLs
   --channel <ids>     Comma-separated channel handles/URLs
-  --days <n>          Number of days back to fetch (default: 1)
+  --limit <n>         Number of videos to fetch per channel (default: 3)
 
 Examples:
   pnpm run cli -- generate --url "https://youtube.com/watch?v=xxx"
   pnpm run cli -- generate --channel "@channelHandle"
-  pnpm run cli -- generate --days 3
+  pnpm run cli -- generate --limit 5
 
 Environment Variables:
   See .env.example for all configuration options.
