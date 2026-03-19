@@ -12,7 +12,11 @@ function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): str
   const browser = config?.youtubeCookiesBrowser || process.env.YOUTUBE_COOKIES_BROWSER;
   const file = tempCookieFile || config?.youtubeCookiesFile || process.env.YOUTUBE_COOKIES_FILE;
 
-  const args: string[] = ["--no-check-certificates"];
+  const args: string[] = [
+    "--no-check-certificates",
+    "--extractor-args",
+    "youtube:player_client=ios,web,mweb",
+  ];
 
   if (browser) {
     args.push("--cookies-from-browser", browser);
@@ -68,7 +72,12 @@ async function withCookies<T>(
  */
 async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: string; stderr: string }> {
   try {
-    return (await execFileAsync("yt-dlp", args, { ...options, encoding: "utf8" })) as unknown as {
+    const spawnEnv = {
+      ...process.env,
+      ...options.env,
+      YTDLP_JS_EXECUTABLE: "node", // Force yt-dlp to use Node.js for EJS challenges
+    };
+    return (await execFileAsync("yt-dlp", args, { ...options, env: spawnEnv, encoding: "utf8" })) as unknown as {
       stdout: string;
       stderr: string;
     };
@@ -84,7 +93,10 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
 
     logger.error({
       args: safeArgs,
-      stderr: stderr.split("\n").filter((l: string) => l.includes("ERROR") || l.includes("warning")).join("\n"),
+      stderr: stderr.split("\n").filter((l: string) => {
+        const lower = l.toLowerCase();
+        return lower.includes("error") || lower.includes("warning");
+      }).join("\n"),
       message: safeMessage
     }, "yt-dlp execution failed");
     throw error;
@@ -98,25 +110,40 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
 export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void> {
   logger.info("Performing YouTube access sanity check...");
   
-  // Use a reliable video for testing (YouTube's first video ever)
+  // Use a reliable video for testing
   const testUrl = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
   
   return withCookies(config, async (tempCookiePath) => {
     try {
-      await execYtDlp([
+      // Just check if we can get basic metadata. 
+      // If we can't even get the title, we are 100% blocked.
+      const { stdout } = await execYtDlp([
         ...getYtDlpBaseArgs(config, tempCookiePath),
-        "--simulate",
+        "--get-title",
         "--no-playlist",
+        "--no-warnings",
         "--",
         testUrl
       ], { timeout: 30_000 });
-      logger.info("YouTube access check passed.");
+      
+      if (stdout.trim()) {
+        logger.info({ title: stdout.trim() }, "YouTube access check passed.");
+        return;
+      }
+      throw new Error("YouTube returned an empty response.");
     } catch (error: any) {
       const msg = error.stderr || error.message || "";
-      if (msg.includes("Sign in to confirm you are not a bot") || msg.includes("confirm your age")) {
+      const lowerMsg = msg.toLowerCase();
+      
+      if (lowerMsg.includes("sign in to confirm you are not a bot") || 
+          lowerMsg.includes("confirm your age") ||
+          lowerMsg.includes("403: forbidden")) {
         throw new Error("YouTube is blocking this environment (Bot Detection). Update your YOUTUBE_COOKIES_BASE64.");
       }
-      throw new Error(`YouTube access check failed: ${msg.split("\n")[0]}`);
+      
+      const lines = msg.split("\n");
+      const errorLine = lines.find((l: string) => l.includes("ERROR:")) || lines[0];
+      throw new Error(`YouTube access check failed: ${errorLine}`);
     }
   });
 }
