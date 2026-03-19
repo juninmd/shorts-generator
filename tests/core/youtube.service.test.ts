@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generateYoutubeMetadata, uploadToYouTube } from "../../src/core/youtube.service.js";
 import type { GeneratedShort, PipelineConfig } from "../../src/types.js";
 import fs from "node:fs";
-import { google } from "googleapis";
-
 vi.mock("node:fs", () => ({
   default: {
     createReadStream: vi.fn(),
@@ -124,16 +122,18 @@ describe("youtube.service", () => {
       videosInsertMock = (await import("googleapis") as any).videosInsertMock;
     });
 
-    it("returns null if ENABLE_YOUTUBE is not true", async () => {
-      process.env.ENABLE_YOUTUBE = "false";
-      const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
-      expect(result).toBeNull();
-    });
+    describe("when disabled or missing credentials", () => {
+      it("returns null if ENABLE_YOUTUBE is not true", async () => {
+        process.env.ENABLE_YOUTUBE = "false";
+        const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
+        expect(result).toBeNull();
+      });
 
-    it("returns null if missing credentials", async () => {
-      process.env.YOUTUBE_CLIENT_ID = "";
-      const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
-      expect(result).toBeNull();
+      it("returns null if missing credentials", async () => {
+        process.env.YOUTUBE_CLIENT_ID = "";
+        const result = await uploadToYouTube("vid.mp4", "T", "D", mockConfig);
+        expect(result).toBeNull();
+      });
     });
 
     it("uploads and returns url successfully", async () => {

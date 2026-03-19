@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import { getVideoInfo, downloadVideo, cleanupVideo } from "../../src/core/youtube.js";
 import { loadConfig } from "../../src/core/config.js";
 import fs from "node:fs";
-import { execFile } from "node:child_process";
 
 // Make sure vi.mock isn't hoisting over this file.
 // We explicitly tell vitest NOT to mock these for THIS file
@@ -21,7 +20,6 @@ describe("E2E: YouTube Download", () => {
     vi.unmock("node:path");
     vi.unmock("../../src/core/youtube.js");
 
-    const originalExec = (await import("node:child_process")).execFile;
     // This file doesn't mock youtube, it relies on the real implementation
     // But other tests might have mocked it if they run in same context.
 

@@ -111,11 +111,11 @@ describe("telegram", () => {
   it("should escape html entities properly", async () => {
     vi.mocked(fs.statSync).mockReturnValue({ size: 10 * 1024 * 1024 } as any);
     mockSendVideo.mockResolvedValue({ message_id: 123 });
-    const testShort = {
+    const localShort = {
       ...mockShort,
-      clip: { ...mockShort.clip, title: "<Test&Title>" }
+      clip: { ...mockShort.clip, title: "<Fake&Name>" }
     };
-    await sendToTelegram(testShort as any, mockConfig);
-    expect(mockSendVideo.mock.calls[0][2].caption).toContain("&lt;Test&amp;Title&gt;");
+    await sendToTelegram(localShort as any, mockConfig);
+    expect(mockSendVideo.mock.calls[0][2].caption).toContain("&lt;Fake&amp;Name&gt;");
   });
 });
