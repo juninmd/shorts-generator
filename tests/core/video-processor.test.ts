@@ -104,7 +104,11 @@ describe("video-processor", () => {
     const args = execFileCalls[0][1] as string[];
     const vfArgIndex = args.indexOf("-vf");
     expect(vfArgIndex).toBeGreaterThan(-1);
-    expect(args[vfArgIndex + 1]).toContain("drawtext=text='Test Watermark':x=w-tw-10:y=h-th-10:fontsize=10");
+    expect(args[vfArgIndex + 1]).toContain("crop=");
+    expect(args[vfArgIndex + 1]).toContain("scale=");
+    expect(args[vfArgIndex + 1]).toContain("ass=");
+    expect(args[vfArgIndex + 1]).toContain("drawtext=fontfile=");
+    expect(args[vfArgIndex + 1]).toContain("text='Test Watermark':x=w-tw-20:y=h-th-20:fontsize=36");
   });
 
   it("processClip should handle ffmpeg error events", async () => {
