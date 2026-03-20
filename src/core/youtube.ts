@@ -174,7 +174,7 @@ export async function getChannelVideos(
           ...getYtDlpBaseArgs(undefined, tempCookiePath),
           "--flat-playlist",
           "--print",
-          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j}',
+          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j,"live_status":%(live_status)j}',
           "--no-warnings",
           "--ignore-errors",
           "--playlist-end",
@@ -203,6 +203,7 @@ export async function getChannelVideos(
             duration: typeof raw.duration === "number" ? raw.duration : 0,
             publishedAt: raw.upload_date ?? "",
             thumbnailUrl: raw.thumbnail,
+            liveStatus: raw.live_status,
           });
         } catch {
           logger.warn({ line }, "Failed to parse video info line");
@@ -210,7 +211,9 @@ export async function getChannelVideos(
       }
 
       const maxDuration = 15 * 60; // 15 minutes
-      const filtered = videos.filter((v) => v.duration > 0 && v.duration <= maxDuration);
+      const filtered = videos.filter(
+        (v) => v.duration > 0 && v.duration <= maxDuration && v.liveStatus !== "is_upcoming"
+      );
 
       logger.info(
         { channel: channelIdentifier, total: videos.length, filtered: filtered.length },
@@ -234,7 +237,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         [
           ...getYtDlpBaseArgs(undefined, tempCookiePath),
           "--print",
-          '{"id":"%(id)s","title":"%(title)s","url":"%(webpage_url)s","channel":"%(channel)s","channel_url":"%(channel_url)s","duration":%(duration)s,"upload_date":"%(upload_date)s","thumbnail":"%(thumbnail)s"}',
+          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j,"live_status":%(live_status)j}',
           "--no-warnings",
           "--no-playlist",
           url,
@@ -267,6 +270,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         duration: typeof raw.duration === "number" ? raw.duration : 0,
         publishedAt: raw.upload_date ?? "",
         thumbnailUrl: raw.thumbnail,
+        liveStatus: raw.live_status,
       };
     } catch (error) {
       logger.error({ error, url }, "Failed to get video info");

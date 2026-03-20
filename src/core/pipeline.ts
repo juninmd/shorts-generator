@@ -90,6 +90,14 @@ async function isVideoWithinLimits(
   video: VideoInfo,
   config: PipelineConfig,
 ): Promise<boolean> {
+  if (video.liveStatus === "is_upcoming") {
+    logger.warn(
+      { videoId: video.id, title: video.title },
+      "Skipping video: it hasn't premiered yet (is_upcoming)",
+    );
+    return false;
+  }
+
   const MAX_DURATION_SECONDS = 3 * 3600;
 
   if (video.duration > 0 && video.duration > MAX_DURATION_SECONDS) {

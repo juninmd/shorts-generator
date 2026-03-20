@@ -39,22 +39,21 @@ describe("config", () => {
 
   describe("getMaxCuts", () => {
     it("should calculate max cuts based on minutes ensuring max >= min", () => {
-      // 1 min (60s): min is 2, max is min+1 = 3
-      expect(getMaxCuts(60)).toBe(3); 
-      // 5 min (300s): min is 2, max is 2
-      // wait, let's check the logic: 
-      // durationMinutes = 5. minCuts = min(5, max(2, floor(5/5))) = min(5, max(2, 1)) = 2.
-      // maxCuts = min(15, max(2+1, floor(5/2))) = min(15, max(3, 2)) = 3.
-      expect(getMaxCuts(300)).toBe(3);
-      // 30s: min is 2, max is 3
-      expect(getMaxCuts(30)).toBe(3);
+      // 1 min (60s): min is 1, max is min+1 = 2
+      expect(getMaxCuts(60)).toBe(2); 
+      // 5 min (300s): min is 1, max is 2
+      // logic: durationMinutes = 5. minCuts = min(5, max(1, floor(5/5))) = 1.
+      // maxCuts = min(15, max(1+1, floor(5/2))) = min(15, max(2, 2)) = 2.
+      expect(getMaxCuts(300)).toBe(2);
+      // 30s: min is 1, max is 2
+      expect(getMaxCuts(30)).toBe(2);
     });
   });
 
   describe("getMinCuts", () => {
-    it("should return at least 2 cuts", () => {
-      expect(getMinCuts(60)).toBe(2); // 1 min -> 2 cuts
-      expect(getMinCuts(300)).toBe(2); // 5 min -> 2 cuts
+    it("should return at least 1 cut", () => {
+      expect(getMinCuts(60)).toBe(1); // 1 min -> 1 cut
+      expect(getMinCuts(300)).toBe(1); // 5 min -> 1 cut
       expect(getMinCuts(1500)).toBe(5); // 25 min -> 5 cuts (max)
     });
   });

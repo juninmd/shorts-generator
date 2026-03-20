@@ -16,6 +16,7 @@ vi.mock("../../src/core/youtube.js", () => ({
   getVideoFileSize: vi.fn(),
   downloadVideo: vi.fn(),
   cleanupVideo: vi.fn(),
+  verifyYoutubeAccess: vi.fn(),
 }));
 
 vi.mock("../../src/core/youtube.service.js", () => ({
@@ -76,6 +77,7 @@ describe("pipeline", () => {
     vi.mocked(youtube.getChannelVideos).mockResolvedValue([mockVideoInfo]);
     vi.mocked(youtube.getVideoFileSize).mockResolvedValue(500); // within limit
     vi.mocked(youtube.downloadVideo).mockResolvedValue(mockDownloadedVideo);
+    vi.mocked(youtube.verifyYoutubeAccess).mockResolvedValue(undefined);
 
     vi.mocked(transcriber.transcribeVideo).mockResolvedValue(mockTranscript);
     vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip]);
