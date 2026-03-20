@@ -336,19 +336,19 @@ Respond ONLY with a JSON object (no markdown, no extra text) in this exact forma
 {
   "clips": [
     {
-      "title": "Short catchy highly viral title in Portuguese (max 60 chars)",
-      "description": "Short description for engagement (max 150 chars)",
+      "title": "Título curto, chamativo e altamente viral em PORTUGUÊS (máx. 60 caracteres)",
+      "description": "Descrição curta para engajamento em PORTUGUÊS (máx. 150 caracteres)",
       "startTime": 120.5,
       "endTime": 155.0,
       "viralScore": 8,
-      "reason": "Why this moment has viral potential",
-      "hookLine": "Hook phrase for the first 3 seconds",
+      "reason": "Explicação em PORTUGUÊS do porquê este momento tem potencial viral",
+      "hookLine": "Frase de gancho/impacto para os primeiros 3 segundos (em PORTUGUÊS)",
       "hashtags": ["#tag1", "#tag2", "#tag3"]
     }
   ]
 }
 
-Return the best clips sorted by viral potential (highest score first).`;
+Responda APENAS com o JSON. O idioma deve ser estritamente Português do Brasil (PT-BR).`;
 }
 
 function getSegmentsInRange(

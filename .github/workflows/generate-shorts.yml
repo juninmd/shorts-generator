@@ -41,7 +41,10 @@ env:
   WHISPER_CACHE_DIR: ~/.cache/whisper
   OLLAMA_MODELS_DIR: ~/.ollama/models
   YOUTUBE_COOKIES_BASE64: ${{ secrets.YOUTUBE_COOKIES_BASE64 }}
-  WATERMARK_TEXT: ${{ inputs.watermark_text || vars.WATERMARK_TEXT || 'santidade católica' }}
+  YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+  YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+  YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+  WATERMARK_TEXT: ${{ inputs.watermark_text || vars.WATERMARK_TEXT }}
   # Safety limits
   MAX_VIDEO_SIZE_MB: ${{ vars.MAX_VIDEO_SIZE_MB || '500' }}
   MIN_SHORTS_PER_VIDEO: ${{ vars.MIN_SHORTS_PER_VIDEO || '2' }}
