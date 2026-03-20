@@ -43,6 +43,7 @@ describe("video-processor", () => {
     verticalWidth: 1080,
     verticalHeight: 1920,
     watermarkText: "Test Watermark",
+    videoEncoder: "libx264",
   } as PipelineConfig;
 
   const mockVideo: DownloadedVideo = {

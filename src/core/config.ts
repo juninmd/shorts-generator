@@ -74,8 +74,8 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
  */
 export function getMinCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
-  // Rule: 1 cut every 5 minutes, minimum 2, maximum 5
-  return Math.min(5, Math.max(2, Math.floor(durationMinutes / 5)));
+  // Rule: 1 cut every 5 minutes, minimum 1, maximum 5
+  return Math.min(5, Math.max(1, Math.floor(durationMinutes / 5)));
 }
 
 /**
