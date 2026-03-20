@@ -40,7 +40,7 @@ Responda APENAS com um objeto JSON no formato:
   "title": "...",
   "description": "..."
 }
-O texto deve estar em Português do Brasil.`;
+O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de forma alguma.`;
 
   try {
     const response = await ollama.chat({
