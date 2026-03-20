@@ -43,7 +43,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          sudo uv pip install --system yt-dlp --break-system-packages
+          pipx install yt-dlp
 
       - name: Run E2E Test to Validate YouTube Download
         env:
