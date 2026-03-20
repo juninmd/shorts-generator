@@ -33,8 +33,8 @@ Motivo da Viralização: ${short.clip.reason}
 Hook: ${short.clip.hookLine}
 Hashtags Sugeridas: ${short.clip.hashtags.join(", ")}
 
-O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
-A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags.join(" ")}.
+O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido. O título DEVE gerar curiosidade extrema, FOMO (medo de perder) ou apresentar uma opinião forte/controversa. Use palavras-chave de alto impacto.
+A descrição deve ser muito curta, focada em engajamento, convidando o usuário a comentar, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags.join(" ")}.
 Responda APENAS com um objeto JSON no formato:
 {
   "title": "...",

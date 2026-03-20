@@ -112,8 +112,8 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
 export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void> {
   logger.info("Performing YouTube access sanity check...");
   
-  // Use Big Buck Bunny - very standard video for tests
-  const testUrl = "https://www.youtube.com/watch?v=aqz-KE-bpKQ";
+  // Use dQw4w9WgXcQ (Rick Astley) as Big Buck Bunny / Me at the zoo might trigger 403s
+  const testUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
   
   return withCookies(config, async (tempCookiePath) => {
     try {
