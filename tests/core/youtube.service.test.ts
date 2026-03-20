@@ -176,7 +176,7 @@ describe("youtube.service", () => {
     });
 
     it("redacts credentials in error message and returns null on failure", async () => {
-      mockInsert.mockRejectedValue(new Error("Error with client_id and client_secret and refresh_token"));
+      mockInsert.mockRejectedValue(new Error("Error with mock_client_identifier and mock_client_key and mock_refresh_val"));
 
       const result = await uploadToYouTube("path.mp4", "Title", "Desc", mockConfig);
       expect(result).toBeNull();
