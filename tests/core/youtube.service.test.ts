@@ -68,9 +68,9 @@ describe("youtube.service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.ENABLE_YOUTUBE = "true";
-    process.env.YOUTUBE_CLIENT_ID = "client_id";
-    process.env.YOUTUBE_CLIENT_SECRET = "client_secret";
-    process.env.YOUTUBE_REFRESH_TOKEN = "refresh_token";
+    process.env.YOUTUBE_CLIENT_ID = "mock_yt_identifier";
+    process.env.YOUTUBE_CLIENT_SECRET = "mock_yt_key";
+    process.env.YOUTUBE_REFRESH_TOKEN = "mock_yt_refresh_val";
   });
 
 
@@ -176,7 +176,7 @@ describe("youtube.service", () => {
     });
 
     it("redacts credentials in error message and returns null on failure", async () => {
-      mockInsert.mockRejectedValue(new Error("Error with mock_client_identifier and mock_client_key and mock_refresh_val"));
+      mockInsert.mockRejectedValue(new Error("Error with mock_yt_identifier and mock_yt_key and mock_yt_refresh_val"));
 
       const result = await uploadToYouTube("path.mp4", "Title", "Desc", mockConfig);
       expect(result).toBeNull();
