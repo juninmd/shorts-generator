@@ -3,7 +3,7 @@ import { config as dotenvConfig } from "dotenv";
 dotenvConfig({ override: true });
 
 import { loadConfig } from "./core/config.js";
-import { runPipeline } from "./core/pipeline.js";
+import { runPipeline, runTopVideoPipeline } from "./core/pipeline.js";
 import { logger } from "./core/logger.js";
 import { startServer } from "./server/index.js";
 
@@ -12,7 +12,9 @@ const command = args[0];
 
 async function main() {
   switch (command) {
-    case "generate": {
+    case "generate":
+    case "generate:top": {
+      const isTopCmd = command === "generate:top";
       const urlIndex = args.indexOf("--url");
       const channelIndex = args.indexOf("--channel");
       const limitIndex = args.indexOf("--limit");
@@ -49,7 +51,7 @@ async function main() {
         "Starting shorts generation",
       );
 
-      const results = await runPipeline(config, (progress) => {
+      const progressLogger = (progress: any) => {
         logger.info(
           {
             stage: progress.stage,
@@ -58,7 +60,11 @@ async function main() {
           },
           "Pipeline progress",
         );
-      });
+      };
+
+      const results = isTopCmd 
+        ? await runTopVideoPipeline(config, progressLogger)
+        : await runPipeline(config, progressLogger);
 
       // Summary
       const totalShorts = results.reduce((sum, r) => sum + r.shorts.length, 0);
@@ -101,8 +107,9 @@ Usage:
   pnpm run cli -- <command> [options]
 
 Commands:
-  generate    Generate shorts from YouTube videos
-  server      Start the API server
+  generate      Generate shorts from YouTube videos (latest)
+  generate:top  Generate shorts from a top 20 non-music video randomly 1x day
+  server        Start the API server
 
 Options (generate):
   --url <urls>        Comma-separated YouTube video URLs

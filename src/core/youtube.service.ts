@@ -140,3 +140,68 @@ export const uploadToYouTube = async (
     return null;
   }
 };
+
+export const uploadFullVideoToYouTube = async (
+  videoPath: string,
+  title: string,
+  description: string,
+  config: PipelineConfig
+): Promise<string | null> => {
+  const isEnabled = process.env.ENABLE_YOUTUBE === "true";
+
+  if (!isEnabled) {
+    logger.info("⏩ Upload completo para o YouTube desativado (ENABLE_YOUTUBE=false)");
+    return null;
+  }
+
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload do vídeo completo.");
+    return null;
+  }
+
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+  const youtube = google.youtube({
+    version: "v3",
+    auth: oauth2Client,
+  });
+
+  logger.info({ videoPath }, "📤 Fazendo upload do vídeo COMPLETO para o YouTube...");
+
+  try {
+    const res = await youtube.videos.insert({
+      part: ["snippet", "status"],
+      requestBody: {
+        snippet: {
+          title: title.slice(0, 100), // Max title length is 100
+          description,
+          categoryId: "22", // People & Blogs
+        },
+        status: {
+          privacyStatus: "public",
+          selfDeclaredMadeForKids: false,
+        },
+      },
+      media: {
+        body: fs.createReadStream(videoPath),
+      },
+    });
+
+    const url = `https://youtube.com/watch?v=${res.data?.id}`;
+    logger.info({ url }, "✅ Vídeo COMPLETO enviado com sucesso para o YouTube!");
+    return url;
+  } catch (error: any) {
+    let errorMessage = error.message || String(error);
+    if (clientId) errorMessage = errorMessage.replace(new RegExp(clientId, "g"), "***HIDDEN***");
+    if (clientSecret) errorMessage = errorMessage.replace(new RegExp(clientSecret, "g"), "***HIDDEN***");
+    if (refreshToken) errorMessage = errorMessage.replace(new RegExp(refreshToken, "g"), "***HIDDEN***");
+
+    logger.error({ error: errorMessage }, "❌ Erro fatal no upload do vídeo completo pro YouTube");
+    return null;
+  }
+};

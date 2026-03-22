@@ -7,20 +7,141 @@ import type {
 } from "../types.js";
 import {
   getChannelVideos,
+  getTopChannelVideos,
   getVideoInfo,
   getVideoFileSize,
   downloadVideo,
   cleanupVideo,
   verifyYoutubeAccess,
 } from "./youtube.js";
+import { getPostedTopVideos, markVideoAsPosted } from "./state.js";
 import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
 import { processClip } from "./video-processor.js";
-import { sendToTelegram, sendSummary } from "./telegram.js";
-import { generateYoutubeMetadata, uploadToYouTube } from "./youtube.service.js";
+import { sendToTelegram, sendSummary, sendFullVideoToTelegram } from "./telegram.js";
+import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube } from "./youtube.service.js";
 import { logger } from "./logger.js";
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
+
+/**
+ * Special pipeline: fetch the top non-music videos from a random channel,
+ * pick one that hasn't been posted yet, and process it.
+ */
+export async function runTopVideoPipeline(
+  config: PipelineConfig,
+  onProgress?: ProgressCallback,
+): Promise<PipelineResult[]> {
+  try {
+    await verifyYoutubeAccess(config);
+  } catch (error: any) {
+    logger.fatal({ error: error.message }, "Top Pipeline aborted: YouTube access check failed");
+    throw error;
+  }
+
+  if (config.channels.length === 0) {
+    logger.warn("No channels configured for top video pipeline");
+    return [];
+  }
+
+  // Pick a random channel
+  const randomChannel = config.channels[Math.floor(Math.random() * config.channels.length)]!;
+  logger.info({ channel: randomChannel }, "Selected random channel for top video pipeline");
+
+  const topVideos = await getTopChannelVideos(randomChannel, 20);
+  const postedVideos = new Set(getPostedTopVideos());
+  
+  let targetVideo: VideoInfo | null = null;
+
+  for (const video of topVideos) {
+    if (!postedVideos.has(video.id)) {
+      if (await isVideoWithinLimits(video, config)) {
+        // Fetch full metadata to confirm it's not music
+        const fullInfo = await getVideoInfo(video.url);
+        if (fullInfo) {
+          const categories = fullInfo.categories || [];
+          if (!categories.includes("Music")) {
+            targetVideo = fullInfo;
+            break;
+          } else {
+            logger.info({ videoId: video.id, categories }, "Skipping video because it is categorized as Music");
+          }
+        }
+      }
+    }
+  }
+
+  if (!targetVideo) {
+    logger.warn("No valid unposted top video found for this channel.");
+    return [];
+  }
+
+  logger.info({ videoId: targetVideo.id, title: targetVideo.title }, "Found unposted top video to process");
+
+  // Bypass short generation, just download and send full video to Telegram
+  onProgress?.({
+    stage: "downloading",
+    videoId: targetVideo.id,
+    videoTitle: targetVideo.title,
+    message: `Baixando vídeo completo: ${targetVideo.title}`,
+    progress: 10,
+  });
+
+  const startTime = Date.now();
+
+  try {
+    const downloaded = await downloadVideo(targetVideo, config);
+
+    onProgress?.({
+      stage: "uploading",
+      videoId: targetVideo.id,
+      videoTitle: targetVideo.title,
+      message: "Enviando vídeo completo para o YouTube e Telegram...",
+      progress: 60,
+    });
+
+    const ytDescription = `Este é um repost do canal: ${targetVideo.channelName}\n\nAssista ao original aqui: ${targetVideo.url}`;
+    const youtubeUrl = await uploadFullVideoToYouTube(
+      downloaded.filePath,
+      targetVideo.title,
+      ytDescription,
+      config
+    );
+
+    await sendFullVideoToTelegram(downloaded, config, youtubeUrl);
+
+    cleanupVideo(targetVideo.id, config);
+    markVideoAsPosted(targetVideo.id);
+
+    onProgress?.({
+      stage: "done",
+      videoId: targetVideo.id,
+      videoTitle: targetVideo.title,
+      message: "Vídeo completo publicado no Telegram com sucesso",
+      progress: 100,
+    });
+
+    return [{
+      videoId: targetVideo.id,
+      videoTitle: targetVideo.title,
+      channelName: targetVideo.channelName,
+      shorts: [],
+      errors: [],
+      processingTimeMs: Date.now() - startTime,
+    }];
+  } catch (error: any) {
+    logger.error({ error, videoId: targetVideo.id }, "Failed to process full top video");
+    cleanupVideo(targetVideo.id, config);
+    return [{
+      videoId: targetVideo.id,
+      videoTitle: targetVideo.title,
+      channelName: targetVideo.channelName,
+      shorts: [],
+      errors: [error.message],
+      processingTimeMs: Date.now() - startTime,
+    }];
+  }
+}
 
 /**
  * Run the full pipeline: fetch → download → transcribe → analyze → cut → send.

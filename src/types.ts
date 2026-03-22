@@ -10,6 +10,8 @@ export interface VideoInfo {
   publishedAt: string;
   thumbnailUrl?: string;
   liveStatus?: string;
+  categories?: string[];
+  viewCount?: number;
 }
 
 export interface DownloadedVideo extends VideoInfo {
