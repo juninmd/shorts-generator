@@ -1,0 +1,142 @@
+name: Generate Top Shorts
+
+on:
+  schedule:
+    # Runs 1x a day at 18:00 BRT
+    - cron: "0 18 * * *"
+      timezone: "America/Sao_Paulo"
+  workflow_dispatch:
+
+env:
+  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+  YOUTUBE_CHANNELS: ${{ vars.YOUTUBE_CHANNELS }}
+  OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma3:1b' }}
+  WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'tiny' }}
+  WHISPER_USE_GPU: 'true'
+  ENABLE_YOUTUBE: true
+  OLLAMA_TIMEOUT_MS: 120000
+  VIDEO_LIMIT: '1'
+  OUTPUT_DIR: ./output
+  PIP_CACHE_DIR: ~/.cache/pip
+  WHISPER_CACHE_DIR: ~/.cache/whisper
+  OLLAMA_MODELS_DIR: ~/.ollama/models
+  YOUTUBE_COOKIES_BASE64: ${{ secrets.YOUTUBE_COOKIES_BASE64 }}
+  YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+  YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+  YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+  WATERMARK_TEXT: ${{ vars.WATERMARK_TEXT }}
+  # Safety limits
+  MAX_VIDEO_SIZE_MB: ${{ vars.MAX_VIDEO_SIZE_MB || '500' }}
+  MIN_SHORTS_PER_VIDEO: ${{ vars.MIN_SHORTS_PER_VIDEO || '2' }}
+
+permissions:
+  contents: write
+
+jobs:
+  generate-top:
+    name: Generate Top YouTube Shorts
+    runs-on: ubuntu-latest
+    timeout-minutes: 720
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PIP_CACHE_DIR }}
+          key: ${{ runner.os }}-pip-py311-openai-whisper-yt-dlp-v1
+          restore-keys: |
+            ${{ runner.os }}-pip-py311-
+
+      - name: Cache Whisper model files
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.WHISPER_CACHE_DIR }}
+          key: ${{ runner.os }}-whisper-${{ env.WHISPER_MODEL }}
+          restore-keys: |
+            ${{ runner.os }}-whisper-
+
+      - name: Cache Ollama model files
+        id: ollama-cache
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: ${{ env.OLLAMA_MODELS_DIR }}
+          key: ${{ runner.os }}-ollama-${{ env.OLLAMA_MODEL }}
+          restore-keys: |
+            ${{ runner.os }}-ollama-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          uv pip install --system -r tests/yt-download/pyproject.toml
+
+      - name: Install & start Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          sleep 5
+          ollama pull ${{ env.OLLAMA_MODEL }}
+          ollama list
+
+      - name: Verify tools
+        run: |
+          node --version
+          ffmpeg -version | head -1
+          yt-dlp --version
+          whisper --help | head -3
+          ollama --version
+
+      - name: Run top shorts generation
+        run: pnpm run generate:top
+
+      - name: Commit posted top videos
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update posted top videos list"
+          file_pattern: "posted_top_videos.json"
+
+      - name: Upload generated shorts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: top-shorts-${{ github.run_id }}
+          path: output/**/*.mp4
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf output/temp

@@ -228,6 +228,80 @@ export async function getChannelVideos(
 }
 
 /**
+ * Get the top viewed valid non-music videos from a YouTube channel.
+ */
+export async function getTopChannelVideos(
+  channelIdentifier: string,
+  limit: number = 20,
+): Promise<VideoInfo[]> {
+  logger.info({ channel: channelIdentifier, limit }, "Fetching top channel videos by view count");
+
+  return withCookies(undefined, async (tempCookiePath) => {
+    try {
+      const { stdout } = await execYtDlp(
+        [
+          ...getYtDlpBaseArgs(undefined, tempCookiePath),
+          "--flat-playlist",
+          "--print",
+          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j,"live_status":%(live_status)j,"view_count":%(view_count)j}',
+          "--no-warnings",
+          "--ignore-errors",
+          "--playlist-end",
+          "200",
+          channelIdentifier.startsWith("http")
+            ? channelIdentifier
+            : `https://www.youtube.com/${channelIdentifier}/videos`,
+        ],
+        { maxBuffer: 10 * 1024 * 1024, timeout: 120_000 },
+      );
+
+      const videos: VideoInfo[] = [];
+      for (const line of stdout.trim().split("\n")) {
+        if (!line.trim()) continue;
+        try {
+          const sanitizedLine = line.replace(/:NA([,}])/g, ':null$1');
+          const raw = JSON.parse(sanitizedLine);
+          
+          videos.push({
+            id: raw.id,
+            title: raw.title ?? "Untitled",
+            url: raw.url ?? `https://www.youtube.com/watch?v=${raw.id}`,
+            channelName: raw.channel ?? channelIdentifier,
+            channelUrl: raw.channel_url ?? "",
+            duration: typeof raw.duration === "number" ? raw.duration : 0,
+            publishedAt: raw.upload_date ?? "",
+            thumbnailUrl: raw.thumbnail,
+            liveStatus: raw.live_status,
+            viewCount: typeof raw.view_count === "number" ? raw.view_count : 0,
+          });
+        } catch {
+          logger.warn({ line }, "Failed to parse video info line in top fetch");
+        }
+      }
+
+      const maxDuration = 15 * 60; // 15 minutes max
+      const filtered = videos.filter(
+        (v) => v.duration > 0 && v.duration <= maxDuration && v.liveStatus !== "is_upcoming"
+      );
+
+      // Sort by viewCount descending
+      filtered.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+
+      logger.info(
+        { channel: channelIdentifier, total: videos.length, validCandidates: filtered.length },
+        "Sorted top candidates by view count",
+      );
+      
+      return filtered.slice(0, limit * 2); // Return more to search through for non-music 
+    } catch (error) {
+      logger.error({ error, channel: channelIdentifier }, "Failed to fetch top channel videos");
+      return [];
+    }
+  });
+}
+
+
+/**
  * Get video info for a specific URL.
  */
 export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
@@ -237,7 +311,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         [
           ...getYtDlpBaseArgs(undefined, tempCookiePath),
           "--print",
-          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j,"live_status":%(live_status)j}',
+          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j,"live_status":%(live_status)j,"categories":%(categories)j}',
           "--no-warnings",
           "--no-playlist",
           url,
@@ -271,6 +345,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         publishedAt: raw.upload_date ?? "",
         thumbnailUrl: raw.thumbnail,
         liveStatus: raw.live_status,
+        categories: raw.categories ?? [],
       };
     } catch (error) {
       logger.error({ error, url }, "Failed to get video info");

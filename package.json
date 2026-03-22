@@ -12,6 +12,7 @@
     "start": "tsx src/server/index.ts",
     "cli": "tsx src/cli.ts",
     "generate": "tsx src/cli.ts generate",
+    "generate:top": "tsx src/cli.ts generate:top",
     "generate:url": "tsx src/cli.ts generate --url",
     "test": "vitest run",
     "test:watch": "vitest",

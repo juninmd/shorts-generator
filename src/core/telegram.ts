@@ -12,6 +12,69 @@ function escapeHtml(text: string): string {
 }
 
 /**
+ * Send a full video to a Telegram channel (used by generate:top).
+ */
+export async function sendFullVideoToTelegram(
+  video: import("../types.js").DownloadedVideo,
+  config: PipelineConfig,
+  youtubeOutputUrl?: string | null,
+): Promise<number | undefined> {
+  if (!config.telegramBotToken || !config.telegramChatId) {
+    logger.warn("Telegram not configured, skipping upload");
+    return undefined;
+  }
+
+  const bot = new Bot(config.telegramBotToken);
+
+  const durationMin = Math.floor(video.duration / 60);
+  const durationSec = Math.floor(video.duration % 60);
+  const durationStr = `${durationMin}:${durationSec.toString().padStart(2, "0")}`;
+
+  const caption = [
+    `🎬 <b>${escapeHtml(video.title)}</b>`,
+    ``,
+    `📺 Canal: ${escapeHtml(video.channelName)}`,
+    `⏱ Duração: ${durationStr}`,
+    `👁 Visualizações: ${video.viewCount ? video.viewCount.toLocaleString("pt-BR") : "N/A"}`,
+    youtubeOutputUrl ? `🔴 Seu Repost no YouTube: <a href="${youtubeOutputUrl}">${youtubeOutputUrl}</a>` : "",
+    `🔗 Link original: <a href="${video.url}">${escapeHtml(video.url)}</a>`,
+  ].filter(line => line !== "").join("\n");
+
+  try {
+    const fileSize = fs.statSync(video.filePath).size;
+    
+    // Telegram limit: 50MB for bots
+    if (fileSize > 50 * 1024 * 1024) {
+      logger.warn(
+        { videoId: video.id, sizeMB: (fileSize / 1024 / 1024).toFixed(1) },
+        "Full video too large for Telegram, sending link instead",
+      );
+      const msg = await bot.api.sendMessage(config.telegramChatId, caption, {
+        parse_mode: "HTML",
+      });
+      return msg.message_id;
+    }
+
+    const videoFile = new InputFile(video.filePath);
+    const msg = await bot.api.sendVideo(config.telegramChatId, videoFile, {
+      caption,
+      parse_mode: "HTML",
+      supports_streaming: true,
+    });
+
+    logger.info(
+      { videoId: video.id, messageId: msg.message_id },
+      "Sent full video to Telegram",
+    );
+
+    return msg.message_id;
+  } catch (error) {
+    logger.error({ error, videoId: video.id }, "Failed to send full video to Telegram");
+    return undefined;
+  }
+}
+
+/**
  * Send a generated short to a Telegram channel.
  */
 export async function sendToTelegram(
