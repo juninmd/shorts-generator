@@ -4,7 +4,7 @@ on:
   schedule:
     # Runs 1x a day at 18:00 BRT
     - cron: "0 18 * * *"
-      timezone: "America/Sao_Paulo"
+      # timezone: "America/Sao_Paulo"
   workflow_dispatch:
 
 env:
