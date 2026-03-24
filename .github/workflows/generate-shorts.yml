@@ -4,7 +4,7 @@ on:
   schedule:
     # Runs
     - cron: "0 12 * * *"
-      timezone: "America/Sao_Paulo"
+      # timezone: "America/Sao_Paulo"
   workflow_dispatch:
     inputs:
       video_urls:
