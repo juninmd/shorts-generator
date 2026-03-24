@@ -53,18 +53,18 @@ vi.mock("../../src/core/logger", () => ({
 describe("youtube.service", () => {
   const mockConfig = {
     ollamaBaseUrl: "http://localhost:11434",
-    ollamaModel: "test-model",
+    ollamaModel: "dummy-model",
   } as any;
 
   const mockShort = {
     id: "clip1",
-    channelName: "Test Channel",
+    channelName: "Dummy Channel",
     clip: {
       title: "Original Title",
       description: "Original Description",
       reason: "viral",
       hookLine: "hook",
-      hashtags: ["#test"],
+      hashtags: ["#dummy"],
     },
   } as any;
 
@@ -127,11 +127,11 @@ describe("youtube.service", () => {
     });
   });
 
-  const mockCredsSetup = () => {
-    process.env.ENABLE_YOUTUBE = "true";
-    process.env.YOUTUBE_CLIENT_ID = "mock_client_id_val";
-    process.env.YOUTUBE_CLIENT_SECRET = "mock_client_auth_value";
-    process.env.YOUTUBE_REFRESH_TOKEN = "mock_refresh_value";
+  const mockCredsSetup = (isEnabled = "true", id = "123", secret = "456", refresh = "789") => {
+    process.env.ENABLE_YOUTUBE = isEnabled;
+    process.env.YOUTUBE_CLIENT_ID = id;
+    process.env.YOUTUBE_CLIENT_SECRET = secret;
+    process.env.YOUTUBE_REFRESH_TOKEN = refresh;
   };
 
   const uploadTestCases = [
@@ -139,16 +139,12 @@ describe("youtube.service", () => {
     { method: uploadFullVideoToYouTube, name: "uploadFullVideoToYouTube", expectedUrl: "https://youtube.com/watch?v=yt123" }
   ];
 
-  describe.each(uploadTestCases)("$name", ({ method, name, expectedUrl }) => {
-    it("should return null if ENABLE_YOUTUBE is false", async () => {
-      process.env.ENABLE_YOUTUBE = "false";
-      const result = await method("video.mp4", "Title", "Desc", mockConfig);
-      expect(result).toBeNull();
-    });
-
-    it("should return null if credentials are missing", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "";
+  describe.each(uploadTestCases)("$name", ({ method, expectedUrl }) => {
+    it.each([
+      { enabled: "false", id: "123", desc: "ENABLE_YOUTUBE is false" },
+      { enabled: "true", id: "", desc: "credentials are missing" }
+    ])("should return null if $desc", async ({ enabled, id }) => {
+      mockCredsSetup(enabled, id);
       const result = await method("video.mp4", "Title", "Desc", mockConfig);
       expect(result).toBeNull();
     });
@@ -156,25 +152,17 @@ describe("youtube.service", () => {
     it("should upload video successfully and return URL", async () => {
       mockCredsSetup();
       insertMock.mockResolvedValueOnce({ data: { id: "yt123" } });
-
       const result = await method("video.mp4", "Title", "Desc", mockConfig);
       expect(result).toBe(expectedUrl);
       expect(insertMock).toHaveBeenCalled();
     });
 
-    it("should log error and hide credentials when upload fails", async () => {
+    it.each([
+      { err: new Error("Error with 123, 456, and 789"), desc: "standard Error" },
+      { err: "Error with 123", desc: "error string without message property" }
+    ])("should log error and handle failures for $desc", async ({ err }) => {
       mockCredsSetup();
-      const errorMsg = "Error with mock_client_id_val, mock_client_auth_value, and mock_refresh_value";
-      insertMock.mockRejectedValueOnce(new Error(errorMsg));
-
-      const result = await method("video.mp4", "Title", "Desc", mockConfig);
-      expect(result).toBeNull();
-    });
-
-    it("should handle error string without message property", async () => {
-      mockCredsSetup();
-      insertMock.mockRejectedValueOnce("Error with mock_client_id_val");
-
+      insertMock.mockRejectedValueOnce(err);
       const result = await method("video.mp4", "Title", "Desc", mockConfig);
       expect(result).toBeNull();
     });
