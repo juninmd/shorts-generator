@@ -441,53 +441,33 @@ describe("analyzer", () => {
     expect(clips[0].title).toBe("Retry Clip");
   });
 
-  it("should normalize bare unquoted MM:SS timestamps in JSON", async () => {
-    const mockResponseText = `{
-      "clips": [
-        {
-          "title": "Unquoted MM:SS",
-          "description": "Desc",
-          "startTime": 01:00,
-          "endTime": 01:25.5,
-          "viralScore": 9,
-          "reason": "Reason",
-          "hookLine": "Hook",
-          "hashtags": ["#test"]
-        }
-      ]
-    }`;
+  describe.each([
+    { type: "bare unquoted", val: "01:00" },
+    { type: "quoted", val: '"01:00"' }
+  ])("timestamp parsing logic", ({ type, val }) => {
+    it(`should normalize ${type} MM:SS timestamps in JSON`, async () => {
+      const mockResponseText = `{
+        "clips": [
+          {
+            "title": "MM:SS Title",
+            "description": "Desc",
+            "startTime": ${val},
+            "endTime": ${val === '"01:00"' ? '"01:25.5"' : '01:25.5'},
+            "viralScore": 9,
+            "reason": "Reason",
+            "hookLine": "Hook",
+            "hashtags": ["#12345"]
+          }
+        ]
+      }`;
 
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: mockResponseText,
-    } as any);
+      vi.mocked(aiModule.generateText).mockResolvedValue({
+        text: mockResponseText,
+      } as any);
 
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-    expect(clips).toHaveLength(1);
-    expect(clips[0].title).toBe("Unquoted MM:SS");
-  });
-
-  it("should normalize quoted MM:SS timestamps in JSON", async () => {
-    const mockResponseText = `{
-      "clips": [
-        {
-          "title": "Quoted MM:SS",
-          "description": "Desc",
-          "startTime": "01:00",
-          "endTime": "01:25.5",
-          "viralScore": 9,
-          "reason": "Reason",
-          "hookLine": "Hook",
-          "hashtags": ["#test"]
-        }
-      ]
-    }`;
-
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: mockResponseText,
-    } as any);
-
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-    expect(clips).toHaveLength(1);
-    expect(clips[0].title).toBe("Quoted MM:SS");
+      const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+      expect(clips).toHaveLength(1);
+      expect(clips[0].title).toBe("MM:SS Title");
+    });
   });
 });
