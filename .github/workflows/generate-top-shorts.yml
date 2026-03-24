@@ -11,8 +11,8 @@ env:
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   YOUTUBE_CHANNELS: ${{ vars.YOUTUBE_CHANNELS }}
-  OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma3:1b' }}
-  WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'tiny' }}
+  OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma3:4b' }}
+  WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'base' }}
   WHISPER_USE_GPU: 'true'
   ENABLE_YOUTUBE: true
   OLLAMA_TIMEOUT_MS: 120000

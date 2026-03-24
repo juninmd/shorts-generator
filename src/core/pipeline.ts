@@ -247,7 +247,7 @@ async function isVideoWithinLimits(
 
 /**
  * Iterate through a channel's video list and return the first X videos that
- * pass size and duration limits.
+ * pass size, duration, and category (no Music) limits.
  */
 async function selectValidVideos(
   videos: VideoInfo[],
@@ -255,16 +255,24 @@ async function selectValidVideos(
 ): Promise<VideoInfo[]> {
   const selected: VideoInfo[] = [];
   for (const video of videos) {
-    if (await isVideoWithinLimits(video, config)) {
+    if (!(await isVideoWithinLimits(video, config))) continue;
+
+    // Fetch full metadata to check category — prevents downloading music videos
+    const fullInfo = await getVideoInfo(video.url);
+    if (!fullInfo) continue;
+
+    const categories = fullInfo.categories || [];
+    if (categories.includes("Music")) {
       logger.info(
-        { videoId: video.id, title: video.title },
-        "Selected valid video for channel",
+        { videoId: video.id, title: video.title, categories },
+        "Skipping Music video in main pipeline",
       );
-      selected.push(video);
-      if (selected.length >= config.videoLimit) {
-        break;
-      }
+      continue;
     }
+
+    logger.info({ videoId: video.id, title: video.title }, "Selected valid video for channel");
+    selected.push(fullInfo);
+    if (selected.length >= config.videoLimit) break;
   }
   return selected;
 }
@@ -372,16 +380,24 @@ export async function processVideo(
     // Step 5: Send to Telegram & YouTube
     emitProgress("uploading", "Enviando para o Telegram e YouTube...", 85);
 
+    const youtubeEnabled = process.env.ENABLE_YOUTUBE === "true";
+
     for (const short of shorts) {
       try {
-        // 1. Post to YouTube (if enabled) - Do this first to get the URL
+        // 1. Post to YouTube (if enabled) — do this first to get the URL
         const youtubeMeta = await generateYoutubeMetadata(short, config);
         const youtubeUrl = await uploadToYouTube(
           short.outputPath,
           youtubeMeta.title,
           youtubeMeta.description,
-          config
+          config,
         );
+
+        if (youtubeEnabled && !youtubeUrl) {
+          const msg = `YouTube upload falhou para o short "${short.clip.title}"`;
+          logger.error({ clipId: short.id }, msg);
+          errors.push(msg);
+        }
 
         // 2. Post to Telegram with the YouTube link
         const msgId = await sendToTelegram(short, config, youtubeUrl);
