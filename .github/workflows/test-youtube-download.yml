@@ -1,0 +1,46 @@
+name: Test YouTube Download
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  test-download:
+    name: Test yt-dlp Video Download
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-py311-yt-dlp
+          restore-keys: |
+            ${{ runner.os }}-pip-py311-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          uv pip install --system -r tests/yt-download/pyproject.toml
+
+      - name: Run yt-dlp download test
+        run: pytest tests/yt-download/test_youtube_download.py -v
+        env:
+          GITHUB_ACTIONS: "true"

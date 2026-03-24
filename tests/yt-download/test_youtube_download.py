@@ -9,7 +9,7 @@ import yt_dlp
 COOKIES_FILE = os.path.join(
     os.path.dirname(__file__), "..", "..", "cookies.txt"
 )
-VIDEO_ID = "Ee1cIuT179o"
+VIDEO_ID = "dQw4w9WgXcQ"
 VIDEO_URL = f"https://www.youtube.com/watch?v={VIDEO_ID}"
 
 
