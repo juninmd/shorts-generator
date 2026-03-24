@@ -316,7 +316,7 @@ You must find between **${minClips} and ${maxClips} clips**. Do not generate few
 
 ## Selection criteria for MAXIMUM VIRALITY:
 1. **High Retention Hook** — The very first sentence must be an absolute scroll-stopper (curiosity gap, strong polarizing opinion, or direct question). Focus on shocking statistics, extreme controversy, or dropping a bombshell. Start the clip at the exact moment of peak curiosity. The viewer MUST be compelled to keep watching. Maximize retention at all costs.
-2. **Pacing & Energy** — The excerpt must be dense with value, high emotion, or mind-blowing revelations. Cut out ALL boring buildups, pauses, and filler words. The clip must feel relentless.
+2. **Pacing & Energy** — The excerpt must be dense with value, high emotion, or mind-blowing revelations. Cut out ALL boring buildups, pauses, and filler words. The clip must feel relentless. Fast pacing is critical.
 3. **Self-contained Story/Idea** — It MUST make 100% complete sense to a viewer who has never seen the full video. It should feel like a standalone viral short.
 4. **Strong Payoff** — The end of the clip should resolve the hook or deliver a massive punchline/revelation that leaves the viewer desperately wanting more or wanting to share.
 5. **Shareability & Controversy** — Does this make someone want to send it to a friend, bookmark it instantly, or aggressively argue in the comments? Maximize engagement!
@@ -326,7 +326,7 @@ You must find between **${minClips} and ${maxClips} clips**. Do not generate few
 - Each clip must be between **${minDuration}** and **${maxDuration} seconds**
 - Clips must NOT overlap
 - startTime and endTime MUST perfectly align with transcript segment boundaries
-- Generate extreme, EXTREMELY clickbaity, punchy, and sensationalist titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or extreme FOMO (Fear Of Missing Out). Titles MUST be optimized for TikTok/Shorts algorithms, practically forcing the user to click. Use powerful words like 'SEGREDO', 'CHOQUE', 'NUNCA TE CONTARAM', 'BOMBA'. Emphasize extreme controversy, mind-blowing facts, or highly emotional hooks in the title. The title MUST be extremely viral and concise (under 60 characters).
+- Generate extreme, EXTREMELY clickbaity, punchy, and sensationalist titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or extreme FOMO (Fear Of Missing Out). Titles MUST be optimized for TikTok/Shorts algorithms, practically forcing the user to click. Use powerful words like 'SEGREDO', 'CHOQUE', 'NUNCA TE CONTARAM', 'BOMBA', 'ABSURDO', 'INACREDITÁVEL'. Emphasize extreme controversy, mind-blowing facts, or highly emotional hooks in the title. The title MUST be extremely viral, heavily prioritize maximum virality, and concise (under 60 characters).
 
 ## Transcript:
 ${transcript}

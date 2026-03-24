@@ -93,6 +93,13 @@ class TestVideoMetadata:
 class TestVideoDownload:
     """Validate actual video download."""
 
+    @pytest.fixture(autouse=True)
+    def skip_if_not_e2e(self):
+        is_e2e = os.environ.get("RUN_E2E") == "true"
+        is_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+        if not (is_e2e or is_actions):
+            pytest.skip("Skipping video download test because RUN_E2E or GITHUB_ACTIONS is not true.")
+
     def test_download_video(self, download_dir):
         output_template = os.path.join(download_dir, "%(id)s.%(ext)s")
         opts = _base_opts(outtmpl=output_template)
