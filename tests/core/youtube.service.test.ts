@@ -80,6 +80,11 @@ describe("youtube.service", () => {
   });
 
   describe("generateYoutubeMetadata", () => {
+    const setupMock = (content: string) => {
+      process.env.ENABLE_YOUTUBE = "true";
+      chatMock.mockResolvedValueOnce({ message: { content } });
+    };
+
     it("should return original metadata when ENABLE_YOUTUBE is not true", async () => {
       process.env.ENABLE_YOUTUBE = "false";
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
@@ -89,26 +94,12 @@ describe("youtube.service", () => {
       });
     });
 
-    it("should generate and parse metadata from ollama successfully", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      chatMock.mockResolvedValueOnce({
-        message: { content: '{"title": "Viral Title", "description": "Viral Description"}' },
-      });
-
-      const result = await generateYoutubeMetadata(mockShort, mockConfig);
-      expect(result).toEqual({
-        title: "Viral Title",
-        description: "Viral Description",
-      });
-      expect(chatMock).toHaveBeenCalled();
-    });
-
-    it("should strip markdown blocks from ollama response", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      chatMock.mockResolvedValueOnce({
-        message: { content: '```json\n{"title": "Viral Title", "description": "Viral Description"}\n```' },
-      });
-
+    it.each([
+      ['{"title": "Viral Title", "description": "Viral Description"}'],
+      ['```json\n{"title": "Viral Title", "description": "Viral Description"}\n```'],
+      ['```\n{"title": "Viral Title", "description": "Viral Description"}\n```']
+    ])("should parse metadata from ollama successfully: %s", async (content) => {
+      setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
       expect(result).toEqual({
         title: "Viral Title",
@@ -117,68 +108,30 @@ describe("youtube.service", () => {
     });
 
     it("should use default model name when ollamaModel is not provided in config", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      chatMock.mockResolvedValueOnce({
-        message: { content: '{"title": "Viral Title", "description": "Viral Description"}' },
-      });
-
+      setupMock('{"title": "Viral Title", "description": "Viral Description"}');
       const configWithoutModel = { ...mockConfig, ollamaModel: undefined };
-      const result = await generateYoutubeMetadata(mockShort, configWithoutModel);
+      await generateYoutubeMetadata(mockShort, configWithoutModel);
 
-      expect(result).toEqual({
-        title: "Viral Title",
-        description: "Viral Description",
-      });
       expect(chatMock).toHaveBeenCalledWith(expect.objectContaining({
         model: "gemma3:1b"
       }));
     });
 
-    it("should strip markdown blocks without json language from ollama response", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      chatMock.mockResolvedValueOnce({
-        message: { content: '```\n{"title": "Viral Title", "description": "Viral Description"}\n```' },
-      });
-
+    it.each([
+      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description" } },
+      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description" } }
+    ])("should fallback properly when JSON parsing fails or misses fields: $content", async ({ content, expected }) => {
+      setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
-      expect(result).toEqual({
-        title: "Viral Title",
-        description: "Viral Description",
-      });
-    });
-
-    it("should fallback to original metadata when JSON parse fails", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      chatMock.mockResolvedValueOnce({
-        message: { content: 'invalid json' },
-      });
-
-      const result = await generateYoutubeMetadata(mockShort, mockConfig);
-      expect(result).toEqual({
-        title: "Original Title",
-        description: "Original Description",
-      });
-    });
-
-    it("should fallback to original title if ollama response lacks title", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      chatMock.mockResolvedValueOnce({
-        message: { content: '{"description": "Viral Description"}' },
-      });
-
-      const result = await generateYoutubeMetadata(mockShort, mockConfig);
-      expect(result).toEqual({
-        title: "Original Title",
-        description: "Viral Description",
-      });
+      expect(result).toEqual(expected);
     });
   });
 
   const mockCredsSetup = () => {
     process.env.ENABLE_YOUTUBE = "true";
     process.env.YOUTUBE_CLIENT_ID = "mock_client_id_val";
-    process.env.YOUTUBE_CLIENT_SECRET = "mock_client_auth_val";
-    process.env.YOUTUBE_REFRESH_TOKEN = "mock_refresh_token_val";
+    process.env.YOUTUBE_CLIENT_SECRET = "mock_client_auth_value";
+    process.env.YOUTUBE_REFRESH_TOKEN = "mock_refresh_value";
   };
 
   const uploadTestCases = [
@@ -211,7 +164,7 @@ describe("youtube.service", () => {
 
     it("should log error and hide credentials when upload fails", async () => {
       mockCredsSetup();
-      const errorMsg = "Error with mock_client_id_val, mock_client_auth_val, and mock_refresh_token_val";
+      const errorMsg = "Error with mock_client_id_val, mock_client_auth_value, and mock_refresh_value";
       insertMock.mockRejectedValueOnce(new Error(errorMsg));
 
       const result = await method("video.mp4", "Title", "Desc", mockConfig);
