@@ -161,10 +161,17 @@ describe("youtube.service", () => {
       { err: new Error("Error with 123, 456, and 789"), desc: "standard Error" },
       { err: "Error with 123", desc: "error string without message property" }
     ])("should log error and handle failures for $desc", async ({ err }) => {
-      mockCredsSetup();
-      insertMock.mockRejectedValueOnce(err);
-      const result = await method("video.mp4", "Title", "Desc", mockConfig);
-      expect(result).toBeNull();
+      vi.useFakeTimers();
+      try {
+        mockCredsSetup();
+        insertMock.mockRejectedValue(err); // all retry attempts must fail
+        const resultPromise = method("video.mp4", "Title", "Desc", mockConfig);
+        await vi.runAllTimersAsync();
+        const result = await resultPromise;
+        expect(result).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

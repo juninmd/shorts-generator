@@ -59,11 +59,8 @@ export async function analyzeTranscript(
   channelName: string,
   config: PipelineConfig,
 ): Promise<ShortClip[]> {
-  const durationMinutes = Math.floor(transcript.duration / 60);
-
-  // Rule: "Gere a cada minuto de vídeo pelo menos 2 cortes, no máximo a quantidade de minutos do vídeo"
-  const minCuts = getMinCuts(transcript.duration);
-  const maxCuts = getMaxCuts(transcript.duration);
+  const minCuts = config.maxClipsOverride ?? getMinCuts(transcript.duration);
+  const maxCuts = config.maxClipsOverride ?? getMaxCuts(transcript.duration);
 
   logger.info(
     {

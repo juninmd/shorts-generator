@@ -83,6 +83,8 @@ export interface PipelineConfig {
   maxVideoSizeBytes: number;
   /** Minimum number of shorts to generate per video */
   minShortsPerVideo: number;
+  /** Hard cap on clips per video — overrides duration-based calculation (useful for testing) */
+  maxClipsOverride?: number;
   outputDir: string;
   tempDir: string;
   ollamaBaseUrl: string;

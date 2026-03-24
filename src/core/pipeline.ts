@@ -257,12 +257,12 @@ async function selectValidVideos(
   for (const video of videos) {
     if (!(await isVideoWithinLimits(video, config))) continue;
 
-    // Fetch full metadata to check category — prevents downloading music videos
+    // Fetch full metadata to check category — prevents downloading music videos.
+    // If getVideoInfo fails for any reason, fall back to the basic info and allow the video.
     const fullInfo = await getVideoInfo(video.url);
-    if (!fullInfo) continue;
+    const categories: string[] = fullInfo?.categories ?? [];
 
-    const categories = fullInfo.categories || [];
-    if (categories.includes("Music")) {
+    if (categories.length > 0 && categories.includes("Music")) {
       logger.info(
         { videoId: video.id, title: video.title, categories },
         "Skipping Music video in main pipeline",
@@ -271,7 +271,7 @@ async function selectValidVideos(
     }
 
     logger.info({ videoId: video.id, title: video.title }, "Selected valid video for channel");
-    selected.push(fullInfo);
+    selected.push(fullInfo ?? video);
     if (selected.length >= config.videoLimit) break;
   }
   return selected;

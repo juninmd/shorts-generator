@@ -18,6 +18,7 @@ async function main() {
       const urlIndex = args.indexOf("--url");
       const channelIndex = args.indexOf("--channel");
       const limitIndex = args.indexOf("--limit");
+      const clipsIndex = args.indexOf("--clips");
 
       const overrides: Record<string, any> = {};
 
@@ -31,6 +32,12 @@ async function main() {
 
       if (limitIndex !== -1 && args[limitIndex + 1]) {
         overrides.videoLimit = parseInt(args[limitIndex + 1]!, 10);
+      }
+
+      if (clipsIndex !== -1 && args[clipsIndex + 1]) {
+        const n = parseInt(args[clipsIndex + 1]!, 10);
+        overrides.maxClipsOverride = n;
+        overrides.minShortsPerVideo = Math.min(n, overrides.minShortsPerVideo ?? n);
       }
 
       const config = loadConfig(overrides);
@@ -115,10 +122,12 @@ Options (generate):
   --url <urls>        Comma-separated YouTube video URLs
   --channel <ids>     Comma-separated channel handles/URLs
   --limit <n>         Number of videos to fetch per channel (default: 3)
+  --clips <n>         Max clips to generate per video — useful for quick tests
 
 Examples:
   pnpm run cli -- generate --url "https://youtube.com/watch?v=xxx"
-  pnpm run cli -- generate --channel "@channelHandle"
+  pnpm run cli -- generate --url "https://youtube.com/watch?v=xxx" --clips 1
+  pnpm run cli -- generate --channel "@channelHandle" --limit 1 --clips 1
   pnpm run cli -- generate --limit 5
 
 Environment Variables:
