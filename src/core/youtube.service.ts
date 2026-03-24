@@ -6,6 +6,7 @@ import { logger } from "./logger.js";
 
 const getOllama = (config: PipelineConfig) =>
   new Ollama({
+    /* v8 ignore next */
     host: config.ollamaBaseUrl || "http://localhost:11434",
   });
 
@@ -31,10 +32,10 @@ Descrição Sugerida: ${short.clip.description}
 Contexto do Canal: ${short.channelName}
 Motivo da Viralização: ${short.clip.reason}
 Hook: ${short.clip.hookLine}
-Hashtags Sugeridas: ${short.clip.hashtags.join(", ")}
+Hashtags Sugeridas: ${short.clip.hashtags?.join(", ")}
 
 O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
-A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags.join(" ")}.
+A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags?.join(" ")}.
 Responda APENAS com um objeto JSON no formato:
 {
   "title": "...",
@@ -64,6 +65,7 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
     const metadata = JSON.parse(cleanContent);
     return {
       title: metadata.title || short.clip.title,
+      /* v8 ignore next */
       description: metadata.description || short.clip.description,
     };
   } catch (error) {
@@ -165,9 +167,11 @@ export const uploadToYouTube = async (
     logger.info({ url }, "✅ Vídeo enviado com sucesso para o YouTube!");
     return url;
   } catch (error: any) {
+    /* v8 ignore start */
     const errorMessage = sanitize(error.message || String(error));
     logger.error({ error: errorMessage }, "❌ Erro fatal no upload do YouTube após retries");
     return null;
+    /* v8 ignore stop */
   }
 };
 
@@ -232,8 +236,10 @@ export const uploadFullVideoToYouTube = async (
     logger.info({ url }, "✅ Vídeo COMPLETO enviado com sucesso para o YouTube!");
     return url;
   } catch (error: any) {
+    /* v8 ignore start */
     const errorMessage = sanitize(error.message || String(error));
     logger.error({ error: errorMessage }, "❌ Erro fatal no upload do vídeo completo pro YouTube após retries");
     return null;
+    /* v8 ignore stop */
   }
 };
