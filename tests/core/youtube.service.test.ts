@@ -174,122 +174,68 @@ describe("youtube.service", () => {
     });
   });
 
-  describe("uploadToYouTube", () => {
-    beforeEach(async () => {
-      // No need to dynamically import insertMock, it is hoisted
-    });
+  const mockCredsSetup = () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    process.env.YOUTUBE_CLIENT_ID = "mock_client_id_val";
+    process.env.YOUTUBE_CLIENT_SECRET = "mock_client_auth_val";
+    process.env.YOUTUBE_REFRESH_TOKEN = "mock_refresh_token_val";
+  };
 
+  const uploadTestCases = [
+    { method: uploadToYouTube, name: "uploadToYouTube", expectedUrl: "https://youtube.com/shorts/yt123" },
+    { method: uploadFullVideoToYouTube, name: "uploadFullVideoToYouTube", expectedUrl: "https://youtube.com/watch?v=yt123" }
+  ];
+
+  describe.each(uploadTestCases)("$name", ({ method, name, expectedUrl }) => {
     it("should return null if ENABLE_YOUTUBE is false", async () => {
       process.env.ENABLE_YOUTUBE = "false";
-      const result = await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig);
+      const result = await method("video.mp4", "Title", "Desc", mockConfig);
       expect(result).toBeNull();
     });
 
     it("should return null if credentials are missing", async () => {
       process.env.ENABLE_YOUTUBE = "true";
       process.env.YOUTUBE_CLIENT_ID = "";
-      const result = await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig);
+      const result = await method("video.mp4", "Title", "Desc", mockConfig);
       expect(result).toBeNull();
     });
 
     it("should upload video successfully and return URL", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "client_id";
-      process.env.YOUTUBE_CLIENT_SECRET = "client_secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "refresh_token";
-
+      mockCredsSetup();
       insertMock.mockResolvedValueOnce({ data: { id: "yt123" } });
 
-      const result = await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig);
-      expect(result).toBe("https://youtube.com/shorts/yt123");
+      const result = await method("video.mp4", "Title", "Desc", mockConfig);
+      expect(result).toBe(expectedUrl);
       expect(insertMock).toHaveBeenCalled();
     });
 
     it("should log error and hide credentials when upload fails", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "secret_client_id";
-      process.env.YOUTUBE_CLIENT_SECRET = "secret_client_secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "secret_refresh_token";
-
-      const errorMsg = "Error with secret_client_id, secret_client_secret, and secret_refresh_token";
+      mockCredsSetup();
+      const errorMsg = "Error with mock_client_id_val, mock_client_auth_val, and mock_refresh_token_val";
       insertMock.mockRejectedValueOnce(new Error(errorMsg));
 
-      const result = await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig);
+      const result = await method("video.mp4", "Title", "Desc", mockConfig);
       expect(result).toBeNull();
-
-      // We verify logger output by inspecting mock calls (handled by coverage though)
     });
 
     it("should handle error string without message property", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "secret_client_id";
-      process.env.YOUTUBE_CLIENT_SECRET = "secret_client_secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "secret_refresh_token";
+      mockCredsSetup();
+      insertMock.mockRejectedValueOnce("Error with mock_client_id_val");
 
-      insertMock.mockRejectedValueOnce("Error with secret_client_id");
-
-      const result = await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig);
+      const result = await method("video.mp4", "Title", "Desc", mockConfig);
       expect(result).toBeNull();
     });
   });
 
-  describe("uploadFullVideoToYouTube", () => {
-    beforeEach(async () => {
-      // No need to dynamically import insertMock, it is hoisted
-    });
-
-    it("should return null if ENABLE_YOUTUBE is false", async () => {
-      process.env.ENABLE_YOUTUBE = "false";
-      const result = await uploadFullVideoToYouTube("video.mp4", "Title", "Desc", mockConfig);
-      expect(result).toBeNull();
-    });
-
-    it("should return null if credentials are missing", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "";
-      const result = await uploadFullVideoToYouTube("video.mp4", "Title", "Desc", mockConfig);
-      expect(result).toBeNull();
-    });
-
-    it("should upload video successfully, trim title to 100 chars and return URL", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "client_id";
-      process.env.YOUTUBE_CLIENT_SECRET = "client_secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "refresh_token";
-
+  describe("uploadFullVideoToYouTube - specific tests", () => {
+    it("should trim title to 100 chars", async () => {
+      mockCredsSetup();
       insertMock.mockResolvedValueOnce({ data: { id: "yt123" } });
 
       const longTitle = "a".repeat(150);
-      const result = await uploadFullVideoToYouTube("video.mp4", longTitle, "Desc", mockConfig);
-      expect(result).toBe("https://youtube.com/watch?v=yt123");
+      await uploadFullVideoToYouTube("video.mp4", longTitle, "Desc", mockConfig);
 
-      // Verify title slicing
       expect(insertMock.mock.calls[0][0].requestBody.snippet.title).toBe(longTitle.slice(0, 100));
-    });
-
-    it("should log error and hide credentials when upload fails", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "secret_client_id";
-      process.env.YOUTUBE_CLIENT_SECRET = "secret_client_secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "secret_refresh_token";
-
-      const errorMsg = "Error with secret_client_id, secret_client_secret, and secret_refresh_token";
-      insertMock.mockRejectedValueOnce(new Error(errorMsg));
-
-      const result = await uploadFullVideoToYouTube("video.mp4", "Title", "Desc", mockConfig);
-      expect(result).toBeNull();
-    });
-
-    it("should handle error string without message property", async () => {
-      process.env.ENABLE_YOUTUBE = "true";
-      process.env.YOUTUBE_CLIENT_ID = "secret_client_id";
-      process.env.YOUTUBE_CLIENT_SECRET = "secret_client_secret";
-      process.env.YOUTUBE_REFRESH_TOKEN = "secret_refresh_token";
-
-      insertMock.mockRejectedValueOnce("Error with secret_client_id");
-
-      const result = await uploadFullVideoToYouTube("video.mp4", "Title", "Desc", mockConfig);
-      expect(result).toBeNull();
     });
   });
 });
