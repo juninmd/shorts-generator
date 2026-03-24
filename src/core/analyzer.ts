@@ -327,6 +327,7 @@ You must find between **${minClips} and ${maxClips} clips**. Do not generate few
 - Clips must NOT overlap
 - startTime and endTime MUST perfectly align with transcript segment boundaries
 - Generate extreme, EXTREMELY clickbaity, and punchy titles IN PORTUGUESE (PT-BR) that provoke intense curiosity, urgency, or FOMO. Titles MUST be highly attractive for TikTok/Shorts algorithms, practically forcing the user to click. Emphasize controversy, mind-blowing facts, or highly emotional hooks in the title. The title should be as viral and short as possible.
+- If you can identify the name of the priest, pastor, bishop, pope, speaker, or person talking in the video (from the video title, channel name, or the transcript itself), INCLUDE their name in the title. E.g. "Padre Paulo Sérgio: [hook]" or "Dom Bosco explica [topic]".
 
 ## Transcript:
 ${transcript}

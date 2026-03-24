@@ -139,17 +139,21 @@ async function renderShort(
     FONTCONFIG_FILE: fs.existsSync(fontsConfNative) ? fontsConfFwd : undefined,
   };
 
+  const isNvenc = config.videoEncoder.includes("nvenc");
+  const qualityArgs = isNvenc ? ["-cq", "20"] : ["-crf", "20"];
+
   const args = [
     "-ss", String(clip.startTime),
     "-i", inputPath,
     "-y",
     "-vf", filters.join(","),
+    "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
     "-t", String(clip.duration),
     "-c:v", config.videoEncoder,
-    "-preset", config.videoEncoder.includes("nvenc") ? "p4" : "fast",
-    "-crf", config.videoEncoder.includes("nvenc") ? "23" : "23", // CRF doesn't strictly exist for NVENC in the same way, but many versions map it or we use -cq
+    "-preset", isNvenc ? "p4" : "fast",
+    ...qualityArgs,
     "-c:a", "aac",
-    "-b:a", "128k",
+    "-b:a", "192k",
     "-ar", "44100",
     "-movflags", "+faststart",
     "-pix_fmt", "yuv420p",
