@@ -2,8 +2,7 @@ name: Generate Shorts
 
 on:
   schedule:
-    # Runs at 12:00 BRT (15:00 UTC)
-    - cron: "0 15 * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       video_urls:
