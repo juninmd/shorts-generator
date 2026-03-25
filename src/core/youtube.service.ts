@@ -24,7 +24,7 @@ export const generateYoutubeMetadata = async (
   }
 
   const ollama = getOllama(config);
-  const modelName = config.ollamaModel || "gemma3:1b";
+  const modelName = config.ollamaModel || "qwen3:1.7b";
 
   const prompt = `Crie um título e uma descrição OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
 Título Sugerido: ${short.clip.title}
