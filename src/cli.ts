@@ -7,7 +7,8 @@ import { runPipeline, runTopVideoPipeline } from "./core/pipeline.js";
 import { logger } from "./core/logger.js";
 import { startServer } from "./server/index.js";
 
-const args = process.argv.slice(2);
+// Filter out '--' separator that pnpm/npm passes through
+const args = process.argv.slice(2).filter((a) => a !== "--");
 const command = args[0];
 
 async function main() {
