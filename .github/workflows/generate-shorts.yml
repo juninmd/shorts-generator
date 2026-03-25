@@ -33,7 +33,7 @@ env:
   WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'base' }}
   WHISPER_USE_GPU: "false"
   ENABLE_YOUTUBE: "true"
-  OLLAMA_TIMEOUT_MS: 120000
+  OLLAMA_TIMEOUT_MS: 300000
   VIDEO_LIMIT: ${{ inputs.video_limit || vars.VIDEO_LIMIT || '1' }}
   VIDEO_URLS: ${{ inputs.video_urls || '' }}
   OUTPUT_DIR: ./output

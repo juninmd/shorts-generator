@@ -108,8 +108,8 @@ describe("video-processor", () => {
     expect(args[vfArgIndex + 1]).toContain("crop=");
     expect(args[vfArgIndex + 1]).toContain("scale=");
     expect(args[vfArgIndex + 1]).toContain("ass=");
-    expect(args[vfArgIndex + 1]).toContain("drawtext=fontfile=");
-    expect(args[vfArgIndex + 1]).toContain("text='Test Watermark':x=w-tw-20:y=h-th-20:fontsize=36");
+    // Watermark is now embedded in the ASS file, not via drawtext
+    expect(args[vfArgIndex + 1]).not.toContain("drawtext");
   });
 
   it("processClip should handle ffmpeg error events", async () => {

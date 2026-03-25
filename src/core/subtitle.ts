@@ -8,6 +8,7 @@ export function generateASSSubtitles(
   clip: ShortClip,
   width: number = 1080,
   height: number = 1920,
+  watermarkText?: string,
 ): string {
   const playResX = width;
   const playResY = height;
@@ -26,13 +27,17 @@ YCbCr Matrix: TV.709
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Default,sans-serif,84,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,300,1
 Style: Highlight,sans-serif,84,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,300,1
+Style: Watermark,sans-serif,28,&H80FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,1,3,20,20,20,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 `;
 
   const events = generateWordByWordEvents(clip);
-  return header + events;
+  const watermark = watermarkText
+    ? `Dialogue: 0,${formatASSTime(0)},${formatASSTime(clip.duration)},Watermark,,0,0,0,,${watermarkText}\n`
+    : "";
+  return header + watermark + events;
 }
 
 /**
