@@ -119,7 +119,7 @@ jobs:
 
       - name: Start Ollama service
         run: |
-          ollama serve &
+          curl -sf http://localhost:11434/api/tags > /dev/null 2>&1 || ollama serve &
           # Wait until Ollama is ready (up to 30s)
           for i in $(seq 1 30); do
             curl -sf http://localhost:11434/api/tags > /dev/null 2>&1 && break
