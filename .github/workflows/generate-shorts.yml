@@ -141,9 +141,14 @@ jobs:
             sleep 1
           done
 
-      - name: Pull Ollama model (if not cached)
-        if: steps.ollama-cache.outputs.cache-hit != 'true'
-        run: ollama pull ${{ env.OLLAMA_MODEL }}
+      - name: Pull Ollama model (if not available)
+        run: |
+          if ollama list | grep -q "${{ env.OLLAMA_MODEL }}"; then
+            echo "Model ${{ env.OLLAMA_MODEL }} already available, skipping pull."
+          else
+            echo "Model ${{ env.OLLAMA_MODEL }} not found, pulling..."
+            ollama pull ${{ env.OLLAMA_MODEL }}
+          fi
 
       - name: Verify tools
         run: |
