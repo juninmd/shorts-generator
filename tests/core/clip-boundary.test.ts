@@ -29,21 +29,14 @@ describe("clip-boundary", () => {
     expect(result.endTime).toBe(10); // Snapped to Sentence 3 end
   });
 
-  it("should expand to meet min duration", () => {
-    const clip = { startTime: 6.5, endTime: 7.5 }; // Inside Sentence 3
+  it("should snap mid-sentence start/end and expand to meet min duration", () => {
+    // 6.5 is inside Sentence 3 (6-10) → start snaps to 6
+    // 7.5 is inside Sentence 3 → end snaps to 10 (first seg.end >= 7.5)
+    // duration = 4 < minDuration(5) → expand end to Sentence 4 (11-15)
+    const clip = { startTime: 6.5, endTime: 7.5 };
     const result = snapToSentenceBoundaries(clip, mockSegments, mockConfig);
-    // { startTime: 6.5, endTime: 7.5 }
-    // closest start is 6. closest end is 6 (dist = 1.5) or 10 (dist = 2.5). Wait.
-    // findClosestSegmentEnd(7.5):
-    // seg 1 end: 2 (dist 5.5)
-    // seg 2 end: 5 (dist 2.5)
-    // seg 3 end: 10 (dist 2.5)
-    // Actually bestDist starts at 20 (seg 5 end).
-    // For 7.5, dist to 5 is 2.5, dist to 10 is 2.5.
-    // loop goes: seg 2 -> best is 5. seg 3 -> dist is 2.5 (not < 2.5). so best is 5!
-    // finalStart = 6. finalEnd = 5. end <= start, so returns original!
-    expect(result.startTime).toBe(6.5);
-    expect(result.endTime).toBe(7.5);
+    expect(result.startTime).toBe(6);
+    expect(result.endTime).toBe(15);
   });
 
   it("should expand to meet min duration (actual case)", () => {
@@ -70,10 +63,12 @@ describe("clip-boundary", () => {
   });
 
   it("should return original if end <= start after snapping", () => {
-    const clip = { startTime: 5, endTime: 5 };
+    // endTime(1) snaps to seg1.end=2, startTime(4) is inside seg2(2.5-5) → snaps to 2.5
+    // But 4 > 1 as input, so end=2 < start=2.5 → return original
+    const clip = { startTime: 4, endTime: 1 };
     const result = snapToSentenceBoundaries(clip, mockSegments, mockConfig);
-    expect(result.startTime).toBe(5);
-    expect(result.endTime).toBe(5);
+    expect(result.startTime).toBe(4);
+    expect(result.endTime).toBe(1);
   });
 
   it("should return maxEnd if no valid segments found during shrink", () => {

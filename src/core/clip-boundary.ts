@@ -63,49 +63,42 @@ export function snapToSentenceBoundaries(
 }
 
 /**
- * Find the start of the closest segment at or just before the target time.
- * Prefers starting at a sentence boundary rather than mid-sentence.
+ * Find the start of the sentence that contains or immediately follows the target time.
+ *
+ * - If target is inside a segment → snap to that segment's start (clean sentence open).
+ * - If target is in a gap between sentences → snap to the next sentence start.
+ * This guarantees the clip never begins mid-sentence.
  */
 function findClosestSegmentStart(
     targetTime: number,
     segments: TranscriptSegment[],
 ): number {
-    let best = segments[0]!.start;
-    let bestDist = Math.abs(targetTime - best);
-
+    // Prefer the segment that contains the target time (exclusive end boundary —
+    // if target == seg.end we're at the sentence boundary, so use the next sentence)
     for (const seg of segments) {
-        const dist = Math.abs(seg.start - targetTime);
-        if (dist < bestDist) {
-            best = seg.start;
-            bestDist = dist;
-        }
-        // Once we're well past the target, stop searching
-        if (seg.start > targetTime + 5) break;
+        if (seg.start <= targetTime && targetTime < seg.end) return seg.start;
     }
-
-    return best;
+    // Target is in a gap — use the next sentence start
+    for (const seg of segments) {
+        if (seg.start >= targetTime) return seg.start;
+    }
+    // Target is beyond all segments — use the last sentence start
+    return segments[segments.length - 1]!.start;
 }
 
 /**
- * Find the end of the closest segment at or just after the target time.
- * Prefers ending at a sentence boundary rather than mid-sentence.
+ * Find the end of the first segment that ends AT OR AFTER the target time.
+ * This guarantees the clip always ends at a complete sentence — never mid-phrase.
  */
 function findClosestSegmentEnd(
     targetTime: number,
     segments: TranscriptSegment[],
 ): number {
-    let best = segments[segments.length - 1]!.end;
-    let bestDist = Math.abs(targetTime - best);
-
     for (const seg of segments) {
-        const dist = Math.abs(seg.end - targetTime);
-        if (dist < bestDist) {
-            best = seg.end;
-            bestDist = dist;
-        }
+        if (seg.end >= targetTime) return seg.end;
     }
-
-    return best;
+    // Target is beyond all segments — use the last segment's end
+    return segments[segments.length - 1]!.end;
 }
 
 /**
