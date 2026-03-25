@@ -158,6 +158,18 @@ jobs:
           ollama --version
           ollama list
 
+      - name: Validate Ollama is functional
+        run: |
+          echo "Sending test prompt to Ollama..."
+          RESPONSE=$(curl -sf --max-time 120 http://localhost:11434/api/generate \
+            -d "{\"model\": \"$OLLAMA_MODEL\", \"prompt\": \"Tell me a short joke.\", \"stream\": false}" \
+            | python3 -c "import sys, json; print(json.load(sys.stdin).get('response', ''))")
+          if [ -z "$RESPONSE" ]; then
+            echo "ERROR: Ollama returned empty response. Aborting."
+            exit 1
+          fi
+          echo "Ollama is functional. Response: $RESPONSE"
+
       - name: Override channels (if provided)
         if: ${{ inputs.channels }}
         run: echo "YOUTUBE_CHANNELS=$INPUT_CHANNELS" >> $GITHUB_ENV
