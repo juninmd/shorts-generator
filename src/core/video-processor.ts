@@ -38,11 +38,12 @@ export async function processClip(
     "Processing clip",
   );
 
-  // Generate ASS subtitles
+  // Generate ASS subtitles (watermark embedded to avoid drawtext filter dependency)
   const assContent = generateASSSubtitles(
     clip,
     config.verticalWidth,
     config.verticalHeight,
+    config.watermarkText || undefined,
   );
   fs.writeFileSync(subtitlePath, assContent, "utf-8");
 
@@ -94,38 +95,13 @@ async function renderShort(
     .replace(/\\/g, "/")
     .replace(/:/g, "\\:");
 
-  // Escape watermark text
-  const watermarkText = (config.watermarkText || "").replace(
-    /[\\':,=\[\];%]/g,
-    (c) => `\\${c}`,
-  );
-
   // Video filter: crop to 9:16 center, scale to target resolution, burn subtitles
+  // Watermark is embedded in the ASS file to avoid drawtext filter dependency
   const filters = [
     `crop=min(iw\\,ih*${w}/${h}):min(ih\\,iw*${h}/${w})`,
     `scale=${w}:${h}`,
     `ass='${escapedSubPath}'`,
   ];
-
-  if (watermarkText) {
-    // 1. Try local project font first (best for portability)
-    // 2. Fallback to system fonts if local is missing
-    const localFontPath = path.resolve(process.cwd(), "assets", "fonts", "font.ttf");
-    let fontfile = localFontPath;
-
-    if (!fs.existsSync(localFontPath)) {
-      fontfile = os.platform() === "win32"
-        ? "C:/Windows/Fonts/arial.ttf"
-        : "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
-    }
-
-    // Escape for FFmpeg: handle Windows drive colons and backslashes
-    const escapedFontfile = fontfile.replace(/\\/g, "/").replace(/:/g, "\\:");
-
-    filters.push(
-      `drawtext=fontfile='${escapedFontfile}':text='${watermarkText}':x=w-tw-20:y=h-th-20:fontsize=36:fontcolor=white@0.5:shadowcolor=black@0.5:shadowx=2:shadowy=2`,
-    );
-  }
 
   // Build env — use forward-slash FONTCONFIG_FILE to prevent libass crash on Windows
   const fontsConfNative = path.resolve(process.cwd(), "fonts.conf");

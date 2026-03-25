@@ -20,9 +20,47 @@ import { analyzeTranscript } from "./analyzer.js";
 import { processClip } from "./video-processor.js";
 import { sendToTelegram, sendSummary, sendFullVideoToTelegram } from "./telegram.js";
 import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube } from "./youtube.service.js";
+import { Ollama } from "ollama";
 import { logger } from "./logger.js";
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
+
+/**
+ * Use the LLM to determine if a video title/channel suggests a music video.
+ * Returns true if the LLM thinks it's a music/song clip, false otherwise.
+ * Fails open (returns false) so legitimate videos are never accidentally skipped.
+ */
+async function isMusicVideoByTitle(
+  title: string,
+  channelName: string,
+  config: PipelineConfig,
+): Promise<boolean> {
+  const ollama = new Ollama({ host: config.ollamaBaseUrl || "http://localhost:11434" });
+
+  const prompt = `Analise o título e canal do vídeo abaixo e responda APENAS com "sim" ou "não":
+Este vídeo é uma música, clipe musical ou canção (não uma palestra, sermão, homilia, meditação ou pregação)?
+
+Título: ${title}
+Canal: ${channelName}
+
+Responda APENAS "sim" se for música/clipe musical, ou "não" se for conteúdo falado (palestra, pregação, homilia, etc.).`;
+
+  try {
+    const response = await ollama.chat({
+      model: config.ollamaModel || "qwen3:1.7b",
+      messages: [{ role: "user", content: prompt }],
+    });
+    const answer = response.message.content.trim().toLowerCase();
+    const isMusic = answer.includes("sim");
+    if (isMusic) {
+      logger.info({ title, channelName }, "LLM identified video as music — skipping");
+    }
+    return isMusic;
+  } catch (error) {
+    logger.warn({ error, title }, "LLM music check failed — assuming not music");
+    return false;
+  }
+}
 
 /**
  * Special pipeline: fetch the top non-music videos from a random channel,
@@ -56,16 +94,12 @@ export async function runTopVideoPipeline(
   for (const video of topVideos) {
     if (!postedVideos.has(video.id)) {
       if (await isVideoWithinLimits(video, config)) {
-        // Fetch full metadata to confirm it's not music
+        // Use LLM to check title — YouTube categories are unreliable for religious content
+        if (await isMusicVideoByTitle(video.title, randomChannel, config)) continue;
         const fullInfo = await getVideoInfo(video.url);
         if (fullInfo) {
-          const categories = fullInfo.categories || [];
-          if (!categories.includes("Music")) {
-            targetVideo = fullInfo;
-            break;
-          } else {
-            logger.info({ videoId: video.id, categories }, "Skipping video because it is categorized as Music");
-          }
+          targetVideo = fullInfo;
+          break;
         }
       }
     }
