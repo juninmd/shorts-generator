@@ -47,7 +47,7 @@ Responda APENAS "sim" se for música/clipe musical, ou "não" se for conteúdo f
 
   try {
     const response = await ollama.chat({
-      model: config.ollamaModel || "qwen3:1.7b",
+      model: config.ollamaModel || "gemma3:1b",
       messages: [{ role: "user", content: prompt }],
     });
     const answer = response.message.content.trim().toLowerCase();
