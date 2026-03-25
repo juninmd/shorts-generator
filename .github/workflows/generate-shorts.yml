@@ -126,12 +126,22 @@ jobs:
         if: steps.ollama-bin-cache.outputs.cache-hit != 'true'
         run: curl -fsSL https://ollama.com/install.sh | sh
 
-      # Cache ffmpeg apt package
-      - name: Install ffmpeg (cached)
-        uses: awalsh128/cache-apt-pkgs-action@latest
+      # Cache ffmpeg static binary — avoids shared-library issues that occur
+      # when apt packages are cached without their dependencies.
+      - name: Cache ffmpeg binary
+        id: ffmpeg-cache
+        uses: actions/cache@v4
         with:
-          packages: ffmpeg
-          version: 1.0
+          path: /usr/local/bin/ffmpeg
+          key: ${{ runner.os }}-ffmpeg-static-v1
+
+      - name: Install ffmpeg (static build)
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -sL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz \
+            | tar -xJ --strip-components=2 --wildcards '*/bin/ffmpeg' -C /tmp
+          sudo mv /tmp/ffmpeg /usr/local/bin/ffmpeg
+          sudo chmod +x /usr/local/bin/ffmpeg
 
       - name: Start Ollama service
         run: |
