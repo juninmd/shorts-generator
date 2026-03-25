@@ -113,7 +113,7 @@ describe("youtube.service", () => {
       await generateYoutubeMetadata(mockShort, configWithoutModel);
 
       expect(chatMock).toHaveBeenCalledWith(expect.objectContaining({
-        model: "qwen3:1.7b"
+        model: "gemma3:1b"
       }));
     });
 
