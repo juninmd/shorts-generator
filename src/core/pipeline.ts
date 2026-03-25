@@ -247,7 +247,11 @@ async function isVideoWithinLimits(
 
 /**
  * Iterate through a channel's video list and return the first X videos that
- * pass size, duration, and category (no Music) limits.
+ * pass size and duration limits.
+ *
+ * Note: music category filtering is intentionally NOT applied here — YouTube
+ * frequently miscategorizes religious/meditation content as "Music". The user
+ * configures channels explicitly, so we trust their intent.
  */
 async function selectValidVideos(
   videos: VideoInfo[],
@@ -256,22 +260,8 @@ async function selectValidVideos(
   const selected: VideoInfo[] = [];
   for (const video of videos) {
     if (!(await isVideoWithinLimits(video, config))) continue;
-
-    // Fetch full metadata to check category — prevents downloading music videos.
-    // If getVideoInfo fails for any reason, fall back to the basic info and allow the video.
-    const fullInfo = await getVideoInfo(video.url);
-    const categories: string[] = fullInfo?.categories ?? [];
-
-    if (categories.length > 0 && categories.includes("Music")) {
-      logger.info(
-        { videoId: video.id, title: video.title, categories },
-        "Skipping Music video in main pipeline",
-      );
-      continue;
-    }
-
     logger.info({ videoId: video.id, title: video.title }, "Selected valid video for channel");
-    selected.push(fullInfo ?? video);
+    selected.push(video);
     if (selected.length >= config.videoLimit) break;
   }
   return selected;
