@@ -6,6 +6,11 @@ on:
     - cron: "0 21 * * *"
   workflow_dispatch:
 
+# Prevent multiple simultaneous runs across all workflows
+concurrency:
+  group: shorts-generation-lock
+  cancel-in-progress: false
+
 env:
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
