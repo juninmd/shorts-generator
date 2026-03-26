@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import os from "node:os";
@@ -89,44 +89,65 @@ export async function transcribeVideo(
 
   const uvBin = await findUvBinary();
 
-  const runTranscription = async (useGpu: boolean) => {
+  // Progress callback support
+  const runTranscriptionWithProgress = async (useGpu: boolean, onProgress?: (percent: number) => void) => {
     const env = {
       ...process.env,
       WHISPER_USE_GPU: useGpu ? "true" : "false",
     };
-
-    await execFileAsync(
-      uvBin,
-      [
-        "run",
-        "--project",
-        pyProjectDir,
-        "python",
-        scriptPath,
-        video.audioPath,
-        "--model",
-        config.whisperModel,
-        "--output_dir",
-        outputDir,
-      ],
-      {
-        maxBuffer: 50 * 1024 * 1024,
-        timeout: 600_000,
-        env,
-      },
-    );
+    return new Promise<void>((resolve, reject) => {
+      const child = spawn(
+        uvBin,
+        [
+          "run",
+          "--project",
+          pyProjectDir,
+          "python",
+          scriptPath,
+          video.audioPath,
+          "--model",
+          config.whisperModel,
+          "--output_dir",
+          outputDir,
+        ],
+        {
+          env,
+          stdio: ["ignore", "pipe", "pipe"]
+        }
+      );
+      child.stdout.setEncoding("utf8");
+      child.stdout.on("data", (data: string) => {
+        // Look for progress lines: PROGRESS: xx.x
+        data.split("\n").forEach(line => {
+          const match = line.match(/PROGRESS: (\d+(?:\.\d+)?)/);
+          if (match && onProgress) {
+            const percent = parseFloat(match[1]);
+            onProgress(percent);
+          }
+        });
+      });
+      let stderr = "";
+      child.stderr.on("data", (data: string) => { stderr += data; });
+      child.on("error", reject);
+      child.on("close", (code: number) => {
+        if (code === 0) resolve();
+        else reject(new Error(stderr || `Transcription failed with code ${code}`));
+      });
+    });
   };
 
+  // Optionally accept onProgress callback from config (if present)
+  const onProgress = (config as any).onProgress as ((progress: number) => void) | undefined;
   try {
     const initialGpuSetting = process.env.WHISPER_USE_GPU?.toLowerCase() === "true";
-    await runTranscription(initialGpuSetting);
+    await runTranscriptionWithProgress(initialGpuSetting, onProgress);
   } catch (error: any) {
     if (process.env.WHISPER_USE_GPU?.toLowerCase() === "true") {
       logger.warn(
         { videoId: video.id, error: error.message },
         "Whisper GPU transcription failed (possibly missing DLLs). Retrying with CPU...",
       );
-      await runTranscription(false);
+      await runTranscriptionWithProgress(false, onProgress);
     } else {
       throw error;
     }
