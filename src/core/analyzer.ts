@@ -160,6 +160,7 @@ DIRETRIZES PARA OS TÍTULOS:
 - O título deve ser sobre a MENSAGEM do vídeo (ex: "O Segredo da Oração", "Como vencer o pecado").
 - É PROIBIDO usar as palavras: "corte", "clipe", "short", "vídeo", "canal", "parte".
 - O tempo de cada clipe deve ser entre 40 e 70 segundos para garantir uma reflexão profunda.
+- O clipe DEVE encerrar em uma frase completa ou pensamento concluído (evite cortes no meio da fala).
 - Use um tom de curiosidade, fé ou sabedoria. Seja direto e impactante (máx 50 caracteres).
 - O título deve fazer sentido sozinho, sem o vídeo original.
 
