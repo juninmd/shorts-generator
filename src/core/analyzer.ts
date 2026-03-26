@@ -11,12 +11,10 @@ import type {
   PipelineConfig,
 } from "../types.js";
 import { logger } from "./logger.js";
-import { snapToSentenceBoundaries } from "./clip-boundary";
+import { snapToSentenceBoundaries } from "./clip-boundary.js";
 import { getMinCuts, getMaxCuts } from "./config.js";
 
-const CHUNK_SECS = 120;           // 2-minute windows per LLM call
-const CHUNK_THRESHOLD_SECS = 180; // use chunking for videos longer than 3 min
-const TOKENS_PER_CLIP = 200;      // rough output tokens per clip
+const TOKENS_PER_CLIP = 250;      // rough output tokens per clip
 
 const ClipSchema = z.object({
   clips: z.array(
@@ -55,8 +53,6 @@ export async function analyzeTranscript(
   const minCuts = config.maxClipsOverride ?? getMinCuts(transcript.duration);
   const maxCuts = config.maxClipsOverride ?? getMaxCuts(transcript.duration);
   const transcriptChars = transcript.segments.reduce((n, s) => n + s.text.length, 0);
-  const estimatedInputTokens = Math.round(transcriptChars / 4);
-  const useChunks = transcript.duration > CHUNK_THRESHOLD_SECS;
 
   logger.info(
     {
@@ -64,38 +60,30 @@ export async function analyzeTranscript(
       minCuts,
       maxCuts,
       duration: transcript.duration,
-      model: config.ollamaModel,
       transcriptChars,
-      estimatedInputTokens,
-      strategy: useChunks ? `chunks(${Math.ceil(transcript.duration / CHUNK_SECS)})` : "single",
     },
-    "Analyzing transcript for viral moments (Ollama)",
+    "🧠 Analisando vídeo completo com Ollama...",
   );
 
   const t0 = Date.now();
-
-  const allClips = useChunks
-    ? await analyzeInChunks(transcript, videoTitle, channelName, config, maxCuts)
-    : await analyzeSingle(transcript, videoTitle, channelName, config, minCuts, maxCuts);
-
+  const allClips = await analyzeFull(transcript, videoTitle, channelName, config, minCuts, maxCuts);
   const result = processClips(allClips, transcript, config, maxCuts);
 
   logger.info(
     {
       videoId: transcript.videoId,
       clipsFound: result.length,
-      elapsedMs: Date.now() - t0,
       elapsedSec: ((Date.now() - t0) / 1000).toFixed(1),
     },
-    "Analysis benchmark",
+    "✅ Análise concluída!",
   );
 
   return result;
 }
 
-// ─── Single-shot analysis (short videos ≤ CHUNK_THRESHOLD_SECS) ──────────────
+// ─── Full video analysis ──────────────────────────────────────────────────
 
-async function analyzeSingle(
+async function analyzeFull(
   transcript: Transcript,
   videoTitle: string,
   channelName: string,
@@ -108,132 +96,35 @@ async function analyzeSingle(
     formattedTranscript, videoTitle, channelName, minCuts, maxCuts,
     config.minShortDuration, config.maxShortDuration, transcript.duration,
   );
-  const maxTokens = Math.min(1024, maxCuts * TOKENS_PER_CLIP + 200);
+  
+  // Estimate max tokens based on expected clips
+  const maxTokens = Math.min(2048, maxCuts * TOKENS_PER_CLIP + 500);
 
   const t0 = Date.now();
-  const { text } = await generateText({ model: createOllamaModel(config), prompt, temperature: 0.5, maxTokens });
-  logger.info(
-    { videoId: transcript.videoId, elapsedMs: Date.now() - t0, outputChars: text.length, maxTokens },
-    "Ollama single call done",
-  );
-
-  const parsed = extractAndParseJSON(text);
-  if (!parsed) {
-    logger.warn({ videoId: transcript.videoId, rawResponse: text.slice(0, 300) }, "LLM returned invalid JSON, retrying once...");
-    const t1 = Date.now();
-    const { text: retryText } = await generateText({
-      model: createOllamaModel(config),
-      prompt: prompt + "\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation.",
-      temperature: 0.2,
-      maxTokens,
+  try {
+    const { text } = await generateText({ 
+      model: createOllamaModel(config), 
+      prompt, 
+      temperature: 0.5, 
+      maxTokens 
     });
-    logger.info({ videoId: transcript.videoId, elapsedMs: Date.now() - t1 }, "Ollama retry done");
-    return extractAndParseJSON(retryText)?.clips ?? [];
-  }
-  return parsed.clips;
-}
 
-// ─── Chunked analysis (long videos > CHUNK_THRESHOLD_SECS) ───────────────────
-
-async function analyzeInChunks(
-  transcript: Transcript,
-  videoTitle: string,
-  channelName: string,
-  config: PipelineConfig,
-  maxCuts: number,
-): Promise<z.infer<typeof ClipSchema>["clips"]> {
-  const chunks = chunkSegments(transcript.segments, CHUNK_SECS);
-  logger.info({ videoId: transcript.videoId, totalChunks: chunks.length }, "Starting chunked analysis (sequential for GHA)");
-
-  const allClips: z.infer<typeof ClipSchema>["clips"] = [];
-  const chunkTimes: number[] = [];
-
-  // Process chunks sequentially to avoid overloading CPU (especially in GitHub Actions)
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    const chunkStart = chunk[0].start;
-    const chunkEnd = chunk[chunk.length - 1].end;
-    const chunkChars = chunk.reduce((n, s) => n + s.text.length, 0);
-    const formatted = formatTranscriptForLLM(chunk);
-    const prompt = buildChunkPrompt(formatted, videoTitle, channelName, chunkStart, chunkEnd, config);
-    const maxTokens = TOKENS_PER_CLIP + 100;
-
-    const t0 = Date.now();
-    logger.info(
-      {
-        videoId: transcript.videoId,
-        chunk: `${i + 1}/${chunks.length}`,
-        range: `${formatTime(chunkStart)}-${formatTime(chunkEnd)}`,
-        chunkChars,
+    const parsed = extractAndParseJSON(text);
+    if (!parsed) {
+      logger.warn({ videoId: transcript.videoId }, "JSON inválido, tentando novamente com prompt reforçado...");
+      const { text: retryText } = await generateText({
+        model: createOllamaModel(config),
+        prompt: prompt + "\n\nResponda APENAS com JSON puro, sem markdown ou explicações.",
+        temperature: 0.2,
         maxTokens,
-      },
-      "Ollama chunk start",
-    );
-
-    try {
-      const { text } = await generateText({ 
-        model: createOllamaModel(config), 
-        prompt, 
-        temperature: 0.4, 
-        maxTokens 
       });
-      
-      const elapsedMs = Date.now() - t0;
-      chunkTimes.push(elapsedMs);
-      const parsed = extractAndParseJSON(text);
-
-      const validClips = (parsed?.clips ?? []).filter((clip) => {
-        return clip.startTime >= chunkStart && clip.startTime < chunkEnd;
-      });
-
-      logger.info(
-        {
-          videoId: transcript.videoId,
-          chunk: `${i + 1}/${chunks.length}`,
-          elapsedMs,
-          elapsedSec: (elapsedMs / 1000).toFixed(1),
-          clipsFound: validClips.length,
-        },
-        "Ollama chunk done",
-      );
-      
-      if (validClips.length) allClips.push(...validClips);
-    } catch (err) {
-      logger.warn({ videoId: transcript.videoId, chunk: `${i + 1}/${chunks.length}`, err }, "Chunk failed, skipping");
+      return extractAndParseJSON(retryText)?.clips ?? [];
     }
+    return parsed.clips;
+  } catch (err) {
+    logger.error({ videoId: transcript.videoId, err }, "Falha na chamada do Ollama");
+    return [];
   }
-
-  const totalMs = chunkTimes.reduce((a, b) => a + b, 0);
-  const avgMs = chunkTimes.length ? Math.round(totalMs / chunkTimes.length) : 0;
-  logger.info(
-    {
-      videoId: transcript.videoId,
-      totalChunks: chunks.length,
-      totalClipsFound: allClips.length,
-      avgSecPerChunk: (avgMs / 1000).toFixed(1),
-    },
-    "Chunked analysis complete",
-  );
-
-  return allClips;
-}
-
-function chunkSegments(segments: TranscriptSegment[], chunkDuration: number): TranscriptSegment[][] {
-  if (segments.length === 0) return [];
-  const chunks: TranscriptSegment[][] = [];
-  let chunkStart = segments[0].start;
-  let current: TranscriptSegment[] = [];
-
-  for (const seg of segments) {
-    if (seg.start >= chunkStart + chunkDuration && current.length > 0) {
-      chunks.push(current);
-      current = [];
-      chunkStart = seg.start;
-    }
-    current.push(seg);
-  }
-  if (current.length > 0) chunks.push(current);
-  return chunks;
 }
 
 function createOllamaModel(config: PipelineConfig) {
@@ -243,36 +134,12 @@ function createOllamaModel(config: PipelineConfig) {
   })(config.ollamaModel, { 
     structuredOutputs: false,
     config: {
-      keepAlive: 0, // Release model from RAM immediately after request
+      keepAlive: 0,
     }
   });
 }
 
-// ─── Prompt builders ──────────────────────────────────────────────────────────
-
-function buildChunkPrompt(
-  transcript: string,
-  videoTitle: string,
-  channelName: string,
-  chunkStart: number,
-  chunkEnd: number,
-  config: PipelineConfig,
-): string {
-  const exampleStart = chunkStart;
-  const exampleEnd = Math.min(chunkStart + config.minShortDuration, chunkEnd);
-  return `Viral PT-BR YouTube Shorts expert.
-Video: "${videoTitle}" (${channelName}). Segment: ${formatTime(chunkStart)}–${formatTime(chunkEnd)}.
-
-Pick the BEST moment in this segment for a ${config.minShortDuration}–${config.maxShortDuration}s short. You MUST return exactly 1 clip.
-- startTime/endTime MUST be within ${chunkStart}–${chunkEnd} (absolute seconds, as shown in the transcript)
-- Start and end at sentence boundaries
-- Viral PT-BR title (max 60 chars), high retention hook
-
-${transcript}
-
-JSON only (no markdown), use absolute seconds from transcript:
-{"clips":[{"title":"...","description":"...","startTime":${exampleStart},"endTime":${exampleEnd},"viralScore":8,"reason":"...","hookLine":"...","hashtags":["#tag"]}]}`;
-}
+// ─── Prompt builder ──────────────────────────────────────────────────────────
 
 function buildAnalysisPrompt(
   transcript: string,
@@ -284,21 +151,23 @@ function buildAnalysisPrompt(
   maxDuration: number,
   totalDuration: number,
 ): string {
-  return `Viral PT-BR YouTube Shorts expert. Find ${minClips}–${maxClips} viral clips in this video.
+  return `Você é um roteirista sênior de YouTube Shorts. Sua missão é encontrar os momentos mais IMPACTANTES e ESPIRITUAIS deste vídeo.
 
-Video: "${videoTitle}" (${channelName}) — ${formatTime(totalDuration)}
+VÍDEO ORIGINAL: "${videoTitle}"
+CANAL: "${channelName}"
 
-Rules:
-- ${minClips}–${maxClips} clips, each ${minDuration}–${maxDuration}s, no overlap
-- Start/end at sentence boundaries (never mid-sentence)
-- Viral, punchy PT-BR title (max 60 chars) — include speaker name if identifiable
-- High retention hook: scroll-stopping first sentence, strong payoff, self-contained story
-- startTime/endTime must match transcript segment boundaries exactly
+DIRETRIZES PARA OS TÍTULOS:
+- O título deve ser sobre a MENSAGEM do vídeo (ex: "O Segredo da Oração", "Como vencer o pecado").
+- É PROIBIDO usar as palavras: "corte", "clipe", "short", "vídeo", "canal", "parte".
+- O tempo de cada clipe deve ser entre 40 e 70 segundos para garantir uma reflexão profunda.
+- Use um tom de curiosidade, fé ou sabedoria. Seja direto e impactante (máx 50 caracteres).
+- O título deve fazer sentido sozinho, sem o vídeo original.
 
+TRANSRITO DO VÍDEO:
 ${transcript}
 
-JSON only (no markdown):
-{"clips":[{"title":"...","description":"...","startTime":0,"endTime":0,"viralScore":1,"reason":"...","hookLine":"...","hashtags":["#tag"]}]}`;
+Responda APENAS com JSON puro:
+{"clips":[{"title":"Título sobre o conteúdo","description":"...","startTime":0.0,"endTime":50.0,"viralScore":9,"reason":"...","hookLine":"...","hashtags":["#fe","#deus"]}]}`;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -322,14 +191,6 @@ function extractAndParseJSON(text: string): z.infer<typeof ClipSchema> | null {
     if (direct.success) return direct.data;
   } catch { /* not pure JSON */ }
 
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
-  if (codeBlockMatch?.[1]) {
-    try {
-      const parsed = ClipSchema.safeParse(JSON.parse(codeBlockMatch[1]));
-      if (parsed.success) return parsed.data;
-    } catch { /* invalid */ }
-  }
-
   const jsonMatch = text.match(/\{[\s\S]*"clips"[\s\S]*\}/);
   if (jsonMatch?.[0]) {
     try {
@@ -348,28 +209,12 @@ function processClips(
   maxCuts: number,
 ): ShortClip[] {
   return clips
-    .map((clip) => {
-      const duration = clip.endTime - clip.startTime;
-      if (duration < config.minShortDuration) {
-        const targetEnd = clip.startTime + config.minShortDuration;
-        const expanded = transcript.segments
-          .filter((seg) => seg.start >= clip.startTime && seg.end <= targetEnd + 30)
-          .at(-1);
-        if (expanded && expanded.end > clip.endTime) {
-          return { ...clip, endTime: Math.min(expanded.end, transcript.duration) };
-        }
-      }
-      return clip;
-    })
     .filter((clip) => {
       const duration = clip.endTime - clip.startTime;
-      const ok =
-        duration >= config.minShortDuration &&
-        duration <= config.maxShortDuration &&
-        clip.startTime >= 0 &&
-        clip.endTime <= transcript.duration;
-      if (!ok) logger.debug({ title: clip.title, startTime: clip.startTime, endTime: clip.endTime, duration }, "Clip filtered out");
-      return ok;
+      return duration >= config.minShortDuration && 
+             duration <= config.maxShortDuration &&
+             clip.startTime >= 0 && 
+             clip.endTime <= transcript.duration;
     })
     .sort((a, b) => b.viralScore - a.viralScore)
     .slice(0, maxCuts)
