@@ -25,6 +25,10 @@ async function main() {
 
       if (urlIndex !== -1 && args[urlIndex + 1]) {
         overrides.specificUrls = args[urlIndex + 1]!.split(",").map((u) => u.trim());
+        // If URLs are provided via CLI, ignore channels from .env unless explicitly provided
+        if (channelIndex === -1) {
+          overrides.channels = [];
+        }
       }
 
       if (channelIndex !== -1 && args[channelIndex + 1]) {
@@ -38,7 +42,7 @@ async function main() {
       if (clipsIndex !== -1 && args[clipsIndex + 1]) {
         const n = parseInt(args[clipsIndex + 1]!, 10);
         overrides.maxClipsOverride = n;
-        overrides.minShortsPerVideo = Math.min(n, overrides.minShortsPerVideo ?? n);
+        overrides.minShortsPerVideo = n;
       }
 
       const config = loadConfig(overrides);

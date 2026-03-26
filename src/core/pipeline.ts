@@ -87,7 +87,7 @@ export async function runTopVideoPipeline(
 
   const topVideos = await getTopChannelVideos(randomChannel, 20);
   const postedVideos = new Set(getPostedTopVideos());
-  
+
   let targetVideo: VideoInfo | null = null;
 
   for (const video of topVideos) {
@@ -128,7 +128,7 @@ export async function runTopVideoPipeline(
       message: "Enviando para o YouTube e Telegram...",
       progress: 60,
     });
-    
+
     // For top videos we download the full section now
     const fullVideoPath = await downloadVideoSection(targetVideo, 0, targetVideo.duration, config);
     const downloadedFull = { ...downloaded, filePath: fullVideoPath };
@@ -288,8 +288,19 @@ export async function processVideo(
     const downloadedAudio = await downloadAudioOnly(video, config);
 
     // Stage 2: Transcription
-    emitProgress("transcribing", "Transcrevendo com Whisper...", 20);
-    const transcript = await transcribeVideo(downloadedAudio, config);
+    let lastProgress = 20;
+    emitProgress("transcribing", "Transcrevendo com Whisper...", lastProgress);
+    const transcript = await transcribeVideo(downloadedAudio, {
+      ...config,
+      onProgress: (percent: number) => {
+        // Map progress from 20 to 40
+        const mapped = 20 + (percent / 100) * 20;
+        if (mapped - lastProgress >= 1 || percent === 100) {
+          lastProgress = mapped;
+          emitProgress("transcribing", `Transcrevendo com Whisper... (${percent.toFixed(1)}%)`, mapped);
+        }
+      },
+    });
 
     // Stage 3: LLM Analysis
     emitProgress("analyzing", "Analisando momentos virais...", 40);
@@ -308,7 +319,7 @@ export async function processVideo(
       const clip = clips[index]!;
       try {
         emitProgress("cutting", `Baixando trecho ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
-        
+
         const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
         const downloadedSection = { ...downloadedAudio, filePath: sectionPath };
 
