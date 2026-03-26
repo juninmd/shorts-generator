@@ -355,9 +355,10 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
 }
 
 /**
- * Download a YouTube video (video + separated audio for transcription).
+ * Download ONLY the audio of a video for transcription.
+ * Very fast and lightweight.
  */
-export async function downloadVideo(
+export async function downloadAudioOnly(
   video: VideoInfo,
   config: PipelineConfig,
 ): Promise<DownloadedVideo> {
@@ -365,185 +366,98 @@ export async function downloadVideo(
   fs.mkdirSync(videoDir, { recursive: true });
 
   const audioPath = path.join(videoDir, `${video.id}.wav`);
-  const outputTemplate = path.join(videoDir, `${video.id}.%(ext)s`);
+  const tempAudioPath = path.join(videoDir, `${video.id}.temp.m4a`);
 
-  logger.info({ videoId: video.id, title: video.title }, "Downloading video");
+  logger.info({ videoId: video.id, title: video.title }, "Downloading audio only for transcription");
 
   return withCookies(config, async (tempCookiePath) => {
-    // 1. Get available formats
-    let dynamicallySelectedFormat: string | null = null;
+    const args = [
+      ...getYtDlpBaseArgs(config, tempCookiePath),
+      "-f", "ba[ext=m4a]/ba/b",
+      "--no-playlist",
+      "--no-warnings",
+      "-o", tempAudioPath,
+      "--",
+      video.url
+    ];
+
     try {
-      logger.info({ videoId: video.id }, "Fetching available formats via --list-formats...");
-      const { stdout } = await execYtDlp(
-        [
-          ...getYtDlpBaseArgs(config, tempCookiePath),
-          "--list-formats",
-          "--",
-          video.url,
-        ],
-        { maxBuffer: 10 * 1024 * 1024, timeout: 60_000 }
+      await execYtDlp(args, { timeout: 300_000 });
+
+      // Convert to 16kHz mono WAV for Whisper
+      await execFileAsync(
+        "ffmpeg",
+        ["-i", tempAudioPath, "-ar", "16000", "-ac", "1", "-f", "wav", "-y", audioPath],
+        { maxBuffer: 5 * 1024 * 1024, timeout: 120_000 },
       );
 
-      const lines = stdout.trim().split('\n');
-      let readingFormats = false;
-      const audioIds: string[] = [];
-      const videoIds: string[] = [];
-      const combinedIds: string[] = [];
+      if (fs.existsSync(tempAudioPath)) fs.unlinkSync(tempAudioPath);
 
-      for (const line of lines) {
-        if (line.match(/^ID\s+EXT\s+RESOLUTION/)) {
-          readingFormats = true;
-          continue;
-        }
-        if (line.includes('---')) continue;
+      const stats = fs.statSync(audioPath);
+      logger.info({ videoId: video.id, sizeKB: (stats.size / 1024).toFixed(0) }, "Audio downloaded and converted");
 
-        if (readingFormats && line.trim()) {
-          if (line.includes('mhtml') || line.includes('storyboard') || line.includes('images')) {
-            continue;
-          }
-
-          const match = line.trim().match(/^([a-zA-Z0-9_\-]+)\s+/);
-          if (!match) continue;
-
-          const id = match[1];
-
-          if (line.includes('audio only')) {
-            audioIds.push(id);
-          } else if (line.includes('video only')) {
-            videoIds.push(id);
-          } else {
-            combinedIds.push(id);
-          }
-        }
-      }
-
-      if (audioIds.length === 0 && videoIds.length === 0 && combinedIds.length === 0) {
-        logger.warn("Only storyboard formats available or no valid formats found! YouTube might be blocking the download (e.g., bot detection/cookies issue).");
-      } else {
-        const preferred720 = lines.find(
-          (l) =>
-            l.includes("mp4") &&
-            !l.includes("audio only") &&
-            l.includes("video only") &&
-            (l.includes("720p") || l.match(/\b720\b/)) &&
-            !l.match(/\bav01?\b/i) &&
-            !l.match(/\bvp9\b/i),
-        );
-
-        if (preferred720) {
-          const m = preferred720.trim().match(/^([a-zA-Z0-9_\-]+)\s+/);
-          if (m) {
-            const vid = m[1];
-            const best = audioIds[audioIds.length - 1] ?? null;
-            dynamicallySelectedFormat = best ? `${vid}+${best}` : vid;
-          }
-        } else if (videoIds.length > 0 && audioIds.length > 0) {
-          dynamicallySelectedFormat = `${videoIds[videoIds.length - 1]}+${audioIds[audioIds.length - 1]}`;
-        } else if (combinedIds.length > 0) {
-          dynamicallySelectedFormat = combinedIds[combinedIds.length - 1];
-        } else if (videoIds.length > 0) {
-          dynamicallySelectedFormat = videoIds[videoIds.length - 1];
-        }
-
-        logger.info({ dynamicallySelectedFormat }, "Dynamically selected format from --list-formats");
-      }
-    } catch (listErr: any) {
-      logger.warn({ error: listErr.message }, "Failed to parse --list-formats, proceeding with default formats...");
+      return {
+        ...video,
+        filePath: "", // No video file yet
+        audioPath,
+        fileSize: stats.size,
+      };
+    } catch (err: any) {
+      logger.error({ videoId: video.id, error: err.message }, "Failed to download audio");
+      throw err;
     }
+  });
+}
 
-    const formatsToTry: (string | null)[] = [
-      dynamicallySelectedFormat,
-      "bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/bv*+ba/b",
-      "bv*[height<=720]+ba/b[height<=720]/bv*+ba/b",
-      "bestvideo[height<=720]+bestaudio/best[height<=720]",
-      "bestvideo+bestaudio/best",
-      "best",
-      null, // Final catch-all: no -f flag
-    ].filter((f, i, arr) => f !== undefined && f !== "" && arr.indexOf(f) === i);
+/**
+ * Download ONLY a specific section of the video.
+ * Uses yt-dlp's --download-sections feature.
+ */
+export async function downloadVideoSection(
+  video: VideoInfo,
+  startTime: number,
+  endTime: number,
+  config: PipelineConfig,
+): Promise<string> {
+  const videoDir = path.join(config.tempDir, video.id);
+  fs.mkdirSync(videoDir, { recursive: true });
 
-    let downloaded = false;
-    let lastError: any = null;
+  // Add buffer to start/end to ensure we have enough context for snapping/fades
+  const start = Math.max(0, startTime - 2);
+  const end = Math.min(video.duration, endTime + 2);
+  
+  const sectionId = crypto.createHash("md5").update(`${start}-${end}`).digest("hex").slice(0, 6);
+  const outputTemplate = path.join(videoDir, `${video.id}_${sectionId}.mp4`);
 
-    for (const format of formatsToTry) {
-      const args = [
-        ...getYtDlpBaseArgs(config, tempCookiePath),
-        "--no-playlist",
-        "--no-warnings",
-        "--concurrent-fragments",
-        "5",
-      ];
+  logger.info(
+    { videoId: video.id, start, end, duration: end - start },
+    "Downloading video section only"
+  );
 
-      if (format) {
-        args.push("-f", format);
+  return withCookies(config, async (tempCookiePath) => {
+    const args = [
+      ...getYtDlpBaseArgs(config, tempCookiePath),
+      "-f", "bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/best",
+      "--no-playlist",
+      "--no-warnings",
+      "--download-sections", `*${start}-${end}`,
+      "--force-keyframes-at-cuts",
+      "--merge-output-format", "mp4",
+      "-o", outputTemplate,
+      "--",
+      video.url
+    ];
+
+    try {
+      await execYtDlp(args, { timeout: 300_000 });
+      if (!fs.existsSync(outputTemplate)) {
+        throw new Error("Section download succeeded but file not found");
       }
-
-      args.push(
-        "--merge-output-format",
-        "mp4",
-        "-o",
-        outputTemplate,
-        "--",
-        video.url
-      );
-
-      logger.info(
-        { format: format || "auto", cmd: `yt-dlp ${args.map(a => a.includes(" ") ? `"${a}"` : a).join(" ")}` },
-        "Trying to download video"
-      );
-
-      try {
-        await execYtDlp(args, { maxBuffer: 10 * 1024 * 1024, timeout: 600_000 });
-
-        const files = fs.readdirSync(videoDir);
-        const hasVideo = files.some(f => f.startsWith(video.id) && !f.endsWith(".wav") && !f.endsWith(".txt"));
-
-        if (hasVideo) {
-          downloaded = true;
-          logger.info({ format }, "Video downloaded successfully with format");
-          break;
-        } else {
-          logger.warn({ format }, "yt-dlp succeeded but no video file was found, trying next format...");
-        }
-      } catch (err: any) {
-        lastError = err;
-        logger.warn({ format, error: err.message }, "yt-dlp failed with format, trying next...");
-      }
+      return outputTemplate;
+    } catch (err: any) {
+      logger.error({ videoId: video.id, error: err.message }, "Failed to download video section");
+      throw err;
     }
-
-    if (!downloaded) {
-      throw new Error(`Failed to download video after trying all formats. Last error: ${lastError?.message || 'Unknown error'}`);
-    }
-
-    const files = fs.readdirSync(videoDir);
-    const videoFileName = files.find(
-      (f) => f.startsWith(video.id) && !f.endsWith(".wav") && !f.endsWith(".txt")
-    );
-
-    if (!videoFileName) {
-      throw new Error("Downloaded video file not found in output directory");
-    }
-
-    const actualVideoPath = path.join(videoDir, videoFileName);
-
-    await execFileAsync(
-      "ffmpeg",
-      ["-i", actualVideoPath, "-ar", "16000", "-ac", "1", "-f", "wav", "-y", audioPath],
-      { maxBuffer: 5 * 1024 * 1024, timeout: 300_000 },
-    );
-
-    const stats = fs.statSync(actualVideoPath);
-
-    logger.info(
-      { videoId: video.id, sizeMB: (stats.size / 1024 / 1024).toFixed(1) },
-      "Video downloaded",
-    );
-
-    return {
-      ...video,
-      filePath: actualVideoPath,
-      audioPath,
-      fileSize: stats.size,
-    };
   });
 }
 
