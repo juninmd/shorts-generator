@@ -38,8 +38,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -126,9 +124,14 @@ jobs:
             sleep 1
           done
 
-      - name: Pull Ollama model (if not cached)
-        if: steps.ollama-cache.outputs.cache-hit != 'true'
-        run: ollama pull ${{ env.OLLAMA_MODEL }}
+      - name: Pull Ollama model (if not available)
+        run: |
+          if ollama list | grep -q "${{ env.OLLAMA_MODEL }}"; then
+            echo "Model ${{ env.OLLAMA_MODEL }} already available, skipping pull."
+          else
+            echo "Model ${{ env.OLLAMA_MODEL }} not found, pulling..."
+            ollama pull ${{ env.OLLAMA_MODEL }}
+          fi
 
       - name: Verify tools
         run: |
@@ -137,6 +140,18 @@ jobs:
           yt-dlp --version
           ollama --version
           ollama list
+
+      - name: Validate Ollama is functional
+        run: |
+          echo "Sending test prompt to Ollama..."
+          RESPONSE=$(curl -sf --max-time 120 http://localhost:11434/api/generate \
+            -d "{\"model\": \"$OLLAMA_MODEL\", \"prompt\": \"Tell me a short joke.\", \"stream\": false}" \
+            | python3 -c "import sys, json; print(json.load(sys.stdin).get('response', ''))")
+          if [ -z "$RESPONSE" ]; then
+            echo "ERROR: Ollama returned empty response. Aborting."
+            exit 1
+          fi
+          echo "Ollama is functional. Response: $RESPONSE"
 
       - name: Run top shorts generation
         run: pnpm run generate:top
