@@ -135,7 +135,7 @@ export const uploadToYouTube = async (
 
   const youtube = google.youtube({ version: "v3", auth: oauth2Client });
 
-  logger.info({ videoPath }, "📤 Fazendo upload para o YouTube Shorts...");
+  logger.info({ videoPath, title, description: description.slice(0, 120) }, "📤 Fazendo upload para o YouTube Shorts...");
 
   const sanitize = (msg: string) =>
     [clientId, clientSecret, refreshToken].reduce(

@@ -34,6 +34,10 @@ export async function processClip(
       start: clip.startTime,
       end: clip.endTime,
       duration: clip.duration,
+      title: clip.title,
+      hookLine: clip.hookLine,
+      viralScore: clip.viralScore,
+      reason: clip.reason,
     },
     "Processing clip",
   );

@@ -41,7 +41,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
   const config: PipelineConfig = {
     channels,
     specificUrls,
-    videoLimit: parseInt(optionalEnv("VIDEO_LIMIT", "3"), 10),
+    videoLimit: parseInt(optionalEnv("VIDEO_LIMIT", "1"), 10),
     maxCutsPerBlock: 10,
     minuteBlockSize: 20,
     maxShortDuration: parseInt(optionalEnv("MAX_SHORT_DURATION", "59"), 10),
@@ -52,7 +52,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     tempDir,
     ollamaBaseUrl: optionalEnv("OLLAMA_BASE_URL", "http://localhost:11434"),
     ollamaModel: optionalEnv("OLLAMA_MODEL", "gemma3:1b"),
-    ollamaTimeoutMs: parseInt(optionalEnv("OLLAMA_TIMEOUT_MS", "400000"), 10),
+    ollamaTimeoutMs: parseInt(optionalEnv("OLLAMA_TIMEOUT_MS", "600000"), 10),
     whisperModel: optionalEnv("WHISPER_MODEL", "base"),
     telegramBotToken: optionalEnv("TELEGRAM_BOT_TOKEN", ""),
     telegramChatId: optionalEnv("TELEGRAM_CHAT_ID", ""),
