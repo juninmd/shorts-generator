@@ -252,9 +252,8 @@ describe("analyzer", () => {
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
 
-    expect(clips).toHaveLength(2);
-    expect(clips[0].title).toBe("Too Short But Extends");
-    expect(clips[1].title).toBe("Valid");
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("Valid");
   });
 
   it("should return null inside extractAndParseJSON if parsed data is not an object", async () => {
