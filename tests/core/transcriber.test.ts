@@ -1,12 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { transcribeVideo } from "../../src/core/transcriber.js";
 import type { DownloadedVideo, PipelineConfig } from "../../src/types.js";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
 
-vi.mock("node:child_process", () => ({
-  execFile: vi.fn(),
-}));
+vi.mock("node:child_process", () => {
+  const mockChildProcess = {
+    stdout: { setEncoding: vi.fn(), on: vi.fn() },
+    stderr: { on: vi.fn() },
+    on: vi.fn((event, cb) => {
+      if (event === "close") cb(0);
+    }),
+  };
+
+  return {
+    execFile: vi.fn(),
+    spawn: vi.fn().mockReturnValue(mockChildProcess),
+  };
+});
 
 vi.mock("node:fs", () => ({
   default: {
@@ -92,20 +103,25 @@ describe("transcriber", () => {
     await expect(transcribeVideo(mockVideo, mockConfig)).rejects.toThrow(/Whisper output not found/);
   });
 
-  it("should fail if exec errors during whisper run", async () => {
+  it("should fail if spawn errors during whisper run", async () => {
     vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
       const cb = callback || options || args;
-      if (args && args.includes("--version")) {
-        // Return success for findUvBinary
-        if (typeof cb === "function") cb(null, { stdout: "uv 0.2.0", stderr: "" });
-      } else {
-        // Return error for the actual whisper run
-        if (typeof cb === "function") cb(new Error("Exec error"), { stdout: "", stderr: "" });
-      }
+      if (typeof cb === "function") cb(null, { stdout: "uv 0.2.0", stderr: "" });
       return {} as any;
     });
 
-    await expect(transcribeVideo(mockVideo, mockConfig)).rejects.toThrow(/Exec error/);
+    vi.mocked(spawn).mockImplementationOnce((cmd, args) => {
+      const mockChild = {
+        stdout: { setEncoding: vi.fn(), on: vi.fn() },
+        stderr: { on: vi.fn() },
+        on: vi.fn((event, cb) => {
+          if (event === "close") cb(1); // Fail the spawn process just for this test
+        }),
+      };
+      return mockChild as any;
+    });
+
+    await expect(transcribeVideo(mockVideo, mockConfig)).rejects.toThrow(/Transcription failed with code 1/);
   });
 
   it("should throw if no compatible uv found", async () => {

@@ -87,10 +87,16 @@ export interface PipelineConfig {
   maxClipsOverride?: number;
   outputDir: string;
   tempDir: string;
+  /** AI provider: "openrouter" or "ollama" */
+  aiProvider: "openrouter" | "ollama";
+  /** Model identifier (e.g. "google/gemma-3-4b-it:free" or "gemma3:1b") */
+  aiModel: string;
+  /** Timeout in milliseconds for AI HTTP requests (default: 300_000 = 5 min) */
+  aiTimeoutMs: number;
+  /** OpenRouter API key (required when aiProvider is "openrouter") */
+  openrouterApiKey: string;
+  /** Ollama base URL (only used when aiProvider is "ollama") */
   ollamaBaseUrl: string;
-  ollamaModel: string;
-  /** Timeout in milliseconds for Ollama HTTP requests (default: 300_000 = 5 min) */
-  ollamaTimeoutMs: number;
   whisperModel: string;
   telegramBotToken: string;
   telegramChatId: string;
@@ -101,6 +107,8 @@ export interface PipelineConfig {
   youtubeCookiesBase64?: string;
   watermarkText: string;
   videoEncoder: string;
+  /** Optional progress callback (used by transcriber) */
+  onProgress?: (percent: number) => void;
 }
 
 export interface PipelineResult {

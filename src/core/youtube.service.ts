@@ -1,14 +1,9 @@
 import { google } from "googleapis";
 import fs from "node:fs";
+import { generateText } from "ai";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
-import { Ollama } from "ollama";
 import { logger } from "./logger.js";
-
-const getOllama = (config: PipelineConfig) =>
-  new Ollama({
-    /* v8 ignore next */
-    host: config.ollamaBaseUrl || "http://localhost:11434",
-  });
+import { createModel } from "./ai-provider.js";
 
 export const generateYoutubeMetadata = async (
   short: GeneratedShort,
@@ -22,9 +17,6 @@ export const generateYoutubeMetadata = async (
       description: short.clip.description,
     };
   }
-
-  const ollama = getOllama(config);
-  const modelName = config.ollamaModel || "gemma3:1b";
 
   const prompt = `Crie um título e uma descrição OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
 Título Sugerido: ${short.clip.title}
@@ -44,14 +36,14 @@ Responda APENAS com um objeto JSON no formato:
 O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de forma alguma.`;
 
   try {
-    const response = await ollama.chat({
-      model: modelName,
-      messages: [{ role: "user", content: prompt }],
-      format: "json",
+    const { text } = await generateText({
+      model: createModel(config),
+      prompt,
+      temperature: 0.5,
+      maxOutputTokens: 256,
     });
 
-    const content = response.message.content.trim();
-    let cleanContent = content;
+    let cleanContent = text.trim();
     if (cleanContent.startsWith("```json")) {
       cleanContent = cleanContent
         .substring(7, cleanContent.lastIndexOf("```"))

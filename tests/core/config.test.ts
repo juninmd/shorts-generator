@@ -30,10 +30,10 @@ describe("config", () => {
       expect(config.videoLimit).toBe(10);
     });
 
-    it("should read OLLAMA_TIMEOUT_MS from environment", () => {
+    it("should read OLLAMA_TIMEOUT_MS as fallback for aiTimeoutMs", () => {
       process.env.OLLAMA_TIMEOUT_MS = "600000";
       const config = loadConfig();
-      expect(config.ollamaTimeoutMs).toBe(600_000);
+      expect(config.aiTimeoutMs).toBe(600_000);
     });
   });
 

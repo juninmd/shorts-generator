@@ -15,14 +15,14 @@ env:
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   YOUTUBE_CHANNELS: ${{ vars.YOUTUBE_CHANNELS }}
-  OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma3:1b' }}
+  AI_PROVIDER: openrouter
+  AI_MODEL: google/gemini-2.0-flash-lite-001
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
   WHISPER_MODEL: ${{ vars.WHISPER_MODEL || 'tiny' }}
   WHISPER_USE_GPU: "false"
   ENABLE_YOUTUBE: "true"
-  OLLAMA_TIMEOUT_MS: 300000
   VIDEO_LIMIT: "1"
   OUTPUT_DIR: ./output
-  OLLAMA_MODELS_DIR: ~/.ollama/models
   YOUTUBE_COOKIES_BASE64: ${{ secrets.YOUTUBE_COOKIES_BASE64 }}
   YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
   YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -51,7 +51,7 @@ jobs:
           run_install: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "pnpm"
@@ -66,14 +66,14 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
       # Cache uv virtual environment keyed on pyproject.toml hash
       - name: Cache uv environment
         id: uv-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: tests/yt-download/.venv
           key: ${{ runner.os }}-uv-venv-${{ hashFiles('tests/yt-download/pyproject.toml') }}
@@ -84,35 +84,12 @@ jobs:
 
       # faster-whisper stores models in ~/.cache/huggingface/hub/
       - name: Cache faster-whisper model
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/huggingface/hub
           key: ${{ runner.os }}-faster-whisper-${{ env.WHISPER_MODEL }}
           restore-keys: |
             ${{ runner.os }}-faster-whisper-
-
-      # Cache Ollama model weights — keyed on model name
-      - name: Cache Ollama models
-        id: ollama-cache
-        uses: actions/cache@v4
-        continue-on-error: true
-        with:
-          path: ${{ env.OLLAMA_MODELS_DIR }}
-          key: ${{ runner.os }}-ollama-${{ env.OLLAMA_MODEL }}
-          restore-keys: |
-            ${{ runner.os }}-ollama-
-
-      # Cache Ollama binary to avoid re-downloading ~100MB every run
-      - name: Cache Ollama binary
-        id: ollama-bin-cache
-        uses: actions/cache@v4
-        with:
-          path: /usr/local/bin/ollama
-          key: ${{ runner.os }}-ollama-bin-v2
-
-      - name: Install Ollama
-        if: steps.ollama-bin-cache.outputs.cache-hit != 'true'
-        run: curl -fsSL https://ollama.com/install.sh | sh
 
       # Static ffmpeg with built-in caching — avoids shared-library issues
       - name: Install ffmpeg
@@ -120,43 +97,11 @@ jobs:
         with:
           ffmpeg-version: release
 
-      - name: Start Ollama service
-        run: |
-          curl -sf http://localhost:11434/api/tags > /dev/null 2>&1 || ollama serve &
-          # Wait until Ollama is ready (up to 30s)
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:11434/api/tags > /dev/null 2>&1 && break
-            sleep 1
-          done
-
-      - name: Pull Ollama model (if not available)
-        run: |
-          if ollama list | grep -q "${{ env.OLLAMA_MODEL }}"; then
-            echo "Model ${{ env.OLLAMA_MODEL }} already available, skipping pull."
-          else
-            echo "Model ${{ env.OLLAMA_MODEL }} not found, pulling..."
-            ollama pull ${{ env.OLLAMA_MODEL }}
-          fi
-
       - name: Verify tools
         run: |
           node --version
           ffmpeg -version | head -1
           yt-dlp --version
-          ollama --version
-          ollama list
-
-      - name: Validate Ollama is functional
-        run: |
-          echo "Sending test prompt to Ollama..."
-          RESPONSE=$(curl -sf --max-time 120 http://localhost:11434/api/generate \
-            -d "{\"model\": \"$OLLAMA_MODEL\", \"prompt\": \"Tell me a short joke.\", \"stream\": false}" \
-            | python3 -c "import sys, json; print(json.load(sys.stdin).get('response', ''))")
-          if [ -z "$RESPONSE" ]; then
-            echo "ERROR: Ollama returned empty response. Aborting."
-            exit 1
-          fi
-          echo "Ollama is functional. Response: $RESPONSE"
 
       - name: Run top shorts generation
         run: pnpm run generate:top
@@ -169,7 +114,7 @@ jobs:
 
       - name: Upload generated shorts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: top-shorts-${{ github.run_id }}
           path: output/**/*.mp4
