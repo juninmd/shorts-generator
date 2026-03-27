@@ -239,7 +239,7 @@ describe("analyzer", () => {
           title: "Valid",
           description: "Desc",
           startTime: 40,
-          endTime: 70, // will snap to 40-100 (shrunk to 60 limit), which is valid
+          endTime: 70, // duration 30
           viralScore: 8,
           reason: "Reason",
           hookLine: "Hook",
