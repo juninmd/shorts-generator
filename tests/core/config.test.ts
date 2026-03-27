@@ -16,6 +16,7 @@ describe("config", () => {
   describe("loadConfig", () => {
     it("should load default values correctly", () => {
       process.env.YOUTUBE_CHANNELS = "channel1,channel2";
+      process.env.VIDEO_LIMIT = "3";
       const config = loadConfig();
       expect(config.channels).toEqual(["channel1", "channel2"]);
       expect(config.watermarkText).toBe("santidade católica");
