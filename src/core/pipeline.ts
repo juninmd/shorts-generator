@@ -21,8 +21,9 @@ import { analyzeTranscript } from "./analyzer.js";
 import { processClip } from "./video-processor.js";
 import { sendToTelegram, sendSummary, sendFullVideoToTelegram } from "./telegram.js";
 import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube } from "./youtube.service.js";
-import { Ollama } from "ollama";
+import { generateText } from "ai";
 import { logger } from "./logger.js";
+import { createModel } from "./ai-provider.js";
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
 
@@ -34,8 +35,6 @@ async function isMusicVideoByTitle(
   channelName: string,
   config: PipelineConfig,
 ): Promise<boolean> {
-  const ollama = new Ollama({ host: config.ollamaBaseUrl || "http://localhost:11434" });
-
   const prompt = `Analise o título e canal do vídeo abaixo e responda APENAS com "sim" ou "não":
 Este vídeo é uma música, clipe musical ou canção (não uma palestra, sermão, homilia, meditação ou pregação)?
 
@@ -45,12 +44,13 @@ Canal: ${channelName}
 Responda APENAS "sim" se for música/clipe musical, ou "não" se for conteúdo falado (palestra, pregação, homilia, etc.).`;
 
   try {
-    const response = await ollama.chat({
-      model: config.ollamaModel || "gemma3:1b",
-      messages: [{ role: "user", content: prompt }],
-      keep_alive: 0,
+    const { text } = await generateText({
+      model: createModel(config),
+      prompt,
+      temperature: 0.1,
+      maxOutputTokens: 10,
     });
-    const answer = response.message.content.trim().toLowerCase();
+    const answer = text.trim().toLowerCase();
     const isMusic = answer.includes("sim");
     if (isMusic) {
       logger.info({ title, channelName }, "LLM identified video as music — skipping");
@@ -307,6 +307,7 @@ export async function processVideo(
     const clips = await analyzeTranscript(transcript, video.title, video.channelName, config);
 
     if (clips.length === 0) {
+      logger.warn({ videoId: video.id, videoTitle: video.title }, "Transcrição analisada, mas a IA considerou que não há trechos virais. Pulando vídeo.");
       cleanupVideo(video.id, config);
       return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts: [], errors: [], processingTimeMs: Date.now() - startTime };
     }

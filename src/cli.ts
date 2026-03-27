@@ -23,26 +23,36 @@ async function main() {
 
       const overrides: Record<string, any> = {};
 
+      // 1. Handle Multiple URLs
       if (urlIndex !== -1 && args[urlIndex + 1]) {
-        overrides.specificUrls = args[urlIndex + 1]!.split(",").map((u) => u.trim());
-        // If URLs are provided via CLI, ignore channels from .env unless explicitly provided
+        const rawUrls = args[urlIndex + 1]!;
+        overrides.specificUrls = rawUrls.split(",").map((u) => u.trim()).filter(Boolean);
+        // If URLs are provided via CLI, ignore default channels from .env unless explicitly provided
         if (channelIndex === -1) {
           overrides.channels = [];
         }
       }
 
+      // 2. Handle Multiple Channels
       if (channelIndex !== -1 && args[channelIndex + 1]) {
-        overrides.channels = args[channelIndex + 1]!.split(",").map((c) => c.trim());
+        const rawChannels = args[channelIndex + 1]!;
+        overrides.channels = rawChannels.split(",").map((c) => c.trim()).filter(Boolean);
       }
 
+      // 3. Video Limit per Channel
       if (limitIndex !== -1 && args[limitIndex + 1]) {
         overrides.videoLimit = parseInt(args[limitIndex + 1]!, 10);
       }
 
+      // 4. Clips Guarantee (Force specific quantity of cuts)
       if (clipsIndex !== -1 && args[clipsIndex + 1]) {
         const n = parseInt(args[clipsIndex + 1]!, 10);
-        overrides.maxClipsOverride = n;
-        overrides.minShortsPerVideo = n;
+        if (!isNaN(n)) {
+          overrides.maxClipsOverride = n;
+          // We set min/max to the same value to 'force' the AI to aim for exactly that
+          overrides.minShortsPerVideo = n;
+          logger.info({ clipsRequested: n }, "🎯 Limite de cortes definido manualmente via --clips");
+        }
       }
 
       const config = loadConfig(overrides);
@@ -59,18 +69,19 @@ async function main() {
           channels: config.channels,
           urls: config.specificUrls,
           videoLimit: config.videoLimit,
+          maxClipsReq: config.maxClipsOverride || 'AUTO',
         },
-        "Starting shorts generation",
+        "🚀 Iniciando geração de shorts",
       );
 
       const progressLogger = (progress: any) => {
         logger.info(
           {
             stage: progress.stage,
-            progress: `${progress.progress.toFixed(0)}%`,
+            progress: `${Math.round(progress.progress)}%`,
             message: progress.message,
           },
-          "Pipeline progress",
+          "Pipeline status",
         );
       };
 
@@ -87,17 +98,13 @@ async function main() {
           videosProcessed: results.length,
           totalShorts,
           totalErrors,
-          totalTimeMs: results.reduce((sum, r) => sum + r.processingTimeMs, 0),
+          totalTimeSec: Math.round(results.reduce((sum, r) => sum + r.processingTimeMs, 0) / 1000),
         },
-        "Pipeline complete",
+        "✅ Pipeline finalizada",
       );
 
-      if (totalErrors > 0) {
-        for (const result of results) {
-          for (const error of result.errors) {
-            logger.error({ videoId: result.videoId }, error);
-          }
-        }
+      if (totalErrors > 0 && totalShorts === 0) {
+        logger.error("A execução falhou totalmente (0 shorts gerados). Verifique os erros acima.");
         process.exit(1);
       }
 
@@ -120,20 +127,19 @@ Usage:
 
 Commands:
   generate      Generate shorts from YouTube videos (latest)
-  generate:top  Generate shorts from a top 20 non-music video randomly 1x day
+  generate:top  Generate shorts from a top video (random from top 20 non-music)
   server        Start the API server
 
 Options (generate):
-  --url <urls>        Comma-separated YouTube video URLs
-  --channel <ids>     Comma-separated channel handles/URLs
-  --limit <n>         Number of videos to fetch per channel (default: 3)
-  --clips <n>         Max clips to generate per video — useful for quick tests
+  --url       Comma-separated YouTube URLs (ex: "url1,url2")
+  --channel   Comma-separated channel handles (ex: "@handle1,@handle2")
+  --limit     Max videos to fetch per channel (default: 3)
+  --clips     Exactly how many clips to generate per video (ex: 2)
 
 Examples:
-  pnpm run cli -- generate --url "https://youtube.com/watch?v=xxx"
-  pnpm run cli -- generate --url "https://youtube.com/watch?v=xxx" --clips 1
-  pnpm run cli -- generate --channel "@channelHandle" --limit 1 --clips 1
-  pnpm run cli -- generate --limit 5
+  pnpm generate --url "https://youtube.com/watch?v=abc,https://youtube.com/watch?v=def"
+  pnpm generate --channel "@Handle1,@Handle2" --limit 1 --clips 1
+  pnpm generate:top --clips 3
 
 Environment Variables:
   See .env.example for all configuration options.

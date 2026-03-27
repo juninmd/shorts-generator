@@ -1,6 +1,4 @@
 import { generateText } from "ai";
-import { createOllama } from "ollama-ai-provider";
-import { Agent, fetch as undiciFetch } from "undici";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import type {
@@ -13,6 +11,7 @@ import type {
 import { logger } from "./logger.js";
 import { snapToSentenceBoundaries } from "./clip-boundary.js";
 import { getMinCuts, getMaxCuts } from "./config.js";
+import { createModel } from "./ai-provider.js";
 
 const TOKENS_PER_CLIP = 250;      // rough output tokens per clip
 
@@ -31,18 +30,7 @@ const ClipSchema = z.object({
   ),
 });
 
-function buildOllamaFetch(timeoutMs: number): typeof fetch {
-  const agent = new Agent({
-    headersTimeout: timeoutMs,
-    bodyTimeout: timeoutMs,
-    connectTimeout: 30_000,
-  });
-  return (input, init?) =>
-    undiciFetch(input as Parameters<typeof undiciFetch>[0], {
-      ...(init as Parameters<typeof undiciFetch>[1]),
-      dispatcher: agent,
-    }) as unknown as Promise<Response>;
-}
+
 
 export async function analyzeTranscript(
   transcript: Transcript,
@@ -98,46 +86,59 @@ async function analyzeFull(
   );
   
   // Estimate max tokens based on expected clips
-  const maxTokens = Math.min(2048, maxCuts * TOKENS_PER_CLIP + 500);
+  const maxOutputTokens = Math.min(2048, maxCuts * TOKENS_PER_CLIP + 500);
 
   const t0 = Date.now();
   try {
-    const { text } = await generateText({ 
-      model: createOllamaModel(config), 
+    logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Sending prompt to AI Provider");
+    const response = await generateText({ 
+      model: createModel(config),
       prompt, 
       temperature: 0.5, 
-      maxTokens 
+      maxOutputTokens 
     });
 
+    logger.debug({ 
+      videoId: transcript.videoId, 
+      usage: response.usage,
+      rawText: response.text 
+    }, "AI Provider Raw Response (Attempt 1)");
+
+    const text = response.text;
     const parsed = extractAndParseJSON(text);
     if (!parsed) {
-      logger.warn({ videoId: transcript.videoId }, "JSON inválido, tentando novamente com prompt reforçado...");
-      const { text: retryText } = await generateText({
-        model: createOllamaModel(config),
-        prompt: prompt + "\n\nResponda APENAS com JSON puro, sem markdown ou explicações.",
+      logger.warn({ videoId: transcript.videoId, rawText: text }, "JSON inválido na primeira tentativa. Retentando...");
+      const retryResponse = await generateText({
+        model: createModel(config),
+        prompt: prompt + "\n\nCRÍTICO: Você DEVE responder APENAS com JSON puro começando com { e terminando com }. Nenhuma explicação.",
         temperature: 0.2,
-        maxTokens,
+        maxOutputTokens,
       });
-      return extractAndParseJSON(retryText)?.clips ?? [];
+      
+      logger.debug({ 
+        videoId: transcript.videoId, 
+        rawText: retryResponse.text 
+      }, "AI Provider Raw Response (Attempt 2)");
+      
+      const retryParsed = extractAndParseJSON(retryResponse.text);
+      if (!retryParsed) {
+          logger.error({ videoId: transcript.videoId, finalRawText: retryResponse.text }, "AI falhou repetidamente em retornar JSON válido");
+      }
+      return retryParsed?.clips ?? [];
     }
+    
+    if (parsed.clips.length === 0) {
+      logger.info({ videoId: transcript.videoId }, "AI retornou 0 cortes virais (lista vazia).");
+    }
+    
     return parsed.clips;
   } catch (err) {
-    logger.error({ videoId: transcript.videoId, err }, "Falha na chamada do Ollama");
+    logger.error({ videoId: transcript.videoId, err, errorMessage: (err as Error).message }, "Falha catastrófica na chamada do LLM");
     return [];
   }
 }
 
-function createOllamaModel(config: PipelineConfig) {
-  return createOllama({
-    baseURL: config.ollamaBaseUrl + "/api",
-    fetch: buildOllamaFetch(config.ollamaTimeoutMs),
-  })(config.ollamaModel, { 
-    structuredOutputs: false,
-    config: {
-      keepAlive: 0,
-    }
-  });
-}
+
 
 // ─── Prompt builder ──────────────────────────────────────────────────────────
 

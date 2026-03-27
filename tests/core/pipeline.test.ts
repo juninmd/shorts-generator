@@ -10,11 +10,20 @@ import * as processor from "../../src/core/video-processor.js";
 import * as telegram from "../../src/core/telegram.js";
 import * as youtubeService from "../../src/core/youtube.service.js";
 
+vi.mock("ai", () => ({
+  generateText: vi.fn().mockResolvedValue({ text: "não" }),
+}));
+
+vi.mock("../../src/core/ai-provider.js", () => ({
+  createModel: vi.fn().mockReturnValue({ id: "mock-model" }),
+}));
+
 vi.mock("../../src/core/youtube.js", () => ({
   getChannelVideos: vi.fn(),
   getVideoInfo: vi.fn(),
   getVideoFileSize: vi.fn(),
-  downloadVideo: vi.fn(),
+  downloadAudioOnly: vi.fn(),
+  downloadVideoSection: vi.fn(),
   cleanupVideo: vi.fn(),
   verifyYoutubeAccess: vi.fn(),
 }));
@@ -22,6 +31,7 @@ vi.mock("../../src/core/youtube.js", () => ({
 vi.mock("../../src/core/youtube.service.js", () => ({
   generateYoutubeMetadata: vi.fn(),
   uploadToYouTube: vi.fn(),
+  uploadFullVideoToYouTube: vi.fn(),
 }));
 
 vi.mock("../../src/core/transcriber.js", () => ({
@@ -39,6 +49,7 @@ vi.mock("../../src/core/video-processor.js", () => ({
 vi.mock("../../src/core/telegram.js", () => ({
   sendToTelegram: vi.fn(),
   sendSummary: vi.fn(),
+  sendFullVideoToTelegram: vi.fn(),
 }));
 
 describe("pipeline", () => {
@@ -76,7 +87,7 @@ describe("pipeline", () => {
     vi.mocked(youtube.getVideoInfo).mockResolvedValue(mockVideoInfo);
     vi.mocked(youtube.getChannelVideos).mockResolvedValue([mockVideoInfo]);
     vi.mocked(youtube.getVideoFileSize).mockResolvedValue(500); // within limit
-    vi.mocked(youtube.downloadVideo).mockResolvedValue(mockDownloadedVideo);
+    vi.mocked(youtube.downloadAudioOnly).mockResolvedValue(mockDownloadedVideo);
     vi.mocked(youtube.verifyYoutubeAccess).mockResolvedValue(undefined);
 
     vi.mocked(transcriber.transcribeVideo).mockResolvedValue(mockTranscript);
@@ -112,7 +123,7 @@ describe("pipeline", () => {
     expect(result.shorts[0]).toEqual(mockGeneratedShort);
     expect(result.errors).toHaveLength(0);
 
-    expect(youtube.downloadVideo).toHaveBeenCalled();
+    expect(youtube.downloadAudioOnly).toHaveBeenCalled();
     expect(transcriber.transcribeVideo).toHaveBeenCalled();
     expect(analyzer.analyzeTranscript).toHaveBeenCalled();
     expect(processor.processClip).toHaveBeenCalled();

@@ -63,11 +63,12 @@ describe("clip-boundary", () => {
   });
 
   it("should return original if end <= start after snapping", () => {
-    // endTime(1) snaps to seg1.end=2, startTime(4) is inside seg2(2.5-5) → snaps to 2.5
-    // But 4 > 1 as input, so end=2 < start=2.5 → return original
-    const clip = { startTime: 4, endTime: 1 };
+    // endTime(1) snaps to 5 (because of 5s search window finding Sentence 2)
+    // startTime(12) snaps to 11 (Sentence 4)
+    // Since 5 <= 11, it returns the original clip
+    const clip = { startTime: 12, endTime: 1 };
     const result = snapToSentenceBoundaries(clip, mockSegments, mockConfig);
-    expect(result.startTime).toBe(4);
+    expect(result.startTime).toBe(12);
     expect(result.endTime).toBe(1);
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getVideoInfo, downloadVideo, cleanupVideo, getVideoFileSize, getChannelVideos } from "../../src/core/youtube.js";
+import { getVideoInfo, downloadAudioOnly, downloadVideoSection, cleanupVideo, getVideoFileSize, getChannelVideos } from "../../src/core/youtube.js";
 import type { PipelineConfig } from "../../src/types.js";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
@@ -12,6 +12,7 @@ vi.mock("node:fs", () => ({
   default: {
     existsSync: vi.fn(),
     rmSync: vi.fn(),
+    unlinkSync: vi.fn(),
     statSync: vi.fn(),
     mkdirSync: vi.fn(),
     readdirSync: vi.fn(),
@@ -63,7 +64,7 @@ describe("youtube", () => {
     expect(info).toBeNull();
   });
 
-  it("downloadVideo resolves successfully", async () => {
+  it("downloadAudioOnly resolves successfully", async () => {
     vi.mocked(execFile).mockImplementation((file: string, args: any, options: any, callback?: any) => {
       const cb = typeof options === 'function' ? options : callback;
       if (args && args.includes("--list-formats")) {
@@ -89,7 +90,7 @@ describe("youtube", () => {
       publishedAt: "20230101",
     };
 
-    const downloaded = await downloadVideo(video, mockConfig);
+    const downloaded = await downloadAudioOnly(video, mockConfig);
     expect(downloaded.fileSize).toBe(1024);
   });
 

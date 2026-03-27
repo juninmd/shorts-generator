@@ -30,16 +30,16 @@ vi.mock("node:fs", () => ({
   },
 }));
 
-// Mock ollama
-const chatMock = vi.fn();
+// Mock ai
+import * as aiModule from "ai";
 
-vi.mock("ollama", () => {
-  return {
-    Ollama: class {
-      chat = chatMock;
-    },
-  };
-});
+vi.mock("ai", () => ({
+  generateText: vi.fn(),
+}));
+
+vi.mock("../../src/core/ai-provider.js", () => ({
+  createModel: vi.fn().mockReturnValue({ id: "mock-model" }),
+}));
 
 // Mock logger
 vi.mock("../../src/core/logger", () => ({
@@ -52,8 +52,9 @@ vi.mock("../../src/core/logger", () => ({
 
 describe("youtube.service", () => {
   const mockConfig = {
-    ollamaBaseUrl: "http://localhost:11434",
-    ollamaModel: "dummy-model",
+    aiProvider: "openrouter",
+    aiModel: "google/gemma-3-4b-it:free",
+    openrouterApiKey: "test-key",
   } as any;
 
   const mockShort = {
@@ -82,7 +83,7 @@ describe("youtube.service", () => {
   describe("generateYoutubeMetadata", () => {
     const setupMock = (content: string) => {
       process.env.ENABLE_YOUTUBE = "true";
-      chatMock.mockResolvedValueOnce({ message: { content } });
+      vi.mocked(aiModule.generateText).mockResolvedValueOnce({ text: content } as any);
     };
 
     it("should return original metadata when ENABLE_YOUTUBE is not true", async () => {
@@ -98,7 +99,7 @@ describe("youtube.service", () => {
       ['{"title": "Viral Title", "description": "Viral Description"}'],
       ['```json\n{"title": "Viral Title", "description": "Viral Description"}\n```'],
       ['```\n{"title": "Viral Title", "description": "Viral Description"}\n```']
-    ])("should parse metadata from ollama successfully: %s", async (content) => {
+    ])("should parse metadata from AI successfully: %s", async (content) => {
       setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
       expect(result).toEqual({
@@ -107,15 +108,7 @@ describe("youtube.service", () => {
       });
     });
 
-    it("should use default model name when ollamaModel is not provided in config", async () => {
-      setupMock('{"title": "Viral Title", "description": "Viral Description"}');
-      const configWithoutModel = { ...mockConfig, ollamaModel: undefined };
-      await generateYoutubeMetadata(mockShort, configWithoutModel);
 
-      expect(chatMock).toHaveBeenCalledWith(expect.objectContaining({
-        model: "gemma3:1b"
-      }));
-    });
 
     it.each([
       { content: 'invalid json', expected: { title: "Original Title", description: "Original Description" } },
