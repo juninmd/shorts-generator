@@ -20,7 +20,7 @@ describe("config", () => {
       const config = loadConfig();
       expect(config.channels).toEqual(["channel1", "channel2"]);
       expect(config.watermarkText).toBe("santidade católica");
-      expect(config.videoLimit).toBe(3);
+      expect(config.videoLimit).toBe(1);
       expect(config.outputDir).toContain("output");
       expect(config.tempDir).toContain("temp");
     });
