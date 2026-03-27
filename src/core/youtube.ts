@@ -441,6 +441,9 @@ export async function downloadVideoSection(
       "--no-playlist",
       "--no-warnings",
       "--download-sections", `*${start}-${end}`,
+      // NOTE: --force-keyframes-at-cuts is intentionally disabled as it can cause ffmpeg to crash
+      // with exit code -11 on certain videos. This may result in less precise cuts, so a buffer
+      // is added to start/end times to allow for accurate trimming in a later step.
       "--merge-output-format", "mp4",
       "-o", outputTemplate,
       "--",
