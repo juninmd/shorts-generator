@@ -373,7 +373,7 @@ export async function downloadAudioOnly(
   return withCookies(config, async (tempCookiePath) => {
     const args = [
       ...getYtDlpBaseArgs(config, tempCookiePath),
-      "-f", "ba[ext=m4a]/ba/b",
+      "-f", "bestaudio/best",
       "--no-playlist",
       "--no-warnings",
       "-o", tempAudioPath,
@@ -437,7 +437,7 @@ export async function downloadVideoSection(
   return withCookies(config, async (tempCookiePath) => {
     const args = [
       ...getYtDlpBaseArgs(config, tempCookiePath),
-      "-f", "bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/best",
+      "-f", "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/bestvideo[height<=720]+bestaudio/best[height<=720]/best",
       "--no-playlist",
       "--no-warnings",
       "--download-sections", `*${start}-${end}`,
