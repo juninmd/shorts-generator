@@ -441,7 +441,6 @@ export async function downloadVideoSection(
       "--no-playlist",
       "--no-warnings",
       "--download-sections", `*${start}-${end}`,
-      "--force-keyframes-at-cuts",
       "--merge-output-format", "mp4",
       "-o", outputTemplate,
       "--",
