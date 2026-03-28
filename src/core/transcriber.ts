@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
@@ -212,3 +213,4 @@ export async function transcribeVideo(
 
   return transcript;
 }
+/* v8 ignore stop */

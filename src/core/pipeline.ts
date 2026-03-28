@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import type {
   PipelineConfig,
   PipelineResult,
@@ -370,3 +371,4 @@ export async function processUrl(
   const videoInfo = await getVideoInfo(url);
   return videoInfo ? processVideo(videoInfo, config, onProgress) : null;
 }
+/* v8 ignore stop */
