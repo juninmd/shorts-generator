@@ -366,32 +366,25 @@ export async function downloadAudioOnly(
   fs.mkdirSync(videoDir, { recursive: true });
 
   const audioPath = path.join(videoDir, `${video.id}.wav`);
-  const tempAudioPath = path.join(videoDir, `${video.id}.temp.m4a`);
 
   logger.info({ videoId: video.id, title: video.title }, "Downloading audio only for transcription");
 
   return withCookies(config, async (tempCookiePath) => {
     const args = [
       ...getYtDlpBaseArgs(config, tempCookiePath),
-      "-f", "bestaudio/best",
+      "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
+      "--extract-audio",
+      "--audio-format", "wav",
+      "--postprocessor-args", "ffmpeg:-ar 16000 -ac 1",
       "--no-playlist",
       "--no-warnings",
-      "-o", tempAudioPath,
+      "-o", audioPath,
       "--",
       video.url
     ];
 
     try {
       await execYtDlp(args, { timeout: 300_000 });
-
-      // Convert to 16kHz mono WAV for Whisper
-      await execFileAsync(
-        "ffmpeg",
-        ["-i", tempAudioPath, "-ar", "16000", "-ac", "1", "-f", "wav", "-y", audioPath],
-        { maxBuffer: 5 * 1024 * 1024, timeout: 120_000 },
-      );
-
-      if (fs.existsSync(tempAudioPath)) fs.unlinkSync(tempAudioPath);
 
       const stats = fs.statSync(audioPath);
       logger.info({ videoId: video.id, sizeKB: (stats.size / 1024).toFixed(0) }, "Audio downloaded and converted");
