@@ -48,6 +48,8 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     minShortDuration: parseInt(optionalEnv("MIN_SHORT_DURATION", "40"), 10),
     maxVideoSizeBytes: maxVideoSizeMb * 1024 * 1024,
     minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "1"), 10),
+    targetShorts: Number(optionalEnv("TARGET_SHORTS", "0")) || undefined,
+    fullVideoCount: Number(optionalEnv("FULL_VIDEO_COUNT", "0")) || undefined,
     outputDir,
     tempDir,
     aiProvider: optionalEnv("AI_PROVIDER", "ollama") as "openrouter" | "ollama",

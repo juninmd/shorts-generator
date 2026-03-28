@@ -107,6 +107,10 @@ export interface PipelineConfig {
   youtubeCookiesBase64?: string;
   watermarkText: string;
   videoEncoder: string;
+  /** Explicit total short clips target for this pipeline run */
+  targetShorts?: number;
+  /** If set, generate this many top full videos via runTopVideoPipeline (command-level, not per-video) */
+  fullVideoCount?: number;
   /** Optional progress callback (used by transcriber) */
   onProgress?: (percent: number) => void;
 }
