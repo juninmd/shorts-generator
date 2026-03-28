@@ -167,13 +167,14 @@ DIRETRIZES PARA OS TÍTULOS E CORTES:
 - O tempo de cada clipe deve ser entre ${minDuration} e ${maxDuration} segundos.
 - O clipe DEVE encerrar em uma frase completa ou pensamento concluído.
 - O título deve fazer sentido sozinho, sem o vídeo original, e ser direto e impactante (máx 50 caracteres).
-- No máximo 15 cortes devem ser retornados.
+- No máximo ${Math.min(15, maxClips)} cortes devem ser retornados.
 
 TRANSRITO DO VÍDEO:
 ${transcript}
 
-Responda APENAS com JSON puro:
-{"clips":[{"title":"Título sobre o conteúdo","description":"...","startTime":0.0,"endTime":50.0,"viralScore":10,"reason":"...","hookLine":"...","hashtags":["#viral","#shorts"]}]}`;
+Responda APENAS com uma lista JSON pura de recortes, onde o elemento raiz é um objeto com a chave "clips".
+Exemplo de formato esperado:
+{"clips":[{"title":"Título Extremamente Clickbait","description":"...","startTime":0.0,"endTime":50.0,"viralScore":10,"reason":"...","hookLine":"...","hashtags":["#viral","#shorts"]}]}`;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

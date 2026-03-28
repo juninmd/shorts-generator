@@ -44,6 +44,6 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Run yt-dlp download test
-        run: pytest tests/yt-download/test_youtube_download.py -v
+        run: uv run pytest tests/yt-download/test_youtube_download.py -v
         env:
           GITHUB_ACTIONS: "true"
