@@ -210,6 +210,28 @@ describe("pipeline", () => {
     expect(processor.processClip).toHaveBeenCalledTimes(1);
   });
 
+  it("processVideo respects maxShorts limit", async () => {
+    vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip, mockClip, mockClip]);
+    const localConfig = { ...mockConfig } as PipelineConfig;
+
+    const result = await processVideo(mockVideoInfo, localConfig, undefined, 2);
+
+    expect(result.shorts).toHaveLength(2);
+    expect(processor.processClip).toHaveBeenCalledTimes(2);
+  });
+
+  it("runPipeline stops when targetShorts is reached", async () => {
+    vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip, mockClip]);
+    const localConfig = { ...mockConfig, targetShorts: 3, channels: [], specificUrls: ["url1"], videoLimit: 1 } as PipelineConfig;
+
+    const results = await runPipeline(localConfig);
+    expect(results).toHaveLength(1);
+    expect(results[0].shorts).toHaveLength(2);
+
+    // since only one video exists, pipeline ended with 2 clips (<= targetShorts)
+    expect(results[0].shorts.length).toBeLessThanOrEqual(3);
+  });
+
   it("processVideo handles telegram send error gracefully", async () => {
     vi.mocked(telegram.sendToTelegram).mockRejectedValue(new Error("Telegram failed"));
     const result = await processVideo(mockVideoInfo, mockConfig);

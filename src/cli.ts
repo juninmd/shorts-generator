@@ -20,6 +20,8 @@ async function main() {
       const channelIndex = args.indexOf("--channel");
       const limitIndex = args.indexOf("--limit");
       const clipsIndex = args.indexOf("--clips");
+      const targetShortsIndex = args.indexOf("--target-shorts");
+      const fullCountIndex = args.indexOf("--full");
 
       const overrides: Record<string, any> = {};
 
@@ -55,6 +57,26 @@ async function main() {
         }
       }
 
+      // 5. Total short clips target for runPipeline
+      if (targetShortsIndex !== -1 && args[targetShortsIndex + 1]) {
+        const n = parseInt(args[targetShortsIndex + 1]!, 10);
+        if (!isNaN(n) && n > 0) {
+          overrides.targetShorts = n;
+          logger.info({ targetShorts: n }, "🎯 Meta de shorts definida via --target-shorts");
+        }
+      }
+
+      // 6. Top full videos count for runTopVideoPipeline
+      let topVideosCount = 1;
+      if (fullCountIndex !== -1 && args[fullCountIndex + 1]) {
+        const n = parseInt(args[fullCountIndex + 1]!, 10);
+        if (!isNaN(n) && n > 0) {
+          topVideosCount = n;
+          overrides.fullVideoCount = n;
+          logger.info({ fullVideoCount: n }, "🎯 Meta de vídeos completos definida via --full");
+        }
+      }
+
       const config = loadConfig(overrides);
 
       if (config.channels.length === 0 && config.specificUrls.length === 0) {
@@ -85,9 +107,20 @@ async function main() {
         );
       };
 
-      const results = isTopCmd 
-        ? await runTopVideoPipeline(config, progressLogger)
-        : await runPipeline(config, progressLogger);
+      const results = [];
+
+      if (isTopCmd) {
+        for (let i = 0; i < topVideosCount; i++) {
+          const partial = await runTopVideoPipeline(config, progressLogger);
+          results.push(...partial);
+          if (partial.length === 0) {
+            logger.warn({ iteration: i + 1 }, "Nenhum vídeo completo válido encontrado nesta iteração");
+            break;
+          }
+        }
+      } else {
+        results.push(...await runPipeline(config, progressLogger));
+      }
 
       // Summary
       const totalShorts = results.reduce((sum, r) => sum + r.shorts.length, 0);
@@ -131,10 +164,12 @@ Commands:
   server        Start the API server
 
 Options (generate):
-  --url       Comma-separated YouTube URLs (ex: "url1,url2")
-  --channel   Comma-separated channel handles (ex: "@handle1,@handle2")
-  --limit     Max videos to fetch per channel (default: 3)
-  --clips     Exactly how many clips to generate per video (ex: 2)
+  --url            Comma-separated YouTube URLs (ex: "url1,url2")
+  --channel        Comma-separated channel handles (ex: "@handle1,@handle2")
+  --limit          Max videos to fetch per channel (default: 3)
+  --clips          Exactly how many clips to generate per video (ex: 2)
+  --target-shorts  Total number of shorts to generate in this run (ex: 15)
+  --full           For generate:top, number of full videos to post (ex: 5)
 
 Examples:
   pnpm generate --url "https://youtube.com/watch?v=abc,https://youtube.com/watch?v=def"

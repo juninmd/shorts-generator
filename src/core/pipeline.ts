@@ -216,8 +216,23 @@ export async function runPipeline(
   logger.info({ videoCount: videos.length }, "Starting pipeline");
 
   const results: PipelineResult[] = [];
+  let totalShorts = 0;
+
   for (const video of videos) {
-    results.push(await processVideo(video, config, onProgress));
+    if (config.targetShorts && totalShorts >= config.targetShorts) {
+      break;
+    }
+
+    const remainingShorts = config.targetShorts ? Math.max(config.targetShorts - totalShorts, 0) : undefined;
+    const videoResult = await processVideo(video, config, onProgress, remainingShorts || undefined);
+
+    totalShorts += videoResult.shorts.length;
+    results.push(videoResult);
+
+    if (config.targetShorts && totalShorts >= config.targetShorts) {
+      logger.info({ targetShorts: config.targetShorts }, "Target de shorts alcançado; finalizando pipeline");
+      break;
+    }
   }
 
   return results;
@@ -274,6 +289,7 @@ export async function processVideo(
   video: VideoInfo,
   config: PipelineConfig,
   onProgress?: ProgressCallback,
+  maxShorts?: number,
 ): Promise<PipelineResult> {
   const startTime = Date.now();
   const errors: string[] = [];
@@ -305,7 +321,11 @@ export async function processVideo(
 
     // Stage 3: LLM Analysis
     emitProgress("analyzing", "Analisando momentos virais...", 40);
-    const clips = await analyzeTranscript(transcript, video.title, video.channelName, config);
+    let clips = await analyzeTranscript(transcript, video.title, video.channelName, config);
+
+    if (maxShorts !== undefined && maxShorts > 0 && clips.length > maxShorts) {
+      clips = clips.slice(0, maxShorts);
+    }
 
     if (clips.length === 0) {
       logger.warn({ videoId: video.id, videoTitle: video.title }, "Transcrição analisada, mas a IA considerou que não há trechos virais. Pulando vídeo.");
@@ -318,6 +338,10 @@ export async function processVideo(
 
     // Stage 4: Partial Downloads & Cutting
     for (let index = 0; index < clips.length; index++) {
+      if (maxShorts !== undefined && maxShorts > 0 && shorts.length >= maxShorts) {
+        break;
+      }
+
       const clip = clips[index]!;
       try {
         emitProgress("cutting", `Baixando trecho ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
