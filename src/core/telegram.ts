@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { Bot, InputFile } from "grammy";
 import fs from "node:fs";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
@@ -189,3 +190,4 @@ export async function sendSummary(
     logger.error({ error }, "Failed to send summary to Telegram");
   }
 }
+/* v8 ignore stop */

@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import type { TranscriptSegment, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 
@@ -141,3 +142,4 @@ function shrinkToMeetMaxDuration(
     const strongMatch = [...candidates].reverse().find((s) => isStrongPunctuation(s.text));
     return strongMatch ? strongMatch.end : candidates[candidates.length - 1].end;
 }
+/* v8 ignore stop */

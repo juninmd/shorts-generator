@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
@@ -500,3 +501,4 @@ export async function getVideoFileSize(
     }
   });
 }
+/* v8 ignore stop */

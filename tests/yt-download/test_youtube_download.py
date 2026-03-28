@@ -90,6 +90,10 @@ class TestVideoMetadata:
         assert has_audio, "Should have at least one audio stream"
 
 
+@pytest.mark.skipif(
+    not os.getenv("GITHUB_ACTIONS") and not os.getenv("RUN_E2E"),
+    reason="Skipping E2E tests locally"
+)
 class TestVideoDownload:
     """Validate actual video download."""
 
