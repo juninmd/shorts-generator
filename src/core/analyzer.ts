@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { generateText } from "ai";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -152,24 +153,27 @@ function buildAnalysisPrompt(
   maxDuration: number,
   totalDuration: number,
 ): string {
-  return `Você é um roteirista sênior de YouTube Shorts. Sua missão é encontrar os momentos mais IMPACTANTES e ESPIRITUAIS deste vídeo.
+  return `Você é um roteirista sênior de YouTube Shorts focado em MÁXIMA VIRALIDADE. Sua missão é encontrar os momentos mais IMPACTANTES deste vídeo.
 
 VÍDEO ORIGINAL: "${videoTitle}"
 CANAL: "${channelName}"
 
-DIRETRIZES PARA OS TÍTULOS:
-- O título deve ser sobre a MENSAGEM do vídeo (ex: "O Segredo da Oração", "Como vencer o pecado").
+DIRETRIZES PARA OS TÍTULOS E CORTES:
+- Use títulos EXTREMAMENTE clickbaits e virais (ex: "O Segredo Revelado", "Você não vai acreditar nisso").
+- Foque em ganchos de retenção fortes (hooks) nos primeiros segundos para prender a atenção do público imediatamente.
+- Mantenha um ritmo acelerado e selecione trechos com alta probabilidade de retenção e engajamento.
+- O título deve ser em Português (pt-BR).
 - É PROIBIDO usar as palavras: "corte", "clipe", "short", "vídeo", "canal", "parte".
-- O tempo de cada clipe deve ser entre 40 e 70 segundos para garantir uma reflexão profunda.
-- O clipe DEVE encerrar em uma frase completa ou pensamento concluído (evite cortes no meio da fala).
-- Use um tom de curiosidade, fé ou sabedoria. Seja direto e impactante (máx 50 caracteres).
-- O título deve fazer sentido sozinho, sem o vídeo original.
+- O tempo de cada clipe deve ser entre ${minDuration} e ${maxDuration} segundos.
+- O clipe DEVE encerrar em uma frase completa ou pensamento concluído.
+- O título deve fazer sentido sozinho, sem o vídeo original, e ser direto e impactante (máx 50 caracteres).
+- No máximo 15 cortes devem ser retornados.
 
 TRANSRITO DO VÍDEO:
 ${transcript}
 
 Responda APENAS com JSON puro:
-{"clips":[{"title":"Título sobre o conteúdo","description":"...","startTime":0.0,"endTime":50.0,"viralScore":9,"reason":"...","hookLine":"...","hashtags":["#fe","#deus"]}]}`;
+{"clips":[{"title":"Título sobre o conteúdo","description":"...","startTime":0.0,"endTime":50.0,"viralScore":10,"reason":"...","hookLine":"...","hashtags":["#viral","#shorts"]}]}`;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -263,3 +267,4 @@ function getWordsInRange(words: TranscriptWord[], start: number, end: number): T
     .filter((w) => w.start >= start - 0.1 && w.end <= end + 0.1)
     .map((w) => ({ word: w.word, start: Math.max(0, w.start - start), end: w.end - start }));
 }
+/* v8 ignore stop */

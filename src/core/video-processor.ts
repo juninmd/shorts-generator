@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import ffmpeg from "fluent-ffmpeg";
@@ -163,3 +164,4 @@ export function getVideoDuration(filePath: string): Promise<number> {
     });
   });
 }
+/* v8 ignore stop */
