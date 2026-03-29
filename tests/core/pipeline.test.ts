@@ -74,7 +74,7 @@ describe("pipeline", () => {
   };
 
   const mockClip: ShortClip = {
-    id: "clip1", videoId: "vid1", title: "Title", description: "Desc", startTime: 10, endTime: 20, duration: 10, viralScore: 9, reason: "", hookLine: "", transcript: [], words: [], hashtags: []
+    id: "clip1", videoId: "vid1", title: "Title", description: "Desc", startTime: 10, endTime: 20, duration: 10, viralScore: 9, reason: "", transcript: [], words: [], hashtags: []
   };
 
   const mockGeneratedShort: GeneratedShort = {

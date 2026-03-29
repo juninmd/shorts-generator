@@ -4,7 +4,7 @@ import type { Transcript, PipelineConfig } from "../../src/types.js";
 import * as aiModule from "ai";
 
 vi.mock("ai", () => ({
-  generateText: vi.fn(),
+  generateObject: vi.fn(),
 }));
 
 vi.mock("../../src/core/ai-provider.js", () => ({
@@ -41,8 +41,7 @@ describe("analyzer", () => {
     vi.clearAllMocks();
   });
 
-  it("should process valid JSON from LLM successfully", async () => {
-    // 2 minutes duration -> minCuts = 4, maxCuts = 2 -> target = 4.
+  it("should process valid response from LLM successfully", async () => {
     const mockResponse = {
       clips: [
         {
@@ -52,14 +51,13 @@ describe("analyzer", () => {
           endTime: 40,
           viralScore: 9,
           reason: "Reason",
-          hookLine: "Hook",
           hashtags: ["#test"],
         },
       ],
     };
 
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: JSON.stringify(mockResponse),
+    vi.mocked(aiModule.generateObject).mockResolvedValue({
+      object: mockResponse,
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
@@ -69,91 +67,12 @@ describe("analyzer", () => {
     expect(clips[0].duration).toBe(30);
   });
 
-  it("should retry if LLM returns invalid JSON", async () => {
-    const mockResponse = {
-      clips: [
-        {
-          title: "Clip 1",
-          description: "Desc",
-          startTime: 10,
-          endTime: 40,
-          viralScore: 9,
-          reason: "Reason",
-          hookLine: "Hook",
-          hashtags: ["#test"],
-        },
-      ],
-    };
-
-    // First call returns garbage
-    vi.mocked(aiModule.generateText)
-      .mockResolvedValueOnce({ text: "Garbage data" } as any)
-      .mockResolvedValueOnce({ text: JSON.stringify(mockResponse) } as any);
+  it("should return empty array when LLM fails", async () => {
+    vi.mocked(aiModule.generateObject).mockRejectedValue(new Error("AI Error"));
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
 
-    expect(aiModule.generateText).toHaveBeenCalledTimes(2);
-    expect(clips).toHaveLength(1);
-  });
-
-  it("should parse JSON enclosed in markdown blocks", async () => {
-    const mockResponse = {
-      clips: [
-        {
-          title: "Clip 1",
-          description: "Desc",
-          startTime: 10,
-          endTime: 40,
-          viralScore: 9,
-          reason: "Reason",
-          hookLine: "Hook",
-          hashtags: ["#test"],
-        },
-      ],
-    };
-
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: `\`\`\`json\n${JSON.stringify(mockResponse)}\n\`\`\``,
-    } as any);
-
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-    expect(clips).toHaveLength(1);
-  });
-
-
-
-  it("should return empty array when LLM fails after retry", async () => {
-    vi.mocked(aiModule.generateText).mockResolvedValue({ text: "not json" } as any);
-
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-
-    expect(aiModule.generateText).toHaveBeenCalledTimes(2);
     expect(clips).toHaveLength(0);
-  });
-
-  it("should successfully parse JSON embedded directly in text without markdown block", async () => {
-    const mockResponse = {
-      clips: [
-        {
-          title: "Clip 2",
-          description: "Desc",
-          startTime: 10,
-          endTime: 40,
-          viralScore: 8,
-          reason: "Reason",
-          hookLine: "Hook",
-          hashtags: ["#test"],
-        },
-      ],
-    };
-    // The text contains words around the JSON
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: `Here is the JSON you requested: ${JSON.stringify(mockResponse)} \n\nHope this helps!`,
-    } as any);
-
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-    expect(clips).toHaveLength(1);
-    expect(clips[0].title).toBe("Clip 2");
   });
 
   it("should sort clips by viralScore in descending order", async () => {
@@ -166,7 +85,6 @@ describe("analyzer", () => {
           endTime: 40,
           viralScore: 5,
           reason: "Reason",
-          hookLine: "Hook",
           hashtags: ["#test"],
         },
         {
@@ -176,14 +94,13 @@ describe("analyzer", () => {
           endTime: 70,
           viralScore: 9,
           reason: "Reason",
-          hookLine: "Hook",
           hashtags: ["#test"],
         },
       ],
     };
 
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: JSON.stringify(mockResponse),
+    vi.mocked(aiModule.generateObject).mockResolvedValue({
+      object: mockResponse,
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
@@ -196,23 +113,12 @@ describe("analyzer", () => {
     const mockResponse = {
       clips: [
         {
-          title: "Too Short But Extends",
+          title: "Too Short",
           description: "Desc",
           startTime: 10,
           endTime: 15, // duration 5 < minShortDuration 15
           viralScore: 9,
           reason: "Reason",
-          hookLine: "Hook",
-          hashtags: ["#test"],
-        },
-        {
-          title: "Too Short Cannot Extend",
-          description: "Desc",
-          startTime: 110,
-          endTime: 111,
-          viralScore: 9,
-          reason: "Reason",
-          hookLine: "Hook",
           hashtags: ["#test"],
         },
         {
@@ -222,7 +128,6 @@ describe("analyzer", () => {
           endTime: 90, // duration 80 > maxShortDuration 60
           viralScore: 9,
           reason: "Reason",
-          hookLine: "Hook",
           hashtags: ["#test"],
         },
         {
@@ -232,7 +137,6 @@ describe("analyzer", () => {
           endTime: 130, // > transcript.duration 120
           viralScore: 9,
           reason: "Reason",
-          hookLine: "Hook",
           hashtags: ["#test"],
         },
         {
@@ -242,13 +146,14 @@ describe("analyzer", () => {
           endTime: 70, // duration 30
           viralScore: 8,
           reason: "Reason",
-          hookLine: "Hook",
           hashtags: ["#test"],
         },
       ],
     };
 
-    vi.mocked(aiModule.generateText).mockResolvedValue({ text: JSON.stringify(mockResponse) } as any);
+    vi.mocked(aiModule.generateObject).mockResolvedValue({
+      object: mockResponse,
+    } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
 
@@ -256,94 +161,16 @@ describe("analyzer", () => {
     expect(clips[0].title).toBe("Valid");
   });
 
-  it("should return null inside extractAndParseJSON if parsed data is not an object", async () => {
-    // This targets line 177 where direct parse fails or returns false
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: `"just a string instead of object"`,
+  it("should return empty array if AI returns empty clips list", async () => {
+    vi.mocked(aiModule.generateObject).mockResolvedValue({
+      object: { clips: [] },
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
     expect(clips).toHaveLength(0);
-  });
-
-  it("should return null inside extractAndParseJSON if parsed json codeblock data is not valid schema", async () => {
-    // This targets line 185
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: `\`\`\`json\n{ "invalid": "schema" }\n\`\`\``,
-    } as any);
-
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-    expect(clips).toHaveLength(0);
-  });
-
-  it("should return empty array if getWordsInRange does not match any words", async () => {
-    // Targets 318-319
-    const mockResponse = {
-      clips: [
-        {
-          title: "Clip 3",
-          description: "Desc",
-          startTime: 10,
-          endTime: 40,
-          viralScore: 8,
-          reason: "Reason",
-          hookLine: "Hook",
-          hashtags: ["#test"],
-        },
-      ],
-    };
-
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: JSON.stringify(mockResponse),
-    } as any);
-
-    const transcriptWithWords = {
-      ...mockTranscript,
-      words: [{ word: "Outside", start: 100, end: 105 }],
-    };
-
-    const clips = await analyzeTranscript(transcriptWithWords, "Title", "Channel", mockConfig);
-    expect(clips).toHaveLength(1);
-    expect(clips[0].words).toHaveLength(0);
-  });
-
-  it("should return null inside extractAndParseJSON if parsed json fragment data is not valid schema", async () => {
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: `some text { "clips": "invalid" } some text`,
-    } as any);
-
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-    expect(clips).toHaveLength(0);
-  });
-
-  it("should successfully extract JSON fragment from text when other methods fail", async () => {
-    // Tests JSON extraction fallback
-    const mockResponse = {
-      clips: [
-        {
-          title: "Fragment Clip",
-          description: "Desc",
-          startTime: 10,
-          endTime: 40,
-          viralScore: 8,
-          reason: "Reason",
-          hookLine: "Hook",
-          hashtags: ["#test"],
-        },
-      ],
-    };
-
-    // Simulate invalid markdown block and invalid direct parse, but with valid JSON fragment
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: `Some text { "clips": ${JSON.stringify(mockResponse.clips)} } some more text`,
-    } as any);
-
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-    expect(clips).toHaveLength(1);
   });
 
   it("should correctly handle words within the clip range", async () => {
-    // Targets line 319 map branch where Math.max(0, w.start - start) occurs
     const mockResponse = {
       clips: [
         {
@@ -353,20 +180,19 @@ describe("analyzer", () => {
           endTime: 40,
           viralScore: 8,
           reason: "Reason",
-          hookLine: "Hook",
           hashtags: ["#test"],
         },
       ],
     };
 
-    vi.mocked(aiModule.generateText).mockResolvedValue({
-      text: JSON.stringify(mockResponse),
+    vi.mocked(aiModule.generateObject).mockResolvedValue({
+      object: mockResponse,
     } as any);
 
     const transcriptWithWords = {
       ...mockTranscript,
       words: [
-        { word: "Inside", start: 9.9, end: 12 }, // start < 10 but >= 9.9
+        { word: "Inside", start: 9.9, end: 12 },
         { word: "Normal", start: 12, end: 14 }
       ],
     };
@@ -374,33 +200,6 @@ describe("analyzer", () => {
     const clips = await analyzeTranscript(transcriptWithWords, "Title", "Channel", mockConfig);
     expect(clips).toHaveLength(1);
     expect(clips[0].words).toHaveLength(2);
-    expect(clips[0].words[0].start).toBe(0); // Math.max(0, 9.9 - 10) === 0
-  });
-
-  it("should handle invalid JSON on the first try but successfully parse from markdown codeblock on retry", async () => {
-    const mockResponse = {
-      clips: [
-        {
-          title: "Retry Clip",
-          description: "Desc",
-          startTime: 10,
-          endTime: 40,
-          viralScore: 9,
-          reason: "Reason",
-          hookLine: "Hook",
-          hashtags: ["#test"],
-        },
-      ],
-    };
-
-    vi.mocked(aiModule.generateText)
-      .mockResolvedValueOnce({ text: "completely unparseable string with no json" } as any)
-      .mockResolvedValueOnce({ text: `\`\`\`json\n${JSON.stringify(mockResponse)}\n\`\`\`` } as any);
-
-    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
-
-    expect(aiModule.generateText).toHaveBeenCalledTimes(2);
-    expect(clips).toHaveLength(1);
-    expect(clips[0].title).toBe("Retry Clip");
+    expect(clips[0].words[0].start).toBe(0);
   });
 });

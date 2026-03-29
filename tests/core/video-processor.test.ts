@@ -69,7 +69,6 @@ describe("video-processor", () => {
     duration: 10,
     viralScore: 8,
     reason: "good",
-    hookLine: "hook",
     transcript: [],
     words: [],
     hashtags: [],

@@ -51,7 +51,6 @@ export interface ShortClip {
   duration: number;
   viralScore: number;
   reason: string;
-  hookLine: string;
   transcript: TranscriptSegment[];
   words: TranscriptWord[];
   hashtags: string[];
