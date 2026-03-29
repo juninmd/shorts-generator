@@ -144,12 +144,36 @@ async function renderShort(
   const ffmpegBin = getFfmpegPath();
   logger.debug({ command: [ffmpegBin, ...args].join(" ") }, "FFmpeg started");
 
-  const { stderr } = await execFileAsync(ffmpegBin, args, {
-    env: spawnEnv,
-    maxBuffer: 100 * 1024 * 1024,
-  });
+  try {
+    const { stderr } = await execFileAsync(ffmpegBin, args, {
+      env: spawnEnv,
+      maxBuffer: 100 * 1024 * 1024,
+    });
 
-  if (stderr) logger.debug({ stderr }, "FFmpeg stderr");
+    if (stderr) logger.debug({ stderr }, "FFmpeg stderr (informational)");
+
+    // Final integrity check: ensure the file exists and has a reasonable size (> 100KB)
+    if (!fs.existsSync(outputPath)) {
+      throw new Error(`FFmpeg finished but output file is missing: ${outputPath}`);
+    }
+    const stats = fs.statSync(outputPath);
+    if (stats.size < 100 * 1024) {
+      throw new Error(`FFmpeg output is too small (${(stats.size / 1024).toFixed(1)}KB). Video is likely corrupted.`);
+    }
+
+    logger.debug({ outputPath, size: stats.size }, "Video integrity verified");
+  } catch (err: any) {
+    logger.error(
+      {
+        err,
+        stderr: err.stderr,
+        stdout: err.stdout,
+        command: [ffmpegBin, ...args].join(" "),
+      },
+      "FFmpeg CRASHED! O vídeo gerado provavelmente está corrompido ou vazio.",
+    );
+    throw new Error(`FFmpeg failed to render short: ${err.message}`);
+  }
 }
 
 /**
