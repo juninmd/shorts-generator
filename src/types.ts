@@ -118,6 +118,8 @@ export interface PipelineConfig {
   keepTempFiles?: boolean;
   /** Max YouTube uploads per calendar day (default: 70). Shorts beyond this are Telegram-only. */
   dailyUploadLimit: number;
+  /** Maximum video duration (seconds) to include from channel listings. Default: 3h */
+  maxVideoDurationSec: number;
   /** Optional progress callback (used by transcriber) */
   onProgress?: (percent: number) => void;
 }
