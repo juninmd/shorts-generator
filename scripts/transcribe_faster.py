@@ -26,12 +26,14 @@ def transcribe(audio_path, model_size, output_dir):
             device = "cpu"
 
     compute_type = "float16" if device == "cuda" else "int8"
+    import multiprocessing
+    cpu_threads = int(os.environ.get("WHISPER_CPU_THREADS", str(multiprocessing.cpu_count())))
 
-    print(f"Starting transcription on device: {device} (compute_type: {compute_type})")
+    print(f"Starting transcription on device: {device} (compute_type: {compute_type}, cpu_threads: {cpu_threads})")
 
     model = None
     try:
-        model = WhisperModel(model_size, device=device, compute_type=compute_type)
+        model = WhisperModel(model_size, device=device, compute_type=compute_type, cpu_threads=cpu_threads, num_workers=2)
     except:
         if device == "cuda":
             import traceback
@@ -39,7 +41,7 @@ def transcribe(audio_path, model_size, output_dir):
             traceback.print_exc()
             print("Falling back to CPU...")
             try:
-                model = WhisperModel(model_size, device="cpu", compute_type="int8")
+                model = WhisperModel(model_size, device="cpu", compute_type="int8", cpu_threads=cpu_threads, num_workers=2)
             except Exception as e:
                 print(f"CPU fallback also failed: {e}")
                 sys.exit(1)
@@ -52,7 +54,15 @@ def transcribe(audio_path, model_size, output_dir):
         print("Failed to initialize Whisper model.")
         sys.exit(1)
 
-    segments_gen, info = model.transcribe(audio_path, beam_size=5, word_timestamps=True)
+    beam_size = 1 if device == "cuda" else 2
+    segments_gen, info = model.transcribe(
+        audio_path,
+        beam_size=beam_size,
+        word_timestamps=True,
+        vad_filter=True,
+        vad_parameters={"min_silence_duration_ms": 500},
+        condition_on_previous_text=False,
+    )
 
     # Convert generator to list to avoid 'generator has no len()' error
     segments = list(segments_gen)

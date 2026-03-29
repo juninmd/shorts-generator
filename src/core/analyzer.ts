@@ -133,7 +133,7 @@ function processClips(clips: ClipItem[], transcript: Transcript, config: Pipelin
                clip.startTime >= 0 &&
                clip.endTime <= transcript.duration;
     if (!ok) {
-      logger.debug({
+      logger.info({
         title: clip.title,
         startTime: clip.startTime,
         endTime: clip.endTime,
