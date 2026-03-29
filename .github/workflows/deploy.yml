@@ -37,27 +37,3 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:${{ steps.prep.outputs.tag }}
             ghcr.io/${{ github.repository }}:latest
-
-  update-gitops:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout app-charts repo
-        uses: actions/checkout@v5
-        with:
-          repository: ${{ github.repository_owner }}/app-charts
-          token: ${{ secrets.GH_PAT }}
-          path: app-charts
-
-      - name: Update Deployment Image Tag
-        run: |
-          sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${{ needs.build-and-push.outputs.image_tag }}|g" app-charts/shorts-generator/deployment.yaml
-
-      - name: Commit and Push Changes
-        run: |
-          cd app-charts
-          git config user.name "GitHub Action"
-          git config user.email "actions@github.com"
-          git add shorts-generator/deployment.yaml
-          git commit -m "🚀 Deploy: Update shorts-generator image to ${{ needs.build-and-push.outputs.image_tag }}"
-          git push
