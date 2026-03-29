@@ -37,6 +37,9 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     .filter(Boolean);
 
   const maxVideoSizeMb = parseInt(optionalEnv("MAX_VIDEO_SIZE_MB", "500"), 10);
+  const skipVideoSizeCheck = optionalEnv("SKIP_VIDEO_SIZE_CHECK", "false") === "true";
+  const keepTempFiles = optionalEnv("KEEP_TEMP_FILES", "false") === "true";
+  const dailyUploadLimit = parseInt(optionalEnv("MAX_DAILY_UPLOADS", "70"), 10);
 
   const config: PipelineConfig = {
     channels,
@@ -47,6 +50,9 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     maxShortDuration: parseInt(optionalEnv("MAX_SHORT_DURATION", "70"), 10),
     minShortDuration: parseInt(optionalEnv("MIN_SHORT_DURATION", "40"), 10),
     maxVideoSizeBytes: maxVideoSizeMb * 1024 * 1024,
+    skipVideoSizeCheck,
+    keepTempFiles,
+    dailyUploadLimit,
     minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "1"), 10),
     targetShorts: Number(optionalEnv("TARGET_SHORTS", "0")) || undefined,
     fullVideoCount: Number(optionalEnv("FULL_VIDEO_COUNT", "0")) || undefined,
@@ -89,5 +95,5 @@ export function getMaxCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
   const minCuts = getMinCuts(videoDurationSeconds);
   // Rule: 1 cut every 2 minutes, maximum 15, at least minCuts + 1
-  return Math.min(15, Math.max(minCuts + 1, Math.floor(durationMinutes / 2)));
+  return Math.min(20, Math.max(minCuts + 1, Math.floor(durationMinutes / 2)));
 }

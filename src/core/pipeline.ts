@@ -16,10 +16,10 @@ import {
   cleanupVideo,
   verifyYoutubeAccess,
 } from "./youtube.js";
-import { getPostedTopVideos, markVideoAsPosted } from "./state.js";
+import { getPostedTopVideos, markVideoAsPosted, isDailyLimitReached, incrementDailyUploadCount } from "./state.js";
 import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
-import { processClip } from "./video-processor.js";
+import { processClip, getFileStartTime } from "./video-processor.js";
 import { sendToTelegram, sendSummary, sendFullVideoToTelegram } from "./telegram.js";
 import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube } from "./youtube.service.js";
 import { generateText } from "ai";
@@ -144,7 +144,7 @@ export async function runTopVideoPipeline(
 
     await sendFullVideoToTelegram(downloadedFull, config, youtubeUrl);
 
-    cleanupVideo(targetVideo.id, config);
+    if (!config.keepTempFiles) cleanupVideo(targetVideo.id, config);
     markVideoAsPosted(targetVideo.id);
 
     onProgress?.({
@@ -165,7 +165,7 @@ export async function runTopVideoPipeline(
     }];
   } catch (error: any) {
     logger.error({ error, videoId: targetVideo.id }, "Failed to process full top video");
-    cleanupVideo(targetVideo.id, config);
+    if (!config.keepTempFiles) cleanupVideo(targetVideo.id, config);
     return [{
       videoId: targetVideo.id,
       videoTitle: targetVideo.title,
@@ -201,7 +201,9 @@ export async function runPipeline(
   }
 
   for (const channel of config.channels) {
-    const channelVideos = await getChannelVideos(channel, config.videoLimit);
+    const channelVideos = config.sortByViews
+      ? await getTopChannelVideos(channel, config.videoLimit)
+      : await getChannelVideos(channel, config.videoLimit);
     const selected = await selectValidVideos(channelVideos, config);
     if (selected.length > 0) {
       videos.push(...selected);
@@ -256,10 +258,12 @@ async function isVideoWithinLimits(
     return false;
   }
 
-  const remoteSize = await getVideoFileSize(video.url, config);
-  if (remoteSize !== null && remoteSize > config.maxVideoSizeBytes) {
-    logger.warn({ videoId: video.id }, "Skipping video: exceeds size limit");
-    return false;
+  if (!config.skipVideoSizeCheck) {
+    const remoteSize = await getVideoFileSize(video.url, config);
+    if (remoteSize !== null && remoteSize > config.maxVideoSizeBytes) {
+      logger.warn({ videoId: video.id }, "Skipping video: exceeds size limit");
+      return false;
+    }
   }
 
   return true;
@@ -329,7 +333,7 @@ export async function processVideo(
 
     if (clips.length === 0) {
       logger.warn({ videoId: video.id, videoTitle: video.title }, "Transcrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.");
-      cleanupVideo(video.id, config);
+      if (!config.keepTempFiles) cleanupVideo(video.id, config);
       return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts: [], errors: [], processingTimeMs: Date.now() - startTime };
     }
 
@@ -349,8 +353,21 @@ export async function processVideo(
         const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
         const downloadedSection = { ...downloadedAudio, filePath: sectionPath };
 
+        // yt-dlp with DASH streams (video+audio merged) resets timestamps to 0 in the output
+        // file, while single-stream downloads preserve original timestamps. Detect which case
+        // we're in and compute the correct seek offset within the section file.
+        const sectionStartTime = await getFileStartTime(sectionPath);
+        const expectedSectionStart = Math.max(0, clip.startTime - 2);
+        const timestampsPreserved = Math.abs(sectionStartTime - expectedSectionStart) <= 10;
+        const seekOffset = timestampsPreserved
+          ? clip.startTime                                       // absolute seek (original ts)
+          : Math.max(0, clip.startTime - expectedSectionStart); // relative seek (ts reset to 0)
+        const sectionClip = { ...clip, startTime: seekOffset, endTime: seekOffset + clip.duration };
+
+        logger.debug({ clipId: clip.id, sectionStartTime, expectedSectionStart, timestampsPreserved, seekOffset }, "Section seek offset");
+
         emitProgress("cutting", `Processando corte ${index + 1}/${totalClips}`, 65 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
-        const short = await processClip(downloadedSection, clip, config);
+        const short = await processClip(downloadedSection, sectionClip, config);
         shorts.push(short);
       } catch (err) {
         errors.push(`Erro no corte ${clip.id}: ${err instanceof Error ? err.message : String(err)}`);
@@ -364,7 +381,15 @@ export async function processVideo(
     for (const short of shorts) {
       try {
         const youtubeMeta = await generateYoutubeMetadata(short, config);
-        const youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config);
+        let youtubeUrl: string | undefined;
+        if (youtubeEnabled) {
+          if (isDailyLimitReached(config.dailyUploadLimit)) {
+            logger.warn({ limit: config.dailyUploadLimit }, "⚠️ Limite diário de uploads do YouTube atingido — enviando apenas ao Telegram");
+          } else {
+            youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config) ?? undefined;
+            incrementDailyUploadCount();
+          }
+        }
         const msgId = await sendToTelegram(short, config, youtubeUrl);
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
@@ -373,12 +398,12 @@ export async function processVideo(
     }
 
     await sendSummary(video.title, video.channelName, shorts.length, errors, config);
-    cleanupVideo(video.id, config);
+    if (!config.keepTempFiles) cleanupVideo(video.id, config);
     emitProgress("done", "Concluído", 100);
   } catch (err) {
     logger.error({ videoId: video.id, error: err }, "Fatal video error");
     errors.push(String(err));
-    cleanupVideo(video.id, config);
+    if (!config.keepTempFiles) cleanupVideo(video.id, config);
   }
 
   return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts, errors, processingTimeMs: Date.now() - startTime };

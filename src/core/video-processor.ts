@@ -187,4 +187,19 @@ export function getVideoDuration(filePath: string): Promise<number> {
     });
   });
 }
+
+/**
+ * Get the presentation start timestamp of a video file.
+ * Returns 0 when yt-dlp resets timestamps (merged DASH streams),
+ * or the original video timestamp when timestamps are preserved (single-stream).
+ */
+export function getFileStartTime(filePath: string): Promise<number> {
+  return new Promise((resolve) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) return resolve(0);
+      const t = parseFloat(String(metadata?.format?.start_time ?? "0"));
+      resolve(isNaN(t) ? 0 : t);
+    });
+  });
+}
 /* v8 ignore stop */

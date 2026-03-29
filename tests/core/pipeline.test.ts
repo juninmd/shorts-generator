@@ -44,6 +44,7 @@ vi.mock("../../src/core/analyzer.js", () => ({
 
 vi.mock("../../src/core/video-processor.js", () => ({
   processClip: vi.fn(),
+  getFileStartTime: vi.fn().mockResolvedValue(0),
 }));
 
 vi.mock("../../src/core/telegram.js", () => ({
@@ -88,6 +89,7 @@ describe("pipeline", () => {
     vi.mocked(youtube.getChannelVideos).mockResolvedValue([mockVideoInfo]);
     vi.mocked(youtube.getVideoFileSize).mockResolvedValue(500); // within limit
     vi.mocked(youtube.downloadAudioOnly).mockResolvedValue(mockDownloadedVideo);
+    vi.mocked(youtube.downloadVideoSection).mockResolvedValue("section.mp4");
     vi.mocked(youtube.verifyYoutubeAccess).mockResolvedValue(undefined);
 
     vi.mocked(transcriber.transcribeVideo).mockResolvedValue(mockTranscript);

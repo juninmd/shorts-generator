@@ -110,6 +110,14 @@ export interface PipelineConfig {
   targetShorts?: number;
   /** If set, generate this many top full videos via runTopVideoPipeline (command-level, not per-video) */
   fullVideoCount?: number;
+  /** Skip remote video file-size check — safe when audio-only download is used */
+  skipVideoSizeCheck?: boolean;
+  /** Sort channel videos by view count instead of most recent */
+  sortByViews?: boolean;
+  /** Keep temp files (audio, video sections) after processing — useful for debugging */
+  keepTempFiles?: boolean;
+  /** Max YouTube uploads per calendar day (default: 70). Shorts beyond this are Telegram-only. */
+  dailyUploadLimit: number;
   /** Optional progress callback (used by transcriber) */
   onProgress?: (percent: number) => void;
 }

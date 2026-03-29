@@ -6,6 +6,7 @@ import { loadConfig } from "./core/config.js";
 import { runPipeline, runTopVideoPipeline } from "./core/pipeline.js";
 import { logger } from "./core/logger.js";
 import { startServer } from "./server/index.js";
+import { runInteractive } from "./cli-interactive.js";
 
 // Filter out '--' separator that pnpm/npm passes through
 const args = process.argv.slice(2).filter((a) => a !== "--");
@@ -144,6 +145,12 @@ async function main() {
       break;
     }
 
+    case "interactive":
+    case undefined: {
+      await runInteractive();
+      break;
+    }
+
     case "server": {
       startServer();
       break;
@@ -159,6 +166,7 @@ Usage:
   pnpm run cli -- <command> [options]
 
 Commands:
+  interactive   Interactive menu — choose channel/URL, order, and clip count (default when no command given)
   generate      Generate shorts from YouTube videos (latest)
   generate:top  Generate shorts from a top video (random from top 20 non-music)
   server        Start the API server
