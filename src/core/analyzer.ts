@@ -140,7 +140,8 @@ DIRETRIZES PARA OS TÍTULOS E CORTES:
 - É PROIBIDO usar as palavras: "corte", "clipe", "short", "vídeo", "canal", "parte".
 - O tempo de cada clipe deve ser entre ${minDuration} e ${maxDuration} segundos.
 - O clipe DEVE encerrar em uma frase completa ou pensamento concluído.
-- Retorne entre ${minClips} e ${maxClips} cortes (máximo 15).
+- O título deve fazer sentido sozinho, sem o vídeo original, e ser direto e impactante (máx 50 caracteres).
+- No máximo ${Math.min(15, maxClips)} cortes devem ser retornados.
 
 TRANSRITO DO VÍDEO:
 ${transcript}`;
