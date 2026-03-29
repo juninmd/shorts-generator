@@ -64,7 +64,6 @@ describe("youtube.service", () => {
       title: "Original Title",
       description: "Original Description",
       reason: "viral",
-      hookLine: "hook",
       hashtags: ["#dummy"],
     },
   } as any;

@@ -42,7 +42,6 @@ export interface JobStatus {
         duration: number;
         viralScore: number;
         reason: string;
-        hookLine: string;
         hashtags: string[];
       };
       outputPath: string;

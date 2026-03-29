@@ -36,7 +36,6 @@ export async function processClip(
       end: clip.endTime,
       duration: clip.duration,
       title: clip.title,
-      hookLine: clip.hookLine,
       viralScore: clip.viralScore,
       reason: clip.reason,
     },

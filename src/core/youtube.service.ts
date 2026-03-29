@@ -23,7 +23,6 @@ Título Sugerido: ${short.clip.title}
 Descrição Sugerida: ${short.clip.description}
 Contexto do Canal: ${short.channelName}
 Motivo da Viralização: ${short.clip.reason}
-Hook: ${short.clip.hookLine}
 Hashtags Sugeridas: ${short.clip.hashtags?.join(", ")}
 
 O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
