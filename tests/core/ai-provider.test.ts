@@ -6,25 +6,25 @@ describe("ai-provider", () => {
   it("should create OpenRouter model when config.aiProvider is openrouter", () => {
     const config = {
       aiProvider: "openrouter",
-      openrouterApiKey: "dummy-key",
-      aiModel: "dummy-model",
-      ollamaBaseUrl: "http://localhost:11434"
+      openrouterApiKey: "12345",
+      aiModel: "model-abc",
+      ollamaBaseUrl: "https://127.0.0.1:11434"
     } as PipelineConfig;
     const model = createModel(config);
     expect(model).toBeDefined();
-    expect(model.modelId).toBe("dummy-model");
+    expect(model.modelId).toBe("model-abc");
     expect(model.provider).toBe("openrouter");
   });
 
   it("should create Ollama model otherwise", () => {
     const config = {
       aiProvider: "ollama",
-      aiModel: "dummy-model",
-      ollamaBaseUrl: "http://localhost:11434"
+      aiModel: "model-abc",
+      ollamaBaseUrl: "https://127.0.0.1:11434"
     } as PipelineConfig;
     const model = createModel(config);
     expect(model).toBeDefined();
-    expect(model.modelId).toBe("dummy-model");
+    expect(model.modelId).toBe("model-abc");
     expect(model.provider).toBe("ollama.chat");
   });
 });

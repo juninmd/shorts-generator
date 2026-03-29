@@ -40,235 +40,97 @@ describe("CLI Interactive", () => {
     vi.restoreAllMocks();
   });
 
+  const setupMocks = (questions: string[], config: any, pipelineRes: any) => {
+    questions.forEach(q => mockRl.question.mockResolvedValueOnce(q));
+    vi.mocked(loadConfig).mockReturnValue(config as any);
+    vi.mocked(runPipeline).mockResolvedValue(pipelineRes);
+  };
+
   it("should handle mode 1 (recent videos) successfully", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("1") // pickMenu
-      .mockResolvedValueOnce("@test") // channels
-      .mockResolvedValueOnce("2") // video limit
-      .mockResolvedValueOnce("3"); // clips limit
-
-    vi.mocked(loadConfig).mockReturnValue({
-      channels: ["@test"],
-      specificUrls: [],
-      videoLimit: 2,
-    } as any);
-
-    vi.mocked(runPipeline).mockResolvedValue([
-      { videoId: "v1", shorts: ["s1", "s2"], errors: [] }
-    ]);
+    setupMocks(["1", "@channel123", "2", "3"], { channels: ["@channel123"], specificUrls: [], videoLimit: 2 }, [{ videoId: "v1", shorts: ["s1", "s2"], errors: [] }]);
 
     await runInteractive();
 
     expect(loadConfig).toHaveBeenCalledWith({
-      channels: ["@test"],
-      specificUrls: [],
-      videoLimit: 2,
-      maxClipsOverride: 3,
-      minShortsPerVideo: 3,
+      channels: ["@channel123"], specificUrls: [], videoLimit: 2, maxClipsOverride: 3, minShortsPerVideo: 3,
     });
-    expect(runPipeline).toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith(
-      expect.objectContaining({ videosProcessed: 1, totalShorts: 2, totalErrors: 0 }),
-      "✅ Pipeline finalizada"
+      expect.objectContaining({ videosProcessed: 1, totalShorts: 2, totalErrors: 0 }), "✅ Pipeline finalizada"
     );
   });
 
   it("should retry invalid menu pick", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("4") // invalid
-      .mockResolvedValueOnce("invalid") // invalid
-      .mockResolvedValueOnce("1") // pickMenu
-      .mockResolvedValueOnce("@test") // channels
-      .mockResolvedValueOnce("2") // video limit
-      .mockResolvedValueOnce("AUTO"); // clips limit
-
-    vi.mocked(loadConfig).mockReturnValue({
-      channels: ["@test"],
-      specificUrls: [],
-      videoLimit: 2,
-    } as any);
-
-    vi.mocked(runPipeline).mockResolvedValue([
-      { videoId: "v1", shorts: [], errors: [] }
-    ]);
+    setupMocks(["4", "invalid", "1", "@channel123", "2", "AUTO"], { channels: ["@channel123"], specificUrls: [], videoLimit: 2 }, [{ videoId: "v1", shorts: [], errors: [] }]);
 
     await runInteractive();
 
-    expect(loadConfig).toHaveBeenCalledWith({
-      channels: ["@test"],
-      specificUrls: [],
-      videoLimit: 2,
-    });
-  });
-
-  it("should exit if no channels provided in mode 1", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("1") // pickMenu
-      .mockResolvedValueOnce(""); // empty channels
-      // Add extra to avoid undefined error since exit throws in real life, but spy returns
-
-    // simulate process.exit ending execution
-    exitSpy.mockImplementationOnce(() => { throw new Error("process.exit"); });
-
-    await expect(runInteractive()).rejects.toThrow("process.exit");
-
-    expect(errorSpy).toHaveBeenCalledWith("  ❌ Nenhum canal informado.");
-    expect(exitSpy).toHaveBeenCalledWith(1);
-    expect(mockRl.close).toHaveBeenCalled();
+    expect(loadConfig).toHaveBeenCalledWith({ channels: ["@channel123"], specificUrls: [], videoLimit: 2 });
   });
 
   it("should handle mode 2 (most viewed) successfully", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("2") // pickMenu
-      .mockResolvedValueOnce("@test1, @test2") // channels
-      .mockResolvedValueOnce("") // video limit (default 1)
-      .mockResolvedValueOnce("invalid_clips"); // clips limit (ignored, auto)
-
-    vi.mocked(loadConfig).mockReturnValue({
-      channels: ["@test1", "@test2"],
-      specificUrls: [],
-      videoLimit: 1,
-      sortByViews: true,
-    } as any);
-
-    vi.mocked(runPipeline).mockResolvedValue([]);
+    setupMocks(["2", "@ch1, @ch2", "", "invalid_clips"], { channels: ["@ch1", "@ch2"], specificUrls: [], videoLimit: 1, sortByViews: true }, []);
 
     await runInteractive();
 
-    expect(loadConfig).toHaveBeenCalledWith({
-      channels: ["@test1", "@test2"],
-      specificUrls: [],
-      videoLimit: 1,
-      sortByViews: true,
-    });
+    expect(loadConfig).toHaveBeenCalledWith({ channels: ["@ch1", "@ch2"], specificUrls: [], videoLimit: 1, sortByViews: true });
   });
 
   it("should handle mode 3 (specific URL) successfully", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("3") // pickMenu
-      .mockResolvedValueOnce("http://url1,http://url2") // urls
-      .mockResolvedValueOnce("-5"); // clips limit (invalid, auto)
-
-    vi.mocked(loadConfig).mockReturnValue({
-      channels: [],
-      specificUrls: ["http://url1", "http://url2"],
-    } as any);
-
-    vi.mocked(runPipeline).mockResolvedValue([]);
+    setupMocks(["3", "https://example.com/url1,https://example.com/url2", "-5"], { channels: [], specificUrls: ["https://example.com/url1", "https://example.com/url2"] }, []);
 
     await runInteractive();
 
-    expect(loadConfig).toHaveBeenCalledWith({
-      channels: [],
-      specificUrls: ["http://url1", "http://url2"],
-    });
+    expect(loadConfig).toHaveBeenCalledWith({ channels: [], specificUrls: ["https://example.com/url1", "https://example.com/url2"] });
   });
 
-  it("should exit if no URLs provided in mode 3", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("3") // pickMenu
-      .mockResolvedValueOnce(""); // empty urls
+  it("should enforce minimum video limit of 1", async () => {
+    setupMocks(["1", "@channel123", "0", "AUTO"], { channels: ["@channel123"], specificUrls: [], videoLimit: 1 }, []);
 
-    // simulate process.exit ending execution
-    exitSpy.mockImplementationOnce(() => { throw new Error("process.exit"); });
+    await runInteractive();
 
-    await expect(runInteractive()).rejects.toThrow("process.exit");
-
-    expect(errorSpy).toHaveBeenCalledWith("  ❌ Nenhuma URL informada.");
-    expect(exitSpy).toHaveBeenCalledWith(1);
-    expect(mockRl.close).toHaveBeenCalled();
+    expect(loadConfig).toHaveBeenCalledWith(expect.objectContaining({ videoLimit: 1 }));
   });
 
-  it("should exit if loadConfig returns empty config", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("3") // pickMenu
-      .mockResolvedValueOnce("http://url") // urls
-      .mockResolvedValueOnce("AUTO"); // clips limit
+  describe("Exit scenarios", () => {
+    const runExitTest = async (questions: string[], expectedErrorMsg: string, pipelineRes?: any) => {
+      questions.forEach(q => mockRl.question.mockResolvedValueOnce(q));
+      if (pipelineRes !== undefined) {
+        vi.mocked(loadConfig).mockReturnValue({ channels: [], specificUrls: ["https://example.com/url"] } as any);
+        vi.mocked(runPipeline).mockResolvedValue(pipelineRes);
+      } else {
+        vi.mocked(loadConfig).mockReturnValue({ channels: [], specificUrls: [] } as any);
+      }
+      exitSpy.mockImplementationOnce(() => { throw new Error("process.exit"); });
 
-    vi.mocked(loadConfig).mockReturnValue({
-      channels: [],
-      specificUrls: [],
-    } as any);
+      await expect(runInteractive()).rejects.toThrow("process.exit");
+      expect(exitSpy).toHaveBeenCalledWith(1);
 
-    // simulate process.exit ending execution
-    exitSpy.mockImplementationOnce(() => { throw new Error("process.exit"); });
+      if (expectedErrorMsg.includes("0 shorts gerados") || expectedErrorMsg.includes("Nenhum canal ou URL")) {
+        expect(logger.error).toHaveBeenCalledWith(expectedErrorMsg);
+      } else {
+        expect(errorSpy).toHaveBeenCalledWith(expectedErrorMsg);
+        expect(mockRl.close).toHaveBeenCalled();
+      }
+    };
 
-    await expect(runInteractive()).rejects.toThrow("process.exit");
+    it("should exit if no channels provided in mode 1", () => runExitTest(["1", ""], "  ❌ Nenhum canal informado."));
+    it("should exit if no URLs provided in mode 3", () => runExitTest(["3", ""], "  ❌ Nenhuma URL informada."));
+    it("should exit if loadConfig returns empty config", () => runExitTest(["3", "https://example.com/url", "AUTO"], "Nenhum canal ou URL encontrado. Verifique as entradas."));
 
-    expect(logger.error).toHaveBeenCalledWith("Nenhum canal ou URL encontrado. Verifique as entradas.");
-    expect(exitSpy).toHaveBeenCalledWith(1);
+    it("should exit with 1 if total errors > 0 and no shorts generated", () =>
+      runExitTest(["3", "https://example.com/url", "AUTO"], "Execução falhou (0 shorts gerados). Verifique os erros acima.", [{ videoId: "v1", shorts: [], errors: [new Error("e1")] }])
+    );
   });
 
   it("should trigger progress callback from runPipeline", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("3") // pickMenu
-      .mockResolvedValueOnce("http://url") // urls
-      .mockResolvedValueOnce("AUTO"); // clips limit
-
-    vi.mocked(loadConfig).mockReturnValue({
-      channels: [],
-      specificUrls: ["http://url"],
-    } as any);
-
+    setupMocks(["3", "https://example.com/url", "AUTO"], { channels: [], specificUrls: ["https://example.com/url"] }, []);
     vi.mocked(runPipeline).mockImplementation(async (config, cb) => {
-      if (cb) {
-        cb({ stage: "test", progress: 50.5, message: "msg" });
-      }
+      if (cb) cb({ stage: "test", progress: 50.5, message: "msg" });
       return [];
     });
 
     await runInteractive();
 
-    expect(logger.info).toHaveBeenCalledWith(
-      { stage: "test", progress: "51%", message: "msg" },
-      "Pipeline status"
-    );
-  });
-
-  it("should exit with 1 if total errors > 0 and no shorts generated", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("3")
-      .mockResolvedValueOnce("http://url")
-      .mockResolvedValueOnce("AUTO");
-
-    vi.mocked(loadConfig).mockReturnValue({
-      channels: [],
-      specificUrls: ["http://url"],
-    } as any);
-
-    vi.mocked(runPipeline).mockResolvedValue([
-      { videoId: "v1", shorts: [], errors: [new Error("e1"), new Error("e2")] }
-    ]);
-
-    // simulate process.exit ending execution
-    exitSpy.mockImplementationOnce(() => { throw new Error("process.exit"); });
-
-    await expect(runInteractive()).rejects.toThrow("process.exit");
-
-    expect(logger.error).toHaveBeenCalledWith("Execução falhou (0 shorts gerados). Verifique os erros acima.");
-    expect(exitSpy).toHaveBeenCalledWith(1);
-  });
-
-
-  it("should enforce minimum video limit of 1", async () => {
-    mockRl.question
-      .mockResolvedValueOnce("1") // pickMenu
-      .mockResolvedValueOnce("@test") // channels
-      .mockResolvedValueOnce("0") // video limit (0 is invalid)
-      .mockResolvedValueOnce("AUTO"); // clips limit
-
-    vi.mocked(loadConfig).mockReturnValue({
-      channels: ["@test"],
-      specificUrls: [],
-      videoLimit: 1,
-    } as any);
-
-    vi.mocked(runPipeline).mockResolvedValue([]);
-
-    await runInteractive();
-
-    expect(loadConfig).toHaveBeenCalledWith(expect.objectContaining({
-      videoLimit: 1,
-    }));
+    expect(logger.info).toHaveBeenCalledWith({ stage: "test", progress: "51%", message: "msg" }, "Pipeline status");
   });
 });
