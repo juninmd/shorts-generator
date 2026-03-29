@@ -60,6 +60,7 @@ describe("pipeline", () => {
     maxVideoSizeBytes: 1000,
     minShortsPerVideo: 1,
     videoLimit: 3,
+    maxVideoDurationSec: 3600,
   } as PipelineConfig;
 
   const mockVideoInfo: VideoInfo = {
@@ -106,7 +107,7 @@ describe("pipeline", () => {
     // 1 from specificUrls, 1 from channels => 2 videos processed
     expect(results).toHaveLength(2);
     expect(youtube.getVideoInfo).toHaveBeenCalledWith("url1");
-    expect(youtube.getChannelVideos).toHaveBeenCalledWith("channel1", mockConfig.videoLimit);
+    expect(youtube.getChannelVideos).toHaveBeenCalledWith("channel1", mockConfig.videoLimit, mockConfig.maxVideoDurationSec);
   });
 
   it("runPipeline filters oversized videos", async () => {

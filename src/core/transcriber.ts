@@ -4,213 +4,159 @@ import { promisify } from "node:util";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type {
-  Transcript,
-  TranscriptSegment,
-  TranscriptWord,
-  DownloadedVideo,
-  PipelineConfig,
-} from "../types.js";
+import type { Transcript, TranscriptSegment, TranscriptWord, DownloadedVideo, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
+import {
+  AUDIO_CHUNK_DURATION_SEC,
+  splitAudioIntoChunks,
+  mergeWhisperOutputs,
+  cleanupChunkFiles,
+  type WhisperOutput,
+} from "./audio-chunker.js";
 
 const execFileAsync = promisify(execFile);
 
-/**
- * Locate a uv binary that supports the `run` subcommand (>= 0.2.0).
- * Checks the system PATH first, then common install locations used by the
- * official uv installer on both Linux and Windows.
- */
 async function findUvBinary(): Promise<string> {
   const isWindows = process.platform === "win32";
   const home = os.homedir();
-
-  // Candidates: system PATH first, then known installer locations
   const candidates = [
     "uv",
     path.join(home, ".local", "bin", isWindows ? "uv.exe" : "uv"),
     path.join(home, ".cargo", "bin", isWindows ? "uv.exe" : "uv"),
     path.join(home, "bin", isWindows ? "uv.exe" : "uv"),
-    // winget / scoop / manual installs on Windows
     ...(isWindows
-      ? [
-          path.join(home, ".local", "bin", "uv.exe"),
-          path.join(process.env.LOCALAPPDATA ?? "", "uv", "bin", "uv.exe"),
-        ]
+      ? [path.join(home, ".local", "bin", "uv.exe"), path.join(process.env.LOCALAPPDATA ?? "", "uv", "bin", "uv.exe")]
       : []),
   ];
-
   for (const candidate of candidates) {
     try {
-      const { stdout } = await execFileAsync(candidate, ["--version"], {
-        timeout: 5_000,
-      });
+      const { stdout } = await execFileAsync(candidate, ["--version"], { timeout: 5_000 });
       const match = stdout.trim().match(/uv (\d+)\.(\d+)/);
       if (match) {
-        const [, majorStr, minorStr] = match;
-        const major = parseInt(majorStr!, 10);
-        const minor = parseInt(minorStr!, 10);
-        // uv run was introduced in 0.2.0
-        if (major > 0 || minor >= 2) {
-          logger.debug({ binary: candidate, version: stdout.trim() }, "Using uv binary");
-          return candidate;
-        }
+        const major = parseInt(match[1]!, 10);
+        const minor = parseInt(match[2]!, 10);
+        if (major > 0 || minor >= 2) return candidate;
       }
-    } catch {
-      /* not found or too old — try next */
-    }
+    } catch { /* try next */ }
   }
-
-  throw new Error(
-    "No compatible uv installation found (requires uv >= 0.2.0). " +
-      "Install from https://docs.astral.sh/uv/getting-started/installation/",
-  );
+  throw new Error("No compatible uv installation found (requires uv >= 0.2.0).");
 }
 
-/**
- * Transcribe a video using local openai-whisper CLI with word-level timestamps.
- * Completely free — no API calls, runs entirely on CPU/GPU locally.
- *
- * Requires: pip install openai-whisper
- */
-export async function transcribeVideo(
-  video: DownloadedVideo,
-  config: PipelineConfig,
-): Promise<Transcript> {
-  logger.info(
-    { videoId: video.id, title: video.title, model: config.whisperModel },
-    "Starting local Whisper transcription",
-  );
+async function runWhisperOnFile(
+  audioPath: string,
+  outputDir: string,
+  whisperModel: string,
+  uvBin: string,
+  useGpu: boolean,
+  onProgress?: (pct: number) => void,
+): Promise<void> {
+  const scriptPath = path.join(process.cwd(), "scripts", "transcribe_faster.py");
+  const pyProjectDir = path.join(process.cwd(), "tests", "yt-download");
+  const env = { ...process.env, WHISPER_USE_GPU: useGpu ? "true" : "false" };
+
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(
+      uvBin,
+      ["run", "--project", pyProjectDir, "python", scriptPath, audioPath, "--model", whisperModel, "--output_dir", outputDir],
+      { env, stdio: ["ignore", "pipe", "pipe"] },
+    );
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (data: string) => {
+      for (const line of data.split("\n")) {
+        const m = line.match(/PROGRESS: (\d+(?:\.\d+)?)/);
+        if (m && onProgress) onProgress(parseFloat(m[1]!));
+      }
+    });
+    let stderr = "";
+    child.stderr.on("data", (d: string) => { stderr += d; });
+    child.on("error", reject);
+    child.on("close", (code: number) => {
+      code === 0 ? resolve() : reject(new Error(stderr || `Transcription failed with code ${code}`));
+    });
+  });
+}
+
+async function transcribeAudioFile(
+  audioPath: string,
+  outputDir: string,
+  whisperModel: string,
+  uvBin: string,
+  onProgress?: (pct: number) => void,
+): Promise<WhisperOutput> {
+  const useGpu = process.env.WHISPER_USE_GPU?.toLowerCase() === "true";
+  try {
+    await runWhisperOnFile(audioPath, outputDir, whisperModel, uvBin, useGpu, onProgress);
+  } catch (err) {
+    if (useGpu) {
+      logger.warn({ err }, "GPU transcription failed, retrying with CPU");
+      await runWhisperOnFile(audioPath, outputDir, whisperModel, uvBin, false, onProgress);
+    } else throw err;
+  }
+  const baseName = path.basename(audioPath, path.extname(audioPath));
+  const jsonPath = path.join(outputDir, `${baseName}.json`);
+  if (!fs.existsSync(jsonPath)) throw new Error(`Whisper output not found at ${jsonPath}`);
+  const raw = JSON.parse(fs.readFileSync(jsonPath, "utf-8")) as WhisperOutput;
+  fs.unlinkSync(jsonPath);
+  return raw;
+}
+
+export async function transcribeVideo(video: DownloadedVideo, config: PipelineConfig): Promise<Transcript> {
+  logger.info({ videoId: video.id, title: video.title, model: config.whisperModel }, "Starting local Whisper transcription");
 
   const outputDir = path.join(config.tempDir, video.id, "whisper_out");
   fs.mkdirSync(outputDir, { recursive: true });
-
-  // Run local faster-whisper script — outputs JSON with word-level timestamps
-  const scriptPath = path.join(process.cwd(), "scripts", "transcribe_faster.py");
-  const pyProjectDir = path.join(process.cwd(), "tests", "yt-download");
-
   const uvBin = await findUvBinary();
+  const onProgress = (config as any).onProgress as ((pct: number) => void) | undefined;
 
-  // Progress callback support
-  const runTranscriptionWithProgress = async (useGpu: boolean, onProgress?: (percent: number) => void) => {
-    const env = {
-      ...process.env,
-      WHISPER_USE_GPU: useGpu ? "true" : "false",
-    };
-    return new Promise<void>((resolve, reject) => {
-      const child = spawn(
-        uvBin,
-        [
-          "run",
-          "--project",
-          pyProjectDir,
-          "python",
-          scriptPath,
-          video.audioPath,
-          "--model",
-          config.whisperModel,
-          "--output_dir",
-          outputDir,
-        ],
-        {
-          env,
-          stdio: ["ignore", "pipe", "pipe"]
-        }
-      );
-      child.stdout.setEncoding("utf8");
-      child.stdout.on("data", (data: string) => {
-        // Look for progress lines: PROGRESS: xx.x
-        data.split("\n").forEach(line => {
-          const match = line.match(/PROGRESS: (\d+(?:\.\d+)?)/);
-          if (match && onProgress) {
-            const percent = parseFloat(match[1]);
-            onProgress(percent);
-          }
-        });
-      });
-      let stderr = "";
-      child.stderr.on("data", (data: string) => { stderr += data; });
-      child.on("error", reject);
-      child.on("close", (code: number) => {
-        if (code === 0) resolve();
-        else reject(new Error(stderr || `Transcription failed with code ${code}`));
-      });
-    });
-  };
+  let raw: WhisperOutput;
 
-  // Optionally accept onProgress callback from config (if present)
-  const onProgress = (config as any).onProgress as ((progress: number) => void) | undefined;
-  try {
-    const initialGpuSetting = process.env.WHISPER_USE_GPU?.toLowerCase() === "true";
-    await runTranscriptionWithProgress(initialGpuSetting, onProgress);
-  } catch (error: any) {
-    if (process.env.WHISPER_USE_GPU?.toLowerCase() === "true") {
-      logger.warn(
-        { videoId: video.id, error: error.message },
-        "Whisper GPU transcription failed (possibly missing DLLs). Retrying with CPU...",
-      );
-      await runTranscriptionWithProgress(false, onProgress);
-    } else {
-      throw error;
+  if (video.duration > AUDIO_CHUNK_DURATION_SEC) {
+    const chunkCount = Math.ceil(video.duration / AUDIO_CHUNK_DURATION_SEC);
+    logger.info({ videoId: video.id, durationSec: video.duration, chunkCount }, "Audio too long — splitting into chunks");
+    const chunks = await splitAudioIntoChunks(video.audioPath, video.duration, AUDIO_CHUNK_DURATION_SEC, outputDir);
+    const chunkOutputs: { data: WhisperOutput; offsetSec: number }[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      const { path: chunkPath, offsetSec } = chunks[i]!;
+      logger.info({ videoId: video.id, chunk: i + 1, of: chunks.length, offsetSec }, "Transcribing audio chunk");
+      const chunkOnProgress = onProgress
+        ? (pct: number) => onProgress(((i + pct / 100) / chunks.length) * 100)
+        : undefined;
+      const data = await transcribeAudioFile(chunkPath, outputDir, config.whisperModel, uvBin, chunkOnProgress);
+      chunkOutputs.push({ data, offsetSec });
     }
+    cleanupChunkFiles(chunks);
+    raw = mergeWhisperOutputs(chunkOutputs);
+  } else {
+    raw = await transcribeAudioFile(video.audioPath, outputDir, config.whisperModel, uvBin, onProgress);
   }
 
-  // Find the generated JSON file
-  const audioBaseName = path.basename(video.audioPath, path.extname(video.audioPath));
-  const jsonPath = path.join(outputDir, `${audioBaseName}.json`);
-
-  if (!fs.existsSync(jsonPath)) {
-    throw new Error(`Whisper output not found at ${jsonPath}`);
-  }
-
-  const raw = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+  fs.rmSync(outputDir, { recursive: true, force: true });
 
   const allSegments: TranscriptSegment[] = [];
   const allWords: TranscriptWord[] = [];
-  let detectedLanguage = raw.language ?? "pt";
 
   for (const seg of raw.segments ?? []) {
-    allSegments.push({
-      start: seg.start ?? 0,
-      end: seg.end ?? 0,
-      text: (seg.text ?? "").trim(),
-    });
-
-    // Extract word-level timestamps from segment
-    for (const w of seg.words ?? []) {
-      allWords.push({
-        word: (w.word ?? "").trim(),
-        start: w.start ?? 0,
-        end: w.end ?? 0,
-      });
+    allSegments.push({ start: seg.start ?? 0, end: seg.end ?? 0, text: (seg.text ?? "").trim() });
+    for (const w of (seg as any).words ?? []) {
+      allWords.push({ word: (w.word ?? "").trim(), start: w.start ?? 0, end: w.end ?? 0 });
     }
   }
 
-  // Sort by start time
   allSegments.sort((a, b) => a.start - b.start);
   allWords.sort((a, b) => a.start - b.start);
 
-  const transcript: Transcript = {
+  logger.info(
+    { videoId: video.id, segmentCount: allSegments.length, wordCount: allWords.length, language: raw.language },
+    "Local Whisper transcription complete",
+  );
+
+  return {
     videoId: video.id,
     segments: allSegments,
     words: allWords,
     fullText: allSegments.map((s) => s.text).join(" "),
-    language: detectedLanguage,
+    language: raw.language ?? "pt",
     duration: video.duration,
   };
-
-  // Cleanup whisper output
-  fs.rmSync(outputDir, { recursive: true, force: true });
-
-  logger.info(
-    {
-      videoId: video.id,
-      segmentCount: allSegments.length,
-      wordCount: allWords.length,
-      language: detectedLanguage,
-    },
-    "Local Whisper transcription complete",
-  );
-
-  return transcript;
 }
 /* v8 ignore stop */

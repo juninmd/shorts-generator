@@ -165,6 +165,7 @@ export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void>
 export async function getChannelVideos(
   channelIdentifier: string,
   videoLimit: number,
+  maxDurationSec: number = 3 * 3600,
 ): Promise<VideoInfo[]> {
   logger.info({ channel: channelIdentifier, videoLimit }, "Fetching channel videos");
 
@@ -211,14 +212,13 @@ export async function getChannelVideos(
         }
       }
 
-      const maxDuration = 15 * 60; // 15 minutes
       const filtered = videos.filter(
-        (v) => v.duration > 0 && v.duration <= maxDuration && v.liveStatus !== "is_upcoming"
+        (v) => v.duration > 0 && v.duration <= maxDurationSec && v.liveStatus !== "is_upcoming"
       );
 
       logger.info(
-        { channel: channelIdentifier, total: videos.length, filtered: filtered.length },
-        "Found videos (filtered by 15m duration)",
+        { channel: channelIdentifier, total: videos.length, filtered: filtered.length, maxDurationSec },
+        "Found videos (filtered by max duration)",
       );
       return filtered;
     } catch (error) {
@@ -234,6 +234,7 @@ export async function getChannelVideos(
 export async function getTopChannelVideos(
   channelIdentifier: string,
   limit: number = 20,
+  maxDurationSec: number = 3 * 3600,
 ): Promise<VideoInfo[]> {
   logger.info({ channel: channelIdentifier, limit }, "Fetching top channel videos by view count");
 
@@ -280,9 +281,8 @@ export async function getTopChannelVideos(
         }
       }
 
-      const maxDuration = 15 * 60; // 15 minutes max
       const filtered = videos.filter(
-        (v) => v.duration > 0 && v.duration <= maxDuration && v.liveStatus !== "is_upcoming"
+        (v) => v.duration > 0 && v.duration <= maxDurationSec && v.liveStatus !== "is_upcoming"
       );
 
       // Sort by viewCount descending

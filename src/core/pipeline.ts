@@ -86,7 +86,7 @@ export async function runTopVideoPipeline(
   const randomChannel = config.channels[Math.floor(Math.random() * config.channels.length)]!;
   logger.info({ channel: randomChannel }, "Selected random channel for top video pipeline");
 
-  const topVideos = await getTopChannelVideos(randomChannel, 20);
+  const topVideos = await getTopChannelVideos(randomChannel, 20, config.maxVideoDurationSec);
   const postedVideos = new Set(getPostedTopVideos());
 
   let targetVideo: VideoInfo | null = null;
@@ -202,8 +202,8 @@ export async function runPipeline(
 
   for (const channel of config.channels) {
     const channelVideos = config.sortByViews
-      ? await getTopChannelVideos(channel, config.videoLimit)
-      : await getChannelVideos(channel, config.videoLimit);
+      ? await getTopChannelVideos(channel, config.videoLimit, config.maxVideoDurationSec)
+      : await getChannelVideos(channel, config.videoLimit, config.maxVideoDurationSec);
     const selected = await selectValidVideos(channelVideos, config);
     if (selected.length > 0) {
       videos.push(...selected);
