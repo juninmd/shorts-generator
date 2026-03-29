@@ -328,7 +328,7 @@ export async function processVideo(
     }
 
     if (clips.length === 0) {
-      logger.warn({ videoId: video.id, videoTitle: video.title }, "Transcrição analisada, mas a IA considerou que não há trechos virais. Pulando vídeo.");
+      logger.warn({ videoId: video.id, videoTitle: video.title }, "Transcrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.");
       cleanupVideo(video.id, config);
       return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts: [], errors: [], processingTimeMs: Date.now() - startTime };
     }

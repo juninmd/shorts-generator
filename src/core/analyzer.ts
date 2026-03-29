@@ -130,7 +130,9 @@ OBJETIVO:
 Identificar momentos marcantes, orações, ensinamentos, reflexões ou insights que sejam interessantes para o público. Mesmo que o vídeo seja calmo ou religioso, extraia as partes mais significativas.
 
 CRÍTICO:
-- NÃO retorne uma lista vazia. Você DEVE encontrar pelo menos os momentos mais didáticos ou oracionais se não houver algo "explosivo".
+- É OBRIGATÓRIO retornar pelo menos 1 corte. Não aceite "não encontrei nada interessante" como resposta.
+- Você DEVE encontrar pelo menos os momentos mais didáticos ou oracionais.
+- Cada corte DEVE ter entre ${minDuration} e ${maxDuration} segundos de duração.
 - Foque na relevância espiritual e na clareza do ensinamento.
 
 DIRETRIZES PARA OS TÍTULOS E CORTES:
