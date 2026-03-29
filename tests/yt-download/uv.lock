@@ -623,7 +623,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "faster-whisper", specifier = ">=1.1.0" },
+    { name = "faster-whisper", specifier = ">=1.2.1" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "yt-dlp", specifier = ">=2026.3.17" },
     { name = "yt-dlp-ejs", specifier = ">=0.5.0" },
