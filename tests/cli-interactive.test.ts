@@ -16,10 +16,10 @@ vi.mock("../src/core/logger.js", () => ({
 }));
 
 describe("CLI Interactive", () => {
-  let mockRl: any;
-  let exitSpy: any;
-  let logSpy: any;
-  let errorSpy: any;
+  let mockRl: { question: vi.Mock; close: vi.Mock };
+  let exitSpy: vi.Mock<[number?], never>;
+  let logSpy: vi.Mock<any[], void>;
+  let errorSpy: vi.Mock<any[], void>;
 
   beforeEach(() => {
     vi.resetAllMocks();
