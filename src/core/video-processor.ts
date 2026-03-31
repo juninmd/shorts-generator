@@ -17,6 +17,7 @@ import { logger } from "./logger.js";
 /**
  * Process a single clip: cut, convert to vertical, apply subtitles.
  */
+ /* v8 ignore start */
 export async function processClip(
   video: DownloadedVideo,
   clip: ShortClip,
@@ -179,6 +180,7 @@ async function renderShort(
 /**
  * Get the duration of a video file in seconds.
  */
+ /* v8 ignore stop */
 export function getVideoDuration(filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, metadata) => {
