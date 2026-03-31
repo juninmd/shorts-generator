@@ -14,7 +14,7 @@ vi.mock("../../src/core/ai-provider.js", () => ({
 describe("analyzer", () => {
   const mockConfig: PipelineConfig = {
     minShortDuration: 15,
-    maxShortDuration: 60,
+    maxShortDuration: 59,
     aiProvider: "ollama",
     aiModel: "gemma3:1b",
     aiTimeoutMs: 300_000,
@@ -125,7 +125,7 @@ describe("analyzer", () => {
           title: "Too Long",
           description: "Desc",
           startTime: 10,
-          endTime: 90, // duration 80 > maxShortDuration 60
+          endTime: 90, // duration 80 > maxShortDuration 59
           viralScore: 9,
           reason: "Reason",
           hashtags: ["#test"],

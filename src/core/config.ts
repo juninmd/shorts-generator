@@ -48,7 +48,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     videoLimit: parseInt(optionalEnv("VIDEO_LIMIT", "1"), 10),
     maxCutsPerBlock: 10,
     minuteBlockSize: 20,
-    maxShortDuration: parseInt(optionalEnv("MAX_SHORT_DURATION", "70"), 10),
+    maxShortDuration: parseInt(optionalEnv("MAX_SHORT_DURATION", "59"), 10),
     minShortDuration: parseInt(optionalEnv("MIN_SHORT_DURATION", "15"), 10),
     maxVideoSizeBytes: maxVideoSizeMb * 1024 * 1024,
     skipVideoSizeCheck,

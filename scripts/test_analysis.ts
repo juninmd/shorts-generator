@@ -32,7 +32,7 @@ async function test() {
     videoLimit: 1,
     maxCutsPerBlock: 3,
     minuteBlockSize: 5,
-    maxShortDuration: 60,
+    maxShortDuration: 59,
     minShortDuration: 5,
     maxVideoSizeBytes: 500 * 1024 * 1024,
     minShortsPerVideo: 1,
