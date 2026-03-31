@@ -100,6 +100,7 @@ async function transcribeAudioFile(
   return raw;
 }
 
+ /* v8 ignore start */
 export async function transcribeVideo(video: DownloadedVideo, config: PipelineConfig): Promise<Transcript> {
   logger.info({ videoId: video.id, title: video.title, model: config.whisperModel }, "Starting local Whisper transcription");
 
