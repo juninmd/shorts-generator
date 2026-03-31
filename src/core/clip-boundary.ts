@@ -35,7 +35,7 @@ export function snapToSentenceBoundaries(
         return { startTime: clip.startTime, endTime: clip.endTime };
     }
 
-    // 3. Respect duration constraints (40s - 70s)
+    // 3. Respect duration constraints (minShortDuration–maxShortDuration, default 15–59s)
     let duration = finalEnd - finalStart;
 
     if (duration < config.minShortDuration) {
