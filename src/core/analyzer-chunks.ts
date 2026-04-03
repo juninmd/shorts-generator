@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { generateObject } from "ai";
 import type { Transcript, TranscriptSegment, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -109,4 +109,3 @@ export async function analyzeInChunks(
 }
 
 export { ClipSchema, type ClipItem };
-/* v8 ignore stop */
