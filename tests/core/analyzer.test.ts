@@ -170,6 +170,55 @@ describe("analyzer", () => {
     expect(clips).toHaveLength(0);
   });
 
+  it("should return empty array if AI resolves without clips array", async () => {
+    vi.mocked(aiModule.generateObject).mockResolvedValue({
+      object: {}, // missing clips
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
+  });
+
+  it("should analyze in chunks if formatted transcript length exceeds CHUNK_THRESHOLD_CHARS", async () => {
+    // Generate segments so the formatted transcript > 32000 chars
+    const largeSegments = Array.from({ length: 600 }).map((_, i) => ({
+      start: i * 2,
+      end: i * 2 + 2,
+      text: "A very long sentence here to fill up the chunk threshold limit quickly ".repeat(3)
+    }));
+
+    const largeTranscript: Transcript = {
+      videoId: "vid1",
+      duration: 1200,
+      segments: largeSegments,
+      words: [],
+      fullText: "",
+      language: "pt",
+    };
+
+    const mockResponse = {
+      clips: [
+        {
+          title: "Clip Chunks",
+          description: "Desc",
+          startTime: 10,
+          endTime: 40,
+          viralScore: 9,
+          reason: "Reason",
+          hashtags: ["#test"],
+        },
+      ],
+    };
+
+    vi.mocked(aiModule.generateObject).mockResolvedValue({
+      object: mockResponse,
+    } as any);
+
+    const clips = await analyzeTranscript(largeTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("Clip Chunks");
+  });
+
   it("should correctly handle words within the clip range", async () => {
     const mockResponse = {
       clips: [
