@@ -26,6 +26,11 @@ describe("analyzer-chunks", () => {
     expect(formatTranscriptForLLM(segments)).toBe("[00:01-00:05] Hello\n[00:06-00:10] World");
   });
 
+  it("splitIntoChunks processes empty segments", () => {
+    const chunks = splitIntoChunks([], 30, 1);
+    expect(chunks).toHaveLength(0);
+  });
+
   it("splitIntoChunks splits correctly and overlaps", () => {
     const segments = [
       { start: 1, end: 2, text: "A".repeat(10) },

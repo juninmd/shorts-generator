@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { generateObject } from "ai";
 import { nanoid } from "nanoid";
 import type { Transcript, ShortClip, TranscriptSegment, TranscriptWord, PipelineConfig } from "../types.js";
@@ -179,4 +179,3 @@ function getWordsInRange(words: TranscriptWord[], start: number, end: number): T
     .filter((w) => w.start >= start - 0.1 && w.end <= end + 0.1)
     .map((w) => ({ word: w.word, start: Math.max(0, w.start - start), end: w.end - start }));
 }
-/* v8 ignore stop */
