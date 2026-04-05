@@ -1,79 +1,97 @@
-import fs from "node:fs";
-import path from "node:path";
 import { logger } from "./logger.js";
+import { Redis } from "ioredis";
 
-const STATE_FILE_PATH = path.resolve(process.cwd(), "posted_top_videos.json");
-const DAILY_UPLOADS_PATH = path.resolve(process.cwd(), "daily_uploads.json");
+// Optional Redis client setup
+const redisUrl = process.env.REDIS_URL;
+const redis = redisUrl ? new Redis(redisUrl) : null;
 
-export function getPostedTopVideos(): string[] {
-  /* v8 ignore start */
-  try {
-    if (fs.existsSync(STATE_FILE_PATH)) {
-      const data = fs.readFileSync(STATE_FILE_PATH, "utf-8");
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    logger.error({ error }, "Failed to read posted top videos state");
-  }
-  return [];
-  /* v8 ignore stop */
+if (redis) {
+  redis.on("error", (error) => {
+    logger.error({ error }, "Redis connection error");
+  });
 }
 
-export function markVideoAsPosted(videoId: string): void {
-  /* v8 ignore start */
-  try {
-    const posted = new Set(getPostedTopVideos());
-    posted.add(videoId);
-    fs.writeFileSync(STATE_FILE_PATH, JSON.stringify(Array.from(posted), null, 2));
-    logger.debug({ videoId }, "Marked video as posted in state file");
-  } catch (error) {
-    logger.error({ error }, "Failed to save posted top videos state");
-  }
-  /* v8 ignore stop */
-}
-
-// ─── Daily YouTube upload tracking ───────────────────────────────────────────
-
-interface DailyUploadState {
-  date: string; // YYYY-MM-DD
-  count: number;
-}
+// In-memory fallbacks
+const inMemoryPosted = new Set<string>();
+let inMemoryDailyUploadState = { date: new Date().toISOString().slice(0, 10), count: 0 };
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function readDailyState(): DailyUploadState {
+export async function getPostedTopVideos(): Promise<string[]> {
   /* v8 ignore start */
-  try {
-    if (fs.existsSync(DAILY_UPLOADS_PATH)) {
-      const data = JSON.parse(fs.readFileSync(DAILY_UPLOADS_PATH, "utf-8")) as DailyUploadState;
-      if (data.date === todayISO()) return data;
+  if (redis) {
+    try {
+      return await redis.smembers("posted_top_videos");
+    } catch (error) {
+      logger.error({ error }, "Failed to read posted top videos from Redis");
+      return [];
     }
-  } catch {
-    // ignore, fall through to default
   }
-  return { date: todayISO(), count: 0 };
+  return Array.from(inMemoryPosted);
   /* v8 ignore stop */
 }
 
-export function getDailyUploadCount(): number {
-  return readDailyState().count;
-}
-
-export function isDailyLimitReached(limit: number): boolean {
-  return getDailyUploadCount() >= limit;
-}
-
-export function incrementDailyUploadCount(): void {
+export async function markVideoAsPosted(videoId: string): Promise<void> {
   /* v8 ignore start */
-  try {
-    const state = readDailyState();
-    state.count += 1;
-    fs.writeFileSync(DAILY_UPLOADS_PATH, JSON.stringify(state, null, 2));
-    logger.debug({ date: state.date, count: state.count }, "Daily YouTube upload count updated");
-  } catch (error) {
-    logger.error({ error }, "Failed to update daily upload count");
+  if (redis) {
+    try {
+      await redis.sadd("posted_top_videos", videoId);
+      logger.debug({ videoId }, "Marked video as posted in Redis");
+    } catch (error) {
+      logger.error({ error }, "Failed to save posted top videos state to Redis");
+    }
+  } else {
+    inMemoryPosted.add(videoId);
+    logger.debug({ videoId }, "Marked video as posted in memory");
+  }
+  /* v8 ignore stop */
+}
+
+export async function getDailyUploadCount(): Promise<number> {
+  /* v8 ignore start */
+  const today = todayISO();
+  if (redis) {
+    try {
+      const countStr = await redis.get(`daily_uploads:${today}`);
+      return countStr ? parseInt(countStr, 10) : 0;
+    } catch (error) {
+      logger.error({ error }, "Failed to read daily upload count from Redis");
+      return 0;
+    }
+  }
+  
+  if (inMemoryDailyUploadState.date !== today) {
+    inMemoryDailyUploadState = { date: today, count: 0 };
+  }
+  return inMemoryDailyUploadState.count;
+  /* v8 ignore stop */
+}
+
+export async function isDailyLimitReached(limit: number): Promise<boolean> {
+  const count = await getDailyUploadCount();
+  return count >= limit;
+}
+
+export async function incrementDailyUploadCount(): Promise<void> {
+  /* v8 ignore start */
+  const today = todayISO();
+  if (redis) {
+    try {
+      const key = `daily_uploads:${today}`;
+      await redis.incr(key);
+      await redis.expire(key, 86400 * 2); // Expire after 2 days
+      logger.debug({ date: today }, "Daily YouTube upload count updated in Redis");
+    } catch (error) {
+      logger.error({ error }, "Failed to update daily upload count in Redis");
+    }
+  } else {
+    if (inMemoryDailyUploadState.date !== today) {
+      inMemoryDailyUploadState = { date: today, count: 0 };
+    }
+    inMemoryDailyUploadState.count += 1;
+    logger.debug({ date: today, count: inMemoryDailyUploadState.count }, "Daily YouTube upload count updated in memory");
   }
   /* v8 ignore stop */
 }
