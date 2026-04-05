@@ -5,6 +5,8 @@ import ffmpeg from "fluent-ffmpeg";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { generateText } from "ai";
+import { createModel } from "./ai-provider.js";
 import type {
   ShortClip,
   DownloadedVideo,
@@ -13,11 +15,13 @@ import type {
 } from "../types.js";
 import { generateASSSubtitles } from "./subtitle.js";
 import { logger } from "./logger.js";
+import { renderShort } from "./video-render.js";
+
+const execFileAsync = promisify(execFile);
 
 /**
  * Process a single clip: cut, convert to vertical, apply subtitles.
  */
- /* v8 ignore start */
 export async function processClip(
   video: DownloadedVideo,
   clip: ShortClip,
@@ -29,21 +33,13 @@ export async function processClip(
   const subtitlePath = path.join(outputDir, `${clip.id}.ass`);
   const outputPath = path.join(outputDir, `${clip.id}.mp4`);
 
-  logger.info(
-    {
-      clipId: clip.id,
-      videoId: video.id,
-      start: clip.startTime,
-      end: clip.endTime,
-      duration: clip.duration,
-      title: clip.title,
-      viralScore: clip.viralScore,
-      reason: clip.reason,
-    },
-    "Processing clip",
-  );
+  logger.info({ clipId: clip.id, videoId: video.id, title: clip.title }, "Processing clip with AI face tracking & high quality");
 
-  // Generate ASS subtitles (watermark embedded to avoid drawtext filter dependency)
+  // Step 1: Face Tracking (AI-powered centering)
+  const faceX = await detectFaceCenter(video.filePath, clip, config);
+  logger.info({ clipId: clip.id, faceX }, "AI Face Tracking result");
+
+  // Step 2: Generate Subtitles
   const assContent = generateASSSubtitles(
     clip,
     config.verticalWidth,
@@ -52,8 +48,8 @@ export async function processClip(
   );
   fs.writeFileSync(subtitlePath, assContent, "utf-8");
 
-  // Process video: cut → vertical crop → burn subtitles
-  await renderShort(video.filePath, outputPath, subtitlePath, clip, config);
+  // Step 3: Render Video (High Quality + Audio EQ + Smart Crop)
+  await renderShort(video.filePath, outputPath, subtitlePath, clip, config, faceX);
 
   const result: GeneratedShort = {
     id: clip.id,
@@ -71,116 +67,62 @@ export async function processClip(
   return result;
 }
 
-const execFileAsync = promisify(execFile);
-
 /**
- * Resolve the FFmpeg binary path via fluent-ffmpeg's configured path.
+ * Use AI (Vision) to detect the horizontal center of the person's face.
+ * Extracts a frame from the middle of the clip.
  */
-function getFfmpegPath(): string {
-  // fluent-ffmpeg exposes this on the constructor
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (ffmpeg as any).ffmpegPath?.() ?? "ffmpeg";
-}
+async function detectFaceCenter(inputPath: string, clip: ShortClip, config: PipelineConfig): Promise<number> {
+  if (config.aiProvider !== "openrouter") return 0.5; // Fallback for local models without vision
 
-/**
- * Render the short video using FFmpeg with vertical crop and burnt subtitles.
- * Uses execFile directly (not fluent-ffmpeg) to avoid Windows spawn issues.
- */
-async function renderShort(
-  inputPath: string,
-  outputPath: string,
-  subtitlePath: string,
-  clip: ShortClip,
-  config: PipelineConfig,
-): Promise<void> {
-  const { verticalWidth: w, verticalHeight: h } = config;
-
-  // Escape subtitle path for FFmpeg filter (handle backslashes and colons on Windows)
-  const escapedSubPath = subtitlePath
-    .replace(/\\/g, "/")
-    .replace(/:/g, "\\:");
-
-  // Video filter: crop to 9:16 center, scale to target resolution, burn subtitles
-  // Watermark is embedded in the ASS file to avoid drawtext filter dependency
-  const filters = [
-    `crop=min(iw\\,ih*${w}/${h}):min(ih\\,iw*${h}/${w})`,
-    `scale=${w}:${h}`,
-    `ass='${escapedSubPath}'`,
-  ];
-
-  // Build env — use forward-slash FONTCONFIG_FILE to prevent libass crash on Windows
-  const fontsConfNative = path.resolve(process.cwd(), "fonts.conf");
-  const fontsConfFwd = fontsConfNative.replace(/\\/g, "/");
-  const cacheDir = path.join(os.homedir(), ".cache", "fontconfig");
-  if (fs.existsSync(fontsConfNative)) {
-    fs.mkdirSync(cacheDir, { recursive: true });
-  }
-  const spawnEnv: NodeJS.ProcessEnv = {
-    ...process.env,
-    FONTCONFIG_FILE: fs.existsSync(fontsConfNative) ? fontsConfFwd : undefined,
-  };
-
-  const isNvenc = config.videoEncoder.includes("nvenc");
-  const qualityArgs = isNvenc ? ["-cq", "20"] : ["-crf", "20"];
-
-  const args = [
-    "-ss", String(clip.startTime),
-    "-i", inputPath,
-    "-y",
-    "-vf", filters.join(","),
-    "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
-    "-t", String(clip.duration),
-    "-c:v", config.videoEncoder,
-    "-preset", isNvenc ? "p4" : "fast",
-    ...qualityArgs,
-    "-c:a", "aac",
-    "-b:a", "192k",
-    "-ar", "44100",
-    "-movflags", "+faststart",
-    "-pix_fmt", "yuv420p",
-    "-r", "30",
-    outputPath,
-  ];
-
-  const ffmpegBin = getFfmpegPath();
-  logger.debug({ command: [ffmpegBin, ...args].join(" ") }, "FFmpeg started");
+  const framePath = path.join(config.tempDir, `frame_${clip.id}.jpg`);
+  const frameTime = clip.startTime + (clip.duration / 2);
 
   try {
-    const { stderr } = await execFileAsync(ffmpegBin, args, {
-      env: spawnEnv,
-      maxBuffer: 100 * 1024 * 1024,
+    // Extract a single frame from the middle of the clip
+    const ffmpegBin = (ffmpeg as any).ffmpegPath?.() ?? "ffmpeg";
+    await execFileAsync(ffmpegBin, [
+      "-ss", String(frameTime),
+      "-i", inputPath,
+      "-frames:v", "1",
+      "-q:v", "2",
+      "-y",
+      framePath
+    ]);
+
+    if (!fs.existsSync(framePath)) return 0.5;
+
+    const frameBase64 = fs.readFileSync(framePath).toString("base64");
+    
+    // Use Gemini (via OpenRouter) to find the face
+    const { text } = await generateText({
+      model: createModel(config),
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Identify the horizontal center (X coordinate) of the main person's face in this image. Respond ONLY with a decimal number between 0 (left edge) and 1 (right edge). Example: 0.5" },
+            { type: "image", image: frameBase64, mimeType: "image/jpeg" }
+          ]
+        }
+      ],
+      temperature: 0,
+      maxOutputTokens: 10,
     });
 
-    if (stderr) logger.debug({ stderr }, "FFmpeg stderr (informational)");
+    if (!config.keepTempFiles) fs.unlinkSync(framePath);
 
-    // Final integrity check: ensure the file exists and has a reasonable size (> 100KB)
-    if (!fs.existsSync(outputPath)) {
-      throw new Error(`FFmpeg finished but output file is missing: ${outputPath}`);
-    }
-    const stats = fs.statSync(outputPath);
-    if (stats.size < 100 * 1024) {
-      throw new Error(`FFmpeg output is too small (${(stats.size / 1024).toFixed(1)}KB). Video is likely corrupted.`);
-    }
-
-    logger.debug({ outputPath, size: stats.size }, "Video integrity verified");
-  } catch (err: any) {
-    logger.error(
-      {
-        err,
-        stderr: err.stderr,
-        stdout: err.stdout,
-        command: [ffmpegBin, ...args].join(" "),
-      },
-      "FFmpeg CRASHED! O vídeo gerado provavelmente está corrompido ou vazio.",
-    );
-    throw new Error(`FFmpeg failed to render short: ${err.message}`);
+    const faceX = parseFloat(text.trim());
+    return isNaN(faceX) ? 0.5 : Math.max(0, Math.min(1, faceX));
+  } catch (err) {
+    logger.warn({ clipId: clip.id, err }, "AI Face tracking failed, falling back to center");
+    if (fs.existsSync(framePath)) fs.unlinkSync(framePath);
+    return 0.5;
   }
 }
 
 /**
  * Get the duration of a video file in seconds.
  */
- /* v8 ignore stop */
 export function getVideoDuration(filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, metadata) => {
@@ -192,8 +134,6 @@ export function getVideoDuration(filePath: string): Promise<number> {
 
 /**
  * Get the presentation start timestamp of a video file.
- * Returns 0 when yt-dlp resets timestamps (merged DASH streams),
- * or the original video timestamp when timestamps are preserved (single-stream).
  */
 export function getFileStartTime(filePath: string): Promise<number> {
   return new Promise((resolve) => {
@@ -204,4 +144,3 @@ export function getFileStartTime(filePath: string): Promise<number> {
     });
   });
 }
-/* v8 ignore stop */
