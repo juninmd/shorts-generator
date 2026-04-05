@@ -1,6 +1,6 @@
 {
   "name": "shorts-generator",
-  "version": "1.0.0",
+  "version": "1.0.86",
   "private": true,
   "description": "Automated YouTube Shorts generator — downloads videos, transcribes with Whisper, identifies viral moments via LLM, generates vertical shorts with captions, and sends to Telegram.",
   "type": "module",
