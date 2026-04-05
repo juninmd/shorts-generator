@@ -146,7 +146,7 @@ export async function runTopVideoPipeline(
     await sendFullVideoToTelegram(downloadedFull, config, youtubeUrl);
 
     if (!config.keepTempFiles) cleanupVideo(targetVideo.id, config);
-    markVideoAsPosted(targetVideo.id);
+    await markVideoAsPosted(targetVideo.id);
 
     onProgress?.({
       stage: "done",
@@ -384,11 +384,11 @@ export async function processVideo(
         const youtubeMeta = await generateYoutubeMetadata(short, config);
         let youtubeUrl: string | undefined;
         if (youtubeEnabled) {
-          if (isDailyLimitReached(config.dailyUploadLimit)) {
+          if (await isDailyLimitReached(config.dailyUploadLimit)) {
             logger.warn({ limit: config.dailyUploadLimit }, "⚠️ Limite diário de uploads do YouTube atingido — enviando apenas ao Telegram");
           } else {
             youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config) ?? undefined;
-            incrementDailyUploadCount();
+            await incrementDailyUploadCount();
           }
         }
         const msgId = await sendToTelegram(short, config, youtubeUrl);
