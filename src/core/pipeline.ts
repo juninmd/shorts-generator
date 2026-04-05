@@ -25,6 +25,7 @@ import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube } fr
 import { generateText } from "ai";
 import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
+import pLimit from "p-limit";
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
 
@@ -341,38 +342,38 @@ export async function processVideo(
     emitProgress("cutting", `Gerando ${totalClips} shorts...`, 50, 0, totalClips);
 
     // Stage 4: Partial Downloads & Cutting
-    for (let index = 0; index < clips.length; index++) {
-      if (maxShorts !== undefined && maxShorts > 0 && shorts.length >= maxShorts) {
-        break;
-      }
+    const limit = pLimit(2);
+    await Promise.all(
+      clips.map((clip, index) =>
+        limit(async () => {
+          try {
+            emitProgress("cutting", `Baixando trecho ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
 
-      const clip = clips[index]!;
-      try {
-        emitProgress("cutting", `Baixando trecho ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
+            const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
+            const downloadedSection = { ...downloadedAudio, filePath: sectionPath };
 
-        const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
-        const downloadedSection = { ...downloadedAudio, filePath: sectionPath };
+            // yt-dlp with DASH streams (video+audio merged) resets timestamps to 0 in the output
+            // file, while single-stream downloads preserve original timestamps. Detect which case
+            // we're in and compute the correct seek offset within the section file.
+            const sectionStartTime = await getFileStartTime(sectionPath);
+            const expectedSectionStart = Math.max(0, clip.startTime - 2);
+            const timestampsPreserved = Math.abs(sectionStartTime - expectedSectionStart) <= 10;
+            const seekOffset = timestampsPreserved
+              ? clip.startTime                                       // absolute seek (original ts)
+              : Math.max(0, clip.startTime - expectedSectionStart); // relative seek (ts reset to 0)
+            const sectionClip = { ...clip, startTime: seekOffset, endTime: seekOffset + clip.duration };
 
-        // yt-dlp with DASH streams (video+audio merged) resets timestamps to 0 in the output
-        // file, while single-stream downloads preserve original timestamps. Detect which case
-        // we're in and compute the correct seek offset within the section file.
-        const sectionStartTime = await getFileStartTime(sectionPath);
-        const expectedSectionStart = Math.max(0, clip.startTime - 2);
-        const timestampsPreserved = Math.abs(sectionStartTime - expectedSectionStart) <= 10;
-        const seekOffset = timestampsPreserved
-          ? clip.startTime                                       // absolute seek (original ts)
-          : Math.max(0, clip.startTime - expectedSectionStart); // relative seek (ts reset to 0)
-        const sectionClip = { ...clip, startTime: seekOffset, endTime: seekOffset + clip.duration };
+            logger.debug({ clipId: clip.id, sectionStartTime, expectedSectionStart, timestampsPreserved, seekOffset }, "Section seek offset");
 
-        logger.debug({ clipId: clip.id, sectionStartTime, expectedSectionStart, timestampsPreserved, seekOffset }, "Section seek offset");
-
-        emitProgress("cutting", `Processando corte ${index + 1}/${totalClips}`, 65 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
-        const short = await processClip(downloadedSection, sectionClip, config);
-        shorts.push(short);
-      } catch (err) {
-        errors.push(`Erro no corte ${clip.id}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
+            emitProgress("cutting", `Processando corte ${index + 1}/${totalClips}`, 65 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
+            const short = await processClip(downloadedSection, sectionClip, config);
+            shorts.push(short);
+          } catch (err) {
+            errors.push(`Erro no corte ${clip.id}: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }),
+      ),
+    );
 
     // Stage 5: Uploads
     emitProgress("uploading", "Enviando resultados...", 85);
