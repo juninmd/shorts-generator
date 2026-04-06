@@ -26,13 +26,20 @@ async function main() {
 
   switch (command) {
     case "generate:radar": {
-      logger.info("📡 Iniciando Radar Católico (Modo Autônomo)");
-      const config = loadConfig({
+      const limitIndex = args.indexOf("--limit");
+      const overrides: Record<string, any> = {
         catholicRadar: true,
         channels: [], // Ignore default channels from .env
         specificUrls: [],
         videoLimit: 2, // Default limit for radar
-      });
+      };
+
+      if (limitIndex !== -1 && args[limitIndex + 1]) {
+        overrides.videoLimit = parseInt(args[limitIndex + 1]!, 10);
+      }
+
+      logger.info("📡 Iniciando Radar Católico (Modo Autônomo)");
+      const config = loadConfig(overrides);
 
       const results = await runPipeline(config, progressLogger);
       printSummary(results);
