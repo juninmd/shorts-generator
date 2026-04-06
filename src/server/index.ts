@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { config as dotenvConfig } from "dotenv";
 import { app } from "./routes.js";
 import { logger } from "../core/logger.js";
+import { startScheduler } from "../core/scheduler.js";
 
 dotenvConfig();
 
@@ -13,6 +14,11 @@ export function startServer(): void {
   serve({ fetch: app.fetch, port }, (info) => {
     logger.info(`Server running at http://localhost:${info.port}`);
     logger.info(`API docs: http://localhost:${info.port}/api/health`);
+    
+    // Start background tasks
+    if (process.env.ENABLE_RADAR_SCHEDULER === "true") {
+      startScheduler();
+    }
   });
 }
 

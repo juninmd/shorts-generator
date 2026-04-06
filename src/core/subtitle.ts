@@ -26,9 +26,9 @@ YCbCr Matrix: TV.709
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,sans-serif,84,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,300,1
-Style: Highlight,sans-serif,84,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,300,1
-Style: Watermark,sans-serif,28,&H80FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,1,3,20,20,20,1
+Style: Default,sans-serif,92,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,2,40,40,350,1
+Style: Highlight,sans-serif,92,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,3,2,40,40,350,1
+Style: Watermark,sans-serif,32,&H80FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,1,3,20,20,20,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -42,34 +42,30 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 }
 
 /**
- * Generate phrase-based subtitle events with word highlighting.
- * Groups words into readable phrases (3-6 words) and shows them
- * with the current word highlighted.
+ * Generate phrase-based subtitle events with word highlighting and pop effect.
  */
 function generateWordByWordEvents(clip: ShortClip): string {
   const words = clip.words;
   if (words.length === 0) {
-    // Fallback to segment-based subtitles
     return generateSegmentEvents(clip);
   }
 
-  const phrases = groupWordsIntoPhrases(words, 4);
+  const phrases = groupWordsIntoPhrases(words, 3); // Slightly shorter phrases for better readability
   const lines: string[] = [];
 
   for (const phrase of phrases) {
     const phraseStart = phrase[0]!.start;
     const phraseEnd = phrase[phrase.length - 1]!.end;
 
-    // Show phrase with word-by-word highlight
     for (let i = 0; i < phrase.length; i++) {
       const word = phrase[i]!;
       const wordStart = word.start;
       const wordEnd = i < phrase.length - 1 ? phrase[i + 1]!.start : phraseEnd;
 
-      // Build text with highlight on current word
       const textParts = phrase.map((w, idx) => {
         if (idx === i) {
-          return `{\\c&H00FFFF&\\b1}${w.word}{\\c&HFFFFFF&\\b0}`;
+          // CAPCUT STYLE: Yellow color + Bold + slight Scale Up (Pop)
+          return `{\\c&H00FFFF&\\b1\\fscx110\\fscy110}${w.word}{\\r}`;
         }
         return w.word;
       });

@@ -36,6 +36,15 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     .map((u) => u.trim())
     .filter(Boolean);
 
+  const searchQueriesRaw = optionalEnv("SEARCH_QUERIES", "");
+  const searchQueries = searchQueriesRaw
+    .split(",")
+    .map((q) => q.trim())
+    .filter(Boolean);
+
+  const catholicRadar = optionalEnv("CATHOLIC_RADAR", "false") === "true";
+  const sortByViews = optionalEnv("SORT_BY_VIEWS", "false") === "true";
+
   const maxVideoSizeMb = parseInt(optionalEnv("MAX_VIDEO_SIZE_MB", "500"), 10);
   const skipVideoSizeCheck = optionalEnv("SKIP_VIDEO_SIZE_CHECK", "false") === "true";
   const keepTempFiles = optionalEnv("KEEP_TEMP_FILES", "false") === "true";
@@ -45,6 +54,9 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
   const config: PipelineConfig = {
     channels,
     specificUrls,
+    searchQueries,
+    catholicRadar,
+    sortByViews,
     videoLimit: parseInt(optionalEnv("VIDEO_LIMIT", "1"), 10),
     maxCutsPerBlock: 10,
     minuteBlockSize: 20,
