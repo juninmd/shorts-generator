@@ -4,7 +4,6 @@ import type { LanguageModel } from "ai";
 import type { PipelineConfig } from "../types.js";
 
 export function createModel(config: PipelineConfig): LanguageModel {
-  /* v8 ignore start */
   if (config.aiProvider === "openrouter") {
     const openrouter = createOpenRouter({
       apiKey: config.openrouterApiKey,
@@ -17,5 +16,4 @@ export function createModel(config: PipelineConfig): LanguageModel {
     baseURL: config.ollamaBaseUrl + "/v1",
   });
   return ollama.languageModel(config.aiModel);
-  /* v8 ignore stop */
 }

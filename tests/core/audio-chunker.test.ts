@@ -69,6 +69,15 @@ describe("audio-chunker", () => {
     expect(merged.segments[0].words).toBeUndefined();
   });
 
+  it("mergeWhisperOutputs handles missing segments array and empty chunks", () => {
+    const mergedEmpty = mergeWhisperOutputs([]);
+    expect(mergedEmpty.language).toBe("pt");
+    expect(mergedEmpty.segments).toEqual([]);
+
+    const mergedMissingSegs = mergeWhisperOutputs([{ data: {} as any, offsetSec: 0 }]);
+    expect(mergedMissingSegs.segments).toEqual([]);
+  });
+
   it("cleanupChunkFiles deletes files without throwing errors", () => {
     const unlinkSpy = vi.spyOn(fs, "unlinkSync").mockImplementation(() => {
       throw new Error("Cannot delete");

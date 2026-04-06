@@ -142,4 +142,48 @@ describe("video-processor", () => {
     const duration = await getVideoDuration("test.mp4");
     expect(duration).toBe(0);
   });
+
+  it("getFileStartTime returns correct start time", async () => {
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(null, { format: { start_time: 15.5 } } as any);
+    });
+
+    const { getFileStartTime } = await import("../../src/core/video-processor.js");
+    const startTime = await getFileStartTime("test.mp4");
+    expect(startTime).toBe(15.5);
+  });
+
+  it("getFileStartTime handles errors gracefully", async () => {
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(new Error("ffprobe error"), null as any);
+    });
+
+    const { getFileStartTime } = await import("../../src/core/video-processor.js");
+    const startTime = await getFileStartTime("test.mp4");
+    expect(startTime).toBe(0);
+  });
+
+  it("getFileStartTime handles missing format start time", async () => {
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(null, {} as any);
+    });
+
+    const { getFileStartTime } = await import("../../src/core/video-processor.js");
+    const startTime = await getFileStartTime("test.mp4");
+    expect(startTime).toBe(0);
+  });
+
+  it("getFileStartTime handles NaN start time", async () => {
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(null, { format: { start_time: "abc" } } as any);
+    });
+
+    const { getFileStartTime } = await import("../../src/core/video-processor.js");
+    const startTime = await getFileStartTime("test.mp4");
+    expect(startTime).toBe(0);
+  });
 });

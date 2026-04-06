@@ -53,6 +53,13 @@ vi.mock("../../src/core/telegram.js", () => ({
   sendFullVideoToTelegram: vi.fn(),
 }));
 
+vi.mock("../../src/core/state.js", () => ({
+  isDailyLimitReached: vi.fn().mockReturnValue(false),
+  incrementDailyUploadCount: vi.fn(),
+  getPostedTopVideos: vi.fn().mockReturnValue([]),
+  markVideoAsPosted: vi.fn(),
+}));
+
 describe("pipeline", () => {
   const mockConfig = {
     specificUrls: ["url1"],
@@ -225,14 +232,20 @@ describe("pipeline", () => {
 
   it("runPipeline stops when targetShorts is reached", async () => {
     vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip, mockClip]);
-    const localConfig = { ...mockConfig, targetShorts: 3, channels: [], specificUrls: ["url1"], videoLimit: 1 } as PipelineConfig;
+    const localConfig = { ...mockConfig, targetShorts: 2, channels: [], specificUrls: ["url1", "url2"], videoLimit: 1 } as PipelineConfig;
 
     const results = await runPipeline(localConfig);
+    // Even though there are 2 URLs, targetShorts (2) is reached by the first video (which yields 2 clips)
     expect(results).toHaveLength(1);
     expect(results[0].shorts).toHaveLength(2);
 
-    // since only one video exists, pipeline ended with 2 clips (<= targetShorts)
-    expect(results[0].shorts.length).toBeLessThanOrEqual(3);
+    // second video should not be processed because break was hit
+    expect(youtube.getVideoInfo).toHaveBeenCalledWith("url2"); // It fetches info before the loop
+  });
+
+  it("runPipeline aborts if youtube access fails", async () => {
+    vi.mocked(youtube.verifyYoutubeAccess).mockRejectedValueOnce(new Error("Access failed"));
+    await expect(runPipeline(mockConfig)).rejects.toThrow("Access failed");
   });
 
   it("processVideo handles telegram send error gracefully", async () => {
@@ -243,5 +256,31 @@ describe("pipeline", () => {
     expect(result.shorts).toHaveLength(1);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("Telegram failed");
+  });
+
+  it("processVideo handles youtube upload when enabled", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("http://yt");
+    const { isDailyLimitReached, incrementDailyUploadCount } = await import("../../src/core/state.js");
+    vi.mocked(isDailyLimitReached).mockReturnValue(false);
+
+    const result = await processVideo(mockVideoInfo, mockConfig);
+    expect(result.shorts).toHaveLength(1);
+    expect(youtubeService.uploadToYouTube).toHaveBeenCalled();
+    expect(incrementDailyUploadCount).toHaveBeenCalled();
+
+    delete process.env.ENABLE_YOUTUBE;
+  });
+
+  it("processVideo skips youtube upload if daily limit reached", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    const { isDailyLimitReached } = await import("../../src/core/state.js");
+    vi.mocked(isDailyLimitReached).mockReturnValue(true);
+
+    const result = await processVideo(mockVideoInfo, mockConfig);
+    expect(result.shorts).toHaveLength(1);
+    expect(youtubeService.uploadToYouTube).not.toHaveBeenCalled();
+
+    delete process.env.ENABLE_YOUTUBE;
   });
 });

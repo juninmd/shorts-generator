@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import type { TranscriptSegment, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 
@@ -77,6 +77,7 @@ function findBestSegmentStart(targetTime: number, segments: TranscriptSegment[])
     for (const seg of segments) {
         if (seg.start >= targetTime) return seg.start;
     }
+    /* v8 ignore next */
     return segments[0].start;
 }
 
@@ -98,6 +99,7 @@ function findBestSegmentEnd(targetTime: number, segments: TranscriptSegment[]): 
     for (const seg of segments) {
         if (seg.end >= targetTime) return seg.end;
     }
+    /* v8 ignore next */
     return segments[segments.length - 1].end;
 }
 
@@ -142,4 +144,3 @@ function shrinkToMeetMaxDuration(
     const strongMatch = [...candidates].reverse().find((s) => isStrongPunctuation(s.text));
     return strongMatch ? strongMatch.end : candidates[candidates.length - 1].end;
 }
-/* v8 ignore stop */

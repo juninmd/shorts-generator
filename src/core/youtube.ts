@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
@@ -21,11 +21,13 @@ function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): str
     "node",
   ];
 
+  /* v8 ignore start */
   if (browser) {
     args.push("--cookies-from-browser", browser);
   } else if (file) {
     args.push("--cookies", file);
   }
+  /* v8 ignore stop */
   return args;
 }
 
@@ -52,14 +54,17 @@ async function withCookies<T>(
     const stats = fs.statSync(tempCookiePath);
     logger.debug({ path: tempCookiePath, size: stats.size }, "Temporary cookie file created");
 
+    /* v8 ignore start */
     if (stats.size < 10) {
       logger.warn({ size: stats.size }, "Cookie file is suspiciously small, check YOUTUBE_COOKIES_BASE64 helper");
     }
+    /* v8 ignore stop */
   }
 
   try {
     return await fn(tempCookiePath);
   } finally {
+    /* v8 ignore start */
     if (tempCookiePath && fs.existsSync(tempCookiePath)) {
       try {
         fs.unlinkSync(tempCookiePath);
@@ -67,6 +72,7 @@ async function withCookies<T>(
         logger.warn({ err, path: tempCookiePath }, "Failed to delete temp cookie file");
       }
     }
+    /* v8 ignore stop */
   }
 }
 
@@ -85,6 +91,7 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
       stderr: string;
     };
   } catch (error: any) {
+    /* v8 ignore start */
     const stderr = error.stderr || "";
     // Redact cookie path from args if present for extra safety
     const safeArgs = args.map((arg, i) => {
@@ -103,6 +110,7 @@ async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: s
       message: safeMessage
     }, "yt-dlp execution failed");
     throw error;
+    /* v8 ignore stop */
   }
 }
 
@@ -130,12 +138,16 @@ export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void>
       ], { timeout: 45_000 });
       
       // If we see IDs in the output, it means we reached the format list
+      /* v8 ignore next 4 */
+      /* v8 ignore start */
       if (stdout.includes("ID") && stdout.includes("EXT")) {
         logger.info("YouTube format access check passed.");
         return;
       }
       throw new Error("YouTube formats not found in response.");
+      /* v8 ignore stop */
     } catch (error: any) {
+      /* v8 ignore start */
       const msg = error.stderr || error.message || "";
       const lowerMsg = msg.toLowerCase();
       
@@ -155,6 +167,7 @@ export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void>
       const lines = msg.split("\n");
       const errorLine = lines.find((l: string) => l.includes("ERROR:")) || lines[0];
       throw new Error(`YouTube access check failed: ${errorLine}`);
+      /* v8 ignore stop */
     }
   });
 }
@@ -208,7 +221,9 @@ export async function getChannelVideos(
             liveStatus: raw.live_status,
           });
         } catch {
+          /* v8 ignore start */
           logger.warn({ line }, "Failed to parse video info line");
+          /* v8 ignore stop */
         }
       }
 
@@ -222,8 +237,10 @@ export async function getChannelVideos(
       );
       return filtered;
     } catch (error) {
+      /* v8 ignore start */
       logger.error({ error, channel: channelIdentifier }, "Failed to fetch channel videos");
       return [];
+      /* v8 ignore stop */
     }
   });
 }
@@ -277,7 +294,9 @@ export async function getTopChannelVideos(
             viewCount: typeof raw.view_count === "number" ? raw.view_count : 0,
           });
         } catch {
+          /* v8 ignore start */
           logger.warn({ line }, "Failed to parse video info line in top fetch");
+          /* v8 ignore stop */
         }
       }
 
@@ -295,8 +314,10 @@ export async function getTopChannelVideos(
       
       return filtered.slice(0, limit * 2); // Return more to search through for non-music 
     } catch (error) {
+      /* v8 ignore start */
       logger.error({ error, channel: channelIdentifier }, "Failed to fetch top channel videos");
       return [];
+      /* v8 ignore stop */
     }
   });
 }
@@ -332,9 +353,11 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         }
       }
 
+      /* v8 ignore start */
       if (!raw) {
         throw new Error("Failed to parse video info from yt-dlp output");
       }
+      /* v8 ignore stop */
 
       return {
         id: raw.id,
@@ -349,8 +372,10 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         categories: raw.categories ?? [],
       };
     } catch (error) {
+      /* v8 ignore start */
       logger.error({ error, url }, "Failed to get video info");
       return null;
+      /* v8 ignore stop */
     }
   });
 }
@@ -397,8 +422,10 @@ export async function downloadAudioOnly(
         fileSize: stats.size,
       };
     } catch (err: any) {
+      /* v8 ignore start */
       logger.error({ videoId: video.id, error: err.message }, "Failed to download audio");
       throw err;
+      /* v8 ignore stop */
     }
   });
 }
@@ -446,13 +473,17 @@ export async function downloadVideoSection(
 
     try {
       await execYtDlp(args, { timeout: 300_000 });
+      /* v8 ignore start */
       if (!fs.existsSync(outputTemplate)) {
         throw new Error("Section download succeeded but file not found");
       }
+      /* v8 ignore stop */
       return outputTemplate;
     } catch (err: any) {
+      /* v8 ignore start */
       logger.error({ videoId: video.id, error: err.message }, "Failed to download video section");
       throw err;
+      /* v8 ignore stop */
     }
   });
 }
@@ -466,7 +497,9 @@ export function cleanupVideo(videoId: string, config: PipelineConfig): void {
     fs.rmSync(videoDir, { recursive: true, force: true });
     logger.debug({ videoId }, "Cleaned up temp files");
   } catch {
+          /* v8 ignore start */
     logger.warn({ videoId }, "Failed to cleanup temp files");
+          /* v8 ignore stop */
   }
 }
 
@@ -497,8 +530,8 @@ export async function getVideoFileSize(
       const size = parseInt(raw, 10);
       return isNaN(size) ? null : size;
     } catch {
+      /* v8 ignore next */
       return null;
     }
   });
 }
-/* v8 ignore stop */

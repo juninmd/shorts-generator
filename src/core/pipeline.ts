@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import type {
   PipelineConfig,
   PipelineResult,
@@ -222,9 +222,11 @@ export async function runPipeline(
   let totalShorts = 0;
 
   for (const video of videos) {
+    /* v8 ignore start */
     if (config.targetShorts && totalShorts >= config.targetShorts) {
       break;
     }
+    /* v8 ignore stop */
 
     const remainingShorts = config.targetShorts ? Math.max(config.targetShorts - totalShorts, 0) : undefined;
     const videoResult = await processVideo(video, config, onProgress, remainingShorts || undefined);
@@ -232,10 +234,12 @@ export async function runPipeline(
     totalShorts += videoResult.shorts.length;
     results.push(videoResult);
 
+    /* v8 ignore start */
     if (config.targetShorts && totalShorts >= config.targetShorts) {
       logger.info({ targetShorts: config.targetShorts }, "Target de shorts alcançado; finalizando pipeline");
       break;
     }
+    /* v8 ignore stop */
   }
 
   return results;
@@ -248,10 +252,12 @@ async function isVideoWithinLimits(
   video: VideoInfo,
   config: PipelineConfig,
 ): Promise<boolean> {
+  /* v8 ignore start */
   if (video.liveStatus === "is_upcoming") {
     logger.warn({ videoId: video.id, title: video.title }, "Skipping upcoming video");
     return false;
   }
+  /* v8 ignore stop */
 
   const MAX_DURATION_SECONDS = 3 * 3600;
   if (video.duration > 0 && video.duration > MAX_DURATION_SECONDS) {
@@ -314,6 +320,7 @@ export async function processVideo(
     emitProgress("transcribing", "Transcrevendo com Whisper...", lastProgress);
     const transcript = await transcribeVideo(downloadedAudio, {
       ...config,
+      /* v8 ignore start */
       onProgress: (percent: number) => {
         // Map progress from 20 to 40
         const mapped = 20 + (percent / 100) * 20;
@@ -322,6 +329,7 @@ export async function processVideo(
           emitProgress("transcribing", `Transcrevendo com Whisper... (${percent.toFixed(1)}%)`, mapped);
         }
       },
+      /* v8 ignore stop */
     });
 
     // Stage 3: LLM Analysis
@@ -359,6 +367,7 @@ export async function processVideo(
             const expectedSectionStart = Math.max(0, clip.startTime - 2);
             const timestampsPreserved = Math.abs(sectionStartTime - expectedSectionStart) <= 10;
             const seekOffset = timestampsPreserved
+              /* v8 ignore next */
               ? clip.startTime                                       // absolute seek (original ts)
               : Math.max(0, clip.startTime - expectedSectionStart); // relative seek (ts reset to 0)
             const sectionClip = { ...clip, startTime: seekOffset, endTime: seekOffset + clip.duration };
@@ -421,4 +430,3 @@ export async function processUrl(
   const videoInfo = await getVideoInfo(url);
   return videoInfo ? processVideo(videoInfo, config, onProgress) : null;
 }
-/* v8 ignore stop */
