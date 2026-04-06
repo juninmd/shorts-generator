@@ -4,6 +4,8 @@ import {
   getTopChannelVideos,
   getVideoInfo,
   verifyYoutubeAccess,
+  searchYoutubeVideos,
+  runCatholicRadar,
 } from "./youtube.js";
 import { logger } from "./logger.js";
 import type {
@@ -34,11 +36,13 @@ export async function runPipeline(
 
   const videos: VideoInfo[] = [];
 
+  // 1. Process specific URLs
   for (const url of config.specificUrls) {
     const info = await getVideoInfo(url);
     if (info && (await isVideoWithinLimits(info, config))) videos.push(info);
   }
 
+  // 2. Process specific Channels
   for (const channel of config.channels) {
     const channelVideos = config.sortByViews
       ? await getTopChannelVideos(channel, config.videoLimit, config.maxVideoDurationSec)
@@ -47,14 +51,33 @@ export async function runPipeline(
     videos.push(...selected);
   }
 
-  if (videos.length === 0) return [];
+  // 3. Process Search Queries
+  if (config.searchQueries?.length) {
+    for (const query of config.searchQueries) {
+      const results = await searchYoutubeVideos(query, config.videoLimit);
+      const selected = await selectValidVideos(results, config);
+      videos.push(...selected);
+    }
+  }
 
-  logger.info({ videoCount: videos.length }, "Starting pipeline");
+  // 4. Run Catholic Radar
+  if (config.catholicRadar) {
+    const radarResults = await runCatholicRadar(undefined, 2); // Default guests
+    const selected = await selectValidVideos(radarResults, config);
+    videos.push(...selected);
+  }
+
+  // Deduplicate videos by ID before processing
+  const uniqueVideos = Array.from(new Map(videos.map(v => [v.id, v])).values());
+
+  if (uniqueVideos.length === 0) return [];
+
+  logger.info({ videoCount: uniqueVideos.length }, "Starting pipeline");
 
   const results: PipelineResult[] = [];
   let totalShorts = 0;
 
-  for (const video of videos) {
+  for (const video of uniqueVideos) {
     if (config.targetShorts && totalShorts >= config.targetShorts) break;
 
     const remaining = config.targetShorts ? Math.max(config.targetShorts - totalShorts, 0) : undefined;

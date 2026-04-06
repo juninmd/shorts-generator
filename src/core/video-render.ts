@@ -49,12 +49,13 @@ export async function renderShort(
   const centerX = `iw*${faceX}`;
   const startX = `max(0\\,min(iw-${cropW}\\,${centerX}-${cropW}/2))`;
 
-  // Video filter: Smart Crop → Lanczos Scale → Sharpen → Color Fix → Subtitles
+  // Video filter: Smart Crop → Lanczos Scale → Sharpen → Color Fix → Progress Bar → Subtitles
   const filters = [
     `crop=${cropW}:${cropH}:${startX}:0`,
     `scale=${w}:${h}:flags=lanczos`,
     `unsharp=3:3:1.5:3:3:0.5`,
-    `eq=contrast=1.03:brightness=0.01:saturation=1.05`,
+    `eq=contrast=1.1:brightness=0.02:saturation=1.2`, // More vibrant colors
+    `drawbox=y=ih-15:color=yellow@0.8:width=iw*t/${clip.duration}:height=8:t=fill`, // Progress bar
     `ass='${escapedSubPath}'`,
   ];
 

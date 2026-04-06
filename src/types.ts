@@ -116,6 +116,10 @@ export interface PipelineConfig {
   sortByViews?: boolean;
   /** Keep temp files (audio, video sections) after processing — useful for debugging */
   keepTempFiles?: boolean;
+  /** Search queries to find videos (e.g. ["padre paulo ricardo podcast"]) */
+  searchQueries?: string[];
+  /** If true, run the automatic catholic guest radar searching for guest appearances */
+  catholicRadar?: boolean;
   /** Max YouTube uploads per calendar day (default: 70). Shorts beyond this are Telegram-only. */
   dailyUploadLimit: number;
   /** Maximum video duration (seconds) to include from channel listings. Default: 3h */
