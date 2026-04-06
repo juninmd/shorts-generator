@@ -10,8 +10,8 @@ import { runPipeline } from "./pipeline.js";
 export function startScheduler() {
   logger.info("📡 Agendador de Radar Católico iniciado (a cada 8 horas)");
 
-  // Schedule: 0 0,8,16 * * * (At 00:00, 08:00, and 16:00)
-  cron.schedule("0 0,8,16 * * *", async () => {
+  // Schedule: 0 0,8,12,16 * * * (At 00:00, 08:00, 12:00, and 16:00)
+  cron.schedule("0 0,8,12,16 * * *", async () => {
     logger.info("🚀 Iniciando execução agendada do Radar Católico...");
     
     try {
