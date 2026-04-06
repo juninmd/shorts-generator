@@ -25,7 +25,7 @@ export { isVideoWithinLimits, selectValidVideos } from "./pipeline-utils.ts";
  */
 export async function runPipeline(
   config: PipelineConfig,
-  onProgress?: (progress: any) => void,
+  onProgress?: (progress: import("../types.js").PipelineProgress) => void,
 ): Promise<PipelineResult[]> {
   try {
     await verifyYoutubeAccess(config);
