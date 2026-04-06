@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import type { ShortClip, TranscriptWord } from "../types.js";
 
 /**
@@ -167,4 +167,3 @@ function splitIntoLines(text: string, maxChars: number): string[] {
   if (current) lines.push(current.trim());
   return lines;
 }
-/* v8 ignore stop */

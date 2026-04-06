@@ -121,4 +121,22 @@ describe("clip-boundary", () => {
     expect(result.startTime).toBe(1);
     expect(result.endTime).toBe(9);
   });
+
+  it("should handle targetTime out of bounds", () => {
+    const customConfig = { ...mockConfig, minShortDuration: 0, maxShortDuration: 100 };
+    const customSegments = [
+      { start: 10, end: 20, text: "Seg 1" },
+      { start: 30, end: 40, text: "Seg 2" }
+    ];
+
+    // Completely before first segment
+    const clipBefore = { startTime: -50, endTime: -40 };
+    const resultBefore = snapToSentenceBoundaries(clipBefore, customSegments, customConfig);
+    expect(resultBefore.startTime).toBe(10);
+
+    // Completely after last segment
+    const clipAfter = { startTime: 100, endTime: 200 };
+    const resultAfter = snapToSentenceBoundaries(clipAfter, customSegments, customConfig);
+    expect(resultAfter.endTime).toBe(40);
+  });
 });

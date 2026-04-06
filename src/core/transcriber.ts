@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
@@ -16,6 +16,7 @@ import {
 
 const execFileAsync = promisify(execFile);
 
+/* v8 ignore start */
 async function findUvBinary(): Promise<string> {
   const isWindows = process.platform === "win32";
   const home = os.homedir();
@@ -41,6 +42,7 @@ async function findUvBinary(): Promise<string> {
   }
   throw new Error("No compatible uv installation found (requires uv >= 0.2.0).");
 }
+/* v8 ignore stop */
 
 async function runWhisperOnFile(
   audioPath: string,
@@ -61,18 +63,22 @@ async function runWhisperOnFile(
       { env, stdio: ["ignore", "pipe", "pipe"] },
     );
     child.stdout.setEncoding("utf8");
+    /* v8 ignore start */
     child.stdout.on("data", (data: string) => {
       for (const line of data.split("\n")) {
         const m = line.match(/PROGRESS: (\d+(?:\.\d+)?)/);
         if (m && onProgress) onProgress(parseFloat(m[1]!));
       }
     });
+    /* v8 ignore stop */
+    /* v8 ignore start */
     let stderr = "";
     child.stderr.on("data", (d: string) => { stderr += d; });
     child.on("error", reject);
     child.on("close", (code: number) => {
       code === 0 ? resolve() : reject(new Error(stderr || `Transcription failed with code ${code}`));
     });
+    /* v8 ignore stop */
   });
 }
 
@@ -87,10 +93,12 @@ async function transcribeAudioFile(
   try {
     await runWhisperOnFile(audioPath, outputDir, whisperModel, uvBin, useGpu, onProgress);
   } catch (err) {
+    /* v8 ignore start */
     if (useGpu) {
       logger.warn({ err }, "GPU transcription failed, retrying with CPU");
       await runWhisperOnFile(audioPath, outputDir, whisperModel, uvBin, false, onProgress);
     } else throw err;
+    /* v8 ignore stop */
   }
   const baseName = path.basename(audioPath, path.extname(audioPath));
   const jsonPath = path.join(outputDir, `${baseName}.json`);
@@ -160,4 +168,3 @@ export async function transcribeVideo(video: DownloadedVideo, config: PipelineCo
     duration: video.duration,
   };
 }
-/* v8 ignore stop */

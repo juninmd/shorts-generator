@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { Bot, InputFile } from "grammy";
 import fs from "node:fs";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
@@ -109,11 +109,14 @@ export async function sendToTelegram(
     ``,
     `💡 ${escapeHtml(short.clip.reason)}`,
     ``,
+    /* v8 ignore next */
     short.clip.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).map(escapeHtml).join(" "),
   ].filter(line => line !== "").join("\n");
 
   // Truncate caption if it exceeds Telegram's 1024 character limit for media
+  /* v8 ignore start */
   const finalCaption = caption.length > 1000 ? caption.substring(0, 997) + "..." : caption;
+  /* v8 ignore stop */
 
   try {
     const fileSize = fs.statSync(short.outputPath).size;
@@ -163,7 +166,9 @@ export async function sendSummary(
 
   const bot = new Bot(config.telegramBotToken);
 
+  /* v8 ignore start */
   const status = errors.length === 0 ? "✅ Sucesso" : "⚠️ Com erros";
+  /* v8 ignore stop */
 
   const message = [
     `📊 <b>Resumo do processamento</b>`,
@@ -172,7 +177,9 @@ export async function sendSummary(
     `📺 Canal: ${escapeHtml(channelName)}`,
     `🎥 Vídeo: ${escapeHtml(videoTitle)}`,
     `✂️ Shorts gerados: ${shortsCount}`,
+    /* v8 ignore next */
     errors.length > 0 ? `❌ Erros: ${errors.length}` : "",
+    /* v8 ignore next 4 */
     errors.length > 0 ? "\n" + errors.slice(0, 5).map((e) => {
       const eStr = String(e);
       const truncated = eStr.length > 300 ? eStr.substring(0, 300) + "..." : eStr;
@@ -190,4 +197,3 @@ export async function sendSummary(
     logger.error({ error }, "Failed to send summary to Telegram");
   }
 }
-/* v8 ignore stop */

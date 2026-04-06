@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
@@ -54,6 +54,7 @@ export async function splitAudioIntoChunks(
 export function mergeWhisperOutputs(chunks: { data: WhisperOutput; offsetSec: number }[]): WhisperOutput {
   const merged: WhisperOutput = {
     text: "",
+    /* v8 ignore next */
     language: chunks[0]?.data.language ?? "pt",
     segments: [],
   };
@@ -82,4 +83,3 @@ export function cleanupChunkFiles(chunks: { path: string }[]): void {
     try { fs.unlinkSync(p); } catch { /* ignore */ }
   }
 }
-/* v8 ignore stop */

@@ -17,6 +17,7 @@ vi.mock("node:fs", () => ({
     mkdirSync: vi.fn(),
     readdirSync: vi.fn(),
     renameSync: vi.fn(),
+    writeFileSync: vi.fn(),
   },
 }));
 
@@ -111,6 +112,24 @@ describe("youtube", () => {
     expect(videos).toEqual([]);
   });
 
+  it("getChannelVideos fetches and filters videos", async () => {
+    const mockOutput = [
+      { id: "v1", title: "Vid1", duration: 100, live_status: "none" },
+      { id: "v2", title: "Vid2", duration: 0, live_status: "none" }, // filtered out due to 0 duration
+      { id: "v3", title: "Vid3", duration: 100, live_status: "is_upcoming" }, // filtered out due to upcoming
+    ].map(v => JSON.stringify(v)).join("\n");
+
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: mockOutput, stderr: "" });
+      return {} as any;
+    });
+
+    const videos = await getChannelVideos("chan", 3);
+    expect(videos).toHaveLength(1);
+    expect(videos[0].id).toBe("v1");
+  });
+
   it("getVideoFileSize handles exec error gracefully", async () => {
     vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
       const cb = typeof options === 'function' ? options : callback;
@@ -140,5 +159,83 @@ describe("youtube", () => {
     });
 
     expect(() => cleanupVideo("vid1", mockConfig)).not.toThrow();
+  });
+
+  it("getYtDlpBaseArgs handles youtubeCookiesFile", async () => {
+    const configWithFile = { ...mockConfig, youtubeCookiesFile: "cookies.txt" };
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: "100\n", stderr: "" });
+      return {} as any;
+    });
+    const size = await getVideoFileSize("url", configWithFile);
+    expect(size).toBe(100);
+  });
+
+  it("withCookies creates and deletes temp cookie file", async () => {
+    const configWithCookies = { ...mockConfig, youtubeCookiesBase64: Buffer.from("cookies").toString("base64") };
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    vi.mocked(fs.writeFileSync).mockImplementation(() => {});
+    vi.mocked(fs.statSync).mockReturnValue({ size: 100 } as any);
+
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: "100\n", stderr: "" });
+      return {} as any;
+    });
+
+    const size = await getVideoFileSize("url", configWithCookies);
+    expect(size).toBe(100);
+    expect(fs.writeFileSync).toHaveBeenCalled();
+  });
+
+  it("verifyYoutubeAccess passes on successful format fetch", async () => {
+    const { verifyYoutubeAccess } = await import("../../src/core/youtube.js");
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: "ID  EXT\n123 mp4", stderr: "" });
+      return {} as any;
+    });
+
+    await expect(verifyYoutubeAccess(mockConfig)).resolves.not.toThrow();
+  });
+
+  it("getTopChannelVideos fetches and sorts videos", async () => {
+    const { getTopChannelVideos } = await import("../../src/core/youtube.js");
+    const mockOutput = [
+      { id: "v1", title: "Vid1", duration: 100, view_count: 50 },
+      { id: "v2", title: "Vid2", duration: 100, view_count: 150 },
+    ].map(v => JSON.stringify(v)).join("\n");
+
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: mockOutput, stderr: "" });
+      return {} as any;
+    });
+
+    const videos = await getTopChannelVideos("chan", 2);
+    expect(videos).toHaveLength(2);
+    expect(videos[0].id).toBe("v2"); // Sorted by view_count desc
+  });
+
+  it("downloadVideoSection resolves correctly", async () => {
+    const video = {
+      id: "vid1",
+      title: "Title",
+      url: "url",
+      channelName: "channel",
+      channelUrl: "curl",
+      duration: 120,
+      publishedAt: "20230101",
+    };
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(execFile).mockImplementation((file, args, options, callback?: any) => {
+      const cb = typeof options === 'function' ? options : callback;
+      if (typeof cb === "function") cb(null, { stdout: "", stderr: "" });
+      return {} as any;
+    });
+
+    const path = await downloadVideoSection(video, 10, 20, mockConfig);
+    expect(path).toContain("vid1_");
   });
 });
