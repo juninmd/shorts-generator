@@ -68,56 +68,55 @@ export async function processClip(
 }
 
 /**
- * Use AI (Vision) to detect the horizontal center of the person's face.
- * Extracts a frame from the middle of the clip.
+ * Use local Python script (MediaPipe) to detect the horizontal center of the person's face.
+ * Takes the average of 3 frames (start, middle, end) for better stability.
  */
 async function detectFaceCenter(inputPath: string, clip: ShortClip, config: PipelineConfig): Promise<number> {
-  if (config.aiProvider !== "openrouter") return 0.5; // Fallback for local models without vision
+  const points = [0.2, 0.5, 0.8]; // Start, middle, end of the clip
+  const centers: number[] = [];
 
-  const framePath = path.join(config.tempDir, `frame_${clip.id}.jpg`);
-  const frameTime = clip.startTime + (clip.duration / 2);
+  for (const p of points) {
+    const framePath = path.join(config.tempDir, `frame_${clip.id}_${p}.jpg`);
+    const frameTime = clip.startTime + (clip.duration * p);
 
-  try {
-    // Extract a single frame from the middle of the clip
-    const ffmpegBin = (ffmpeg as any).ffmpegPath?.() ?? "ffmpeg";
-    await execFileAsync(ffmpegBin, [
-      "-ss", String(frameTime),
-      "-i", inputPath,
-      "-frames:v", "1",
-      "-q:v", "2",
-      "-y",
-      framePath
-    ]);
+    try {
+      const ffmpegBin = (ffmpeg as any).ffmpegPath?.() ?? "ffmpeg";
+      await execFileAsync(ffmpegBin, [
+        "-ss", String(frameTime),
+        "-i", inputPath,
+        "-frames:v", "1",
+        "-q:v", "2",
+        "-y",
+        framePath
+      ]);
 
-    if (!fs.existsSync(framePath)) return 0.5;
+      if (!fs.existsSync(framePath)) continue;
 
-    const frameBase64 = fs.readFileSync(framePath).toString("base64");
-    
-    // Use Gemini (via OpenRouter) to find the face
-    const { text } = await generateText({
-      model: createModel(config),
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "Identify the horizontal center (X coordinate) of the main person's face in this image. Respond ONLY with a decimal number between 0 (left edge) and 1 (right edge). Example: 0.5" },
-            { type: "image", image: frameBase64, mimeType: "image/jpeg" }
-          ]
+      // Use local python detection (FREE & FAST) from uv venv
+      try {
+        const pythonPath = path.join(process.cwd(), ".venv/Scripts/python.exe");
+        const { stdout } = await execFileAsync(pythonPath, [
+          path.join(process.cwd(), "scripts/detect_face.py"),
+          framePath
+        ]);
+        const result = JSON.parse(stdout);
+        if (typeof result.faceX === "number") {
+          centers.push(result.faceX);
         }
-      ],
-      temperature: 0,
-      maxOutputTokens: 10,
-    });
+      } catch (pythonErr) {
+        logger.debug({ clipId: clip.id, pythonErr: (pythonErr as any).message }, "Local face detection skipped or failed");
+        // No AI Vision fallback here to save costs
+      }
 
-    if (!config.keepTempFiles) fs.unlinkSync(framePath);
-
-    const faceX = parseFloat(text.trim());
-    return isNaN(faceX) ? 0.5 : Math.max(0, Math.min(1, faceX));
-  } catch (err) {
-    logger.warn({ clipId: clip.id, err }, "AI Face tracking failed, falling back to center");
-    if (fs.existsSync(framePath)) fs.unlinkSync(framePath);
-    return 0.5;
+      if (!config.keepTempFiles && fs.existsSync(framePath)) fs.unlinkSync(framePath);
+    } catch (err) {
+      logger.warn({ clipId: clip.id, frameTime, err }, "Frame extraction failed for face tracking");
+    }
   }
+
+  if (centers.length === 0) return 0.5;
+  const avg = centers.reduce((a, b) => a + b, 0) / centers.length;
+  return Math.max(0.15, Math.min(0.85, avg)); // Safety margin to avoid cutting edges
 }
 
 /**

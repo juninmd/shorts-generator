@@ -49,12 +49,14 @@ export async function renderShort(
   const centerX = `iw*${faceX}`;
   const startX = `max(0\\,min(iw-${cropW}\\,${centerX}-${cropW}/2))`;
 
-  // Video filter: Smart Crop → Lanczos Scale → Sharpen → Color Fix → Progress Bar → Subtitles
+  // Video filter: Smart Crop → Lanczos Scale → Denoise → Sharpen → 60FPS → Color Fix → Progress Bar → Subtitles
   const filters = [
     `crop=${cropW}:${cropH}:${startX}:0`,
     `scale=${w}:${h}:flags=lanczos`,
-    `unsharp=3:3:1.5:3:3:0.5`,
-    `eq=contrast=1.1:brightness=0.02:saturation=1.2`, // More vibrant colors
+    `hqdn3d=1.5:1.5:6:6`, // High-quality denoise for cleaner image
+    `unsharp=5:5:0.8:5:5:0.0`, // Sharper edges
+    `fps=60`, // Fluid motion
+    `eq=contrast=1.12:brightness=0.03:saturation=1.25`, // Vibrant cinematic colors
     `drawbox=y=ih-15:color=yellow@0.8:width=iw*t/${clip.duration}:height=8:t=fill`, // Progress bar
     `ass='${escapedSubPath}'`,
   ];
@@ -68,8 +70,10 @@ export async function renderShort(
   };
 
   const isNvenc = config.videoEncoder.includes("nvenc");
-  // Lower CRF (18) for higher quality
-  const qualityArgs = isNvenc ? ["-cq", "18"] : ["-crf", "18"];
+  // CRF 16 for near-lossless quality. Higher bitrate for 60fps.
+  const qualityArgs = isNvenc 
+    ? ["-cq", "16", "-b:v", "8M", "-maxrate:v", "12M", "-bufsize:v", "16M"] 
+    : ["-crf", "16", "-preset", "slow"];
 
   const args = [
     "-ss", String(clip.startTime),
@@ -77,7 +81,7 @@ export async function renderShort(
     "-y",
     "-vf", filters.join(","),
     // Audio: Compression (dynamics), Warm EQ (bass/treble), and Pro Loudness Normalization
-    "-af", "acompressor=threshold=-20dB:ratio=4:attack=5:release=50,bass=g=3:f=100,treble=g=2:f=4000,loudnorm=I=-16:TP=-1.5:LRA=11",
+    "-af", "acompressor=threshold=-18dB:ratio=3:attack=5:release=50,bass=g=4:f=100,treble=g=2:f=4500,loudnorm=I=-14:TP=-1.0:LRA=11",
     "-t", String(clip.duration),
     "-c:v", config.videoEncoder,
     "-preset", isNvenc ? "p4" : "slow", 
