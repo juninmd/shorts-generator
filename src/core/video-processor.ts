@@ -84,8 +84,9 @@ async function detectFaceCenter(inputPath: string, clip: ShortClip, config: Pipe
       await execFileAsync(ffmpegBin, [
         "-ss", String(frameTime),
         "-i", inputPath,
+        "-vf", "eq=contrast=1.3:brightness=0.1,scale=1280:720", // Boost visibility for AI
         "-frames:v", "1",
-        "-q:v", "2",
+        "-q:v", "1", // High quality frame
         "-y",
         framePath
       ]);
@@ -102,10 +103,12 @@ async function detectFaceCenter(inputPath: string, clip: ShortClip, config: Pipe
         const result = JSON.parse(stdout);
         if (typeof result.faceX === "number") {
           centers.push(result.faceX);
+          logger.debug({ clipId: clip.id, frameTime, faceX: result.faceX, msg: result.message }, "Frame face detection success");
+        } else {
+          logger.debug({ clipId: clip.id, frameTime, error: result.error }, "Frame face detection found no face");
         }
       } catch (pythonErr) {
-        logger.debug({ clipId: clip.id, pythonErr: (pythonErr as any).message }, "Local face detection skipped or failed");
-        // No AI Vision fallback here to save costs
+        logger.debug({ clipId: clip.id, pythonErr: (pythonErr as any).message }, "Local face detection command failed");
       }
 
       if (!config.keepTempFiles && fs.existsSync(framePath)) fs.unlinkSync(framePath);
