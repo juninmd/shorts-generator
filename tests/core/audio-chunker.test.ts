@@ -13,7 +13,7 @@ vi.mock("node:child_process", () => ({
 
 describe("audio-chunker", () => {
   it("splitAudioIntoChunks splits audio file properly using ffmpeg", async () => {
-    const result = await splitAudioIntoChunks("test.wav", 10 * 60, 5 * 60, "outDir");
+    const result = await splitAudioIntoChunks("dummy.wav", 10 * 60, 5 * 60, "outDir");
     expect(result).toHaveLength(2);
     expect(result[0].offsetSec).toBe(0);
     expect(result[1].offsetSec).toBe(300);
