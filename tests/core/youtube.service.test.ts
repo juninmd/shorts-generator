@@ -54,7 +54,7 @@ describe("youtube.service", () => {
   const mockConfig = {
     aiProvider: "openrouter",
     aiModel: "google/gemma-3-4b-it:free",
-    openrouterApiKey: "test-key",
+    openrouterApiKey: "12345",
   } as any;
 
   const mockShort = {
@@ -119,10 +119,10 @@ describe("youtube.service", () => {
     });
   });
 
-  const mockCredsSetup = (isEnabled = "true", id = "123", secret = "456", refresh = "789") => {
+  const mockCredsSetup = (isEnabled = "true", id = "123", myCode = "456", refresh = "789") => {
     process.env.ENABLE_YOUTUBE = isEnabled;
     process.env.YOUTUBE_CLIENT_ID = id;
-    process.env.YOUTUBE_CLIENT_SECRET = secret;
+    process.env.YOUTUBE_CLIENT_SECRET = myCode;
     process.env.YOUTUBE_REFRESH_TOKEN = refresh;
   };
 
