@@ -43,7 +43,7 @@ describe("video-processor", () => {
     outputDir: "/output",
     verticalWidth: 1080,
     verticalHeight: 1920,
-    watermarkText: "Test Watermark",
+    watermarkText: "Dummy Watermark",
     videoEncoder: "libx264",
   } as PipelineConfig;
 
@@ -53,7 +53,7 @@ describe("video-processor", () => {
     audioPath: "path/to/audio.wav",
     title: "Video Title",
     url: "https://youtube.com/watch?v=123",
-    channelName: "Test Channel",
+    channelName: "Dummy Channel",
     channelUrl: "",
     duration: 600,
     publishedAt: "",
@@ -80,7 +80,7 @@ describe("video-processor", () => {
   });
 
   it("getVideoDuration returns correct duration", async () => {
-    const duration = await getVideoDuration("test.mp4");
+    const duration = await getVideoDuration("dummy.mp4");
     expect(duration).toBe(120);
   });
 
@@ -117,11 +117,11 @@ describe("video-processor", () => {
 
     vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
       const cb = callback || options || args;
-      if (typeof cb === "function") cb(new Error("Test error"), { stdout: "", stderr: "Test error stderr" });
+      if (typeof cb === "function") cb(new Error("Dummy error"), { stdout: "", stderr: "Dummy error stderr" });
       return {} as any;
     });
 
-    await expect(processClip(mockVideo, mockClip, configWithoutWatermark)).rejects.toThrow("Test error");
+    await expect(processClip(mockVideo, mockClip, configWithoutWatermark)).rejects.toThrow("Dummy error");
   });
 
   it("getVideoDuration handles errors", async () => {
@@ -130,7 +130,7 @@ describe("video-processor", () => {
       cb(new Error("ffprobe error"), null as any);
     });
 
-    await expect(getVideoDuration("test.mp4")).rejects.toThrow("ffprobe error");
+    await expect(getVideoDuration("dummy.mp4")).rejects.toThrow("ffprobe error");
   });
 
   it("getVideoDuration handles missing format duration", async () => {
@@ -139,7 +139,7 @@ describe("video-processor", () => {
       cb(null, {} as any);
     });
 
-    const duration = await getVideoDuration("test.mp4");
+    const duration = await getVideoDuration("dummy.mp4");
     expect(duration).toBe(0);
   });
 
@@ -150,7 +150,7 @@ describe("video-processor", () => {
     });
 
     const { getFileStartTime } = await import("../../src/core/video-processor.js");
-    const startTime = await getFileStartTime("test.mp4");
+    const startTime = await getFileStartTime("dummy.mp4");
     expect(startTime).toBe(15.5);
   });
 
@@ -161,7 +161,7 @@ describe("video-processor", () => {
     });
 
     const { getFileStartTime } = await import("../../src/core/video-processor.js");
-    const startTime = await getFileStartTime("test.mp4");
+    const startTime = await getFileStartTime("dummy.mp4");
     expect(startTime).toBe(0);
   });
 
@@ -172,7 +172,7 @@ describe("video-processor", () => {
     });
 
     const { getFileStartTime } = await import("../../src/core/video-processor.js");
-    const startTime = await getFileStartTime("test.mp4");
+    const startTime = await getFileStartTime("dummy.mp4");
     expect(startTime).toBe(0);
   });
 
@@ -183,7 +183,7 @@ describe("video-processor", () => {
     });
 
     const { getFileStartTime } = await import("../../src/core/video-processor.js");
-    const startTime = await getFileStartTime("test.mp4");
+    const startTime = await getFileStartTime("dummy.mp4");
     expect(startTime).toBe(0);
   });
 });

@@ -29,7 +29,7 @@ vi.mock("grammy", () => {
 
 describe("telegram", () => {
   const mockConfig: PipelineConfig = {
-    telegramBotToken: "123456789:ABCDefghIJKL",
+    telegramBotToken: "dummy",
     telegramChatId: "12345",
   } as PipelineConfig;
 

@@ -51,7 +51,7 @@ describe("analyzer", () => {
           endTime: 40,
           viralScore: 9,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
       ],
     };
@@ -85,7 +85,7 @@ describe("analyzer", () => {
           endTime: 40,
           viralScore: 5,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
         {
           title: "Clip 2",
@@ -94,7 +94,7 @@ describe("analyzer", () => {
           endTime: 70,
           viralScore: 9,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
       ],
     };
@@ -119,7 +119,7 @@ describe("analyzer", () => {
           endTime: 15, // duration 5 < minShortDuration 15
           viralScore: 9,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
         {
           title: "Too Long",
@@ -128,7 +128,7 @@ describe("analyzer", () => {
           endTime: 90, // duration 80 > maxShortDuration 59
           viralScore: 9,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
         {
           title: "Invalid Times",
@@ -137,7 +137,7 @@ describe("analyzer", () => {
           endTime: 130, // > transcript.duration 120
           viralScore: 9,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
         {
           title: "Valid",
@@ -146,7 +146,7 @@ describe("analyzer", () => {
           endTime: 70, // duration 30
           viralScore: 8,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
       ],
     };
@@ -205,7 +205,7 @@ describe("analyzer", () => {
           endTime: 40,
           viralScore: 9,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
       ],
     };
@@ -229,7 +229,7 @@ describe("analyzer", () => {
           endTime: 40,
           viralScore: 8,
           reason: "Reason",
-          hashtags: ["#test"],
+          hashtags: ["#dummy"],
         },
       ],
     };
