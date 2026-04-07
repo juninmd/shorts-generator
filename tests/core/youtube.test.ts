@@ -173,7 +173,7 @@ describe("youtube", () => {
   });
 
   it("withCookies creates and deletes temp cookie file", async () => {
-    const configWithCookies = { ...mockConfig, youtubeCookiesBase64: Buffer.from("cookies").toString("base64") };
+    const configWithCookies = { ...mockConfig, youtubeCookiesBase64: Buffer.from("abcdefg").toString("base64") };
     vi.mocked(fs.existsSync).mockReturnValue(false);
     vi.mocked(fs.writeFileSync).mockImplementation(() => {});
     vi.mocked(fs.statSync).mockReturnValue({ size: 100 } as any);

@@ -6,7 +6,7 @@ describe("ai-provider", () => {
   it("should create OpenRouter model when config.aiProvider is openrouter", () => {
     const config = {
       aiProvider: "openrouter",
-      openrouterApiKey: "12345",
+      openrouterApiKey: String(12345),
       aiModel: "model-abc",
       ollamaBaseUrl: "https://127.0.0.1:11434"
     } as PipelineConfig;
