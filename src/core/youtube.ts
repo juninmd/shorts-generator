@@ -497,9 +497,7 @@ export function cleanupVideo(videoId: string, config: PipelineConfig): void {
     fs.rmSync(videoDir, { recursive: true, force: true });
     logger.debug({ videoId }, "Cleaned up temp files");
   } catch {
-          /* v8 ignore start */
     logger.warn({ videoId }, "Failed to cleanup temp files");
-          /* v8 ignore stop */
   }
 }
 
