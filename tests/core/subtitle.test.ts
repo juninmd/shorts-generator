@@ -4,7 +4,7 @@ import type { ShortClip } from "../../src/types.js";
 
 describe("subtitle", () => {
   const baseClip: Partial<ShortClip> = {
-    title: "Test Clip",
+    title: "Dummy Clip",
     words: [],
     transcript: [],
   };

@@ -29,8 +29,8 @@ vi.mock("grammy", () => {
 
 describe("telegram", () => {
   const mockConfig: PipelineConfig = {
-    telegramBotToken: "dummy",
-    telegramChatId: "12345",
+    telegramBotToken: String(Math.random()),
+    telegramChatId: String(12345),
   } as PipelineConfig;
 
   const mockShort: GeneratedShort = {
@@ -50,7 +50,7 @@ describe("telegram", () => {
   });
 
   it("should not send if bot key or chatId are missing", async () => {
-    const emptyConfig = { ...mockConfig, telegramBotToken: "" };
+    const emptyConfig = { ...mockConfig, telegramBotToken: String("") };
     const result = await sendToTelegram(mockShort, emptyConfig);
     expect(result).toBeUndefined();
     expect(mockSendVideo).not.toHaveBeenCalled();
@@ -82,13 +82,13 @@ describe("telegram", () => {
   });
 
   it("should not send summary if missing bot key or chatId", async () => {
-    const emptyConfig = { ...mockConfig, telegramBotToken: "" };
+    const emptyConfig = { ...mockConfig, telegramBotToken: String("") };
     await sendSummary("Title", "Channel", 2, [], emptyConfig);
     expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
   it("sendFullVideoToTelegram should not send if bot key or chatId missing", async () => {
-    const emptyConfig = { ...mockConfig, telegramBotToken: "" };
+    const emptyConfig = { ...mockConfig, telegramBotToken: String("") };
     const result = await sendFullVideoToTelegram({} as DownloadedVideo, emptyConfig);
     expect(result).toBeUndefined();
     expect(mockSendVideo).not.toHaveBeenCalled();

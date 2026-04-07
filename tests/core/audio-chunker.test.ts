@@ -56,9 +56,9 @@ describe("audio-chunker", () => {
   it("mergeWhisperOutputs handles missing words array", () => {
     const chunks = [{
       data: {
-        text: "Test",
+        text: "Dummy",
         language: "pt",
-        segments: [{ start: 5, end: 10, text: "Test" }]
+        segments: [{ start: 5, end: 10, text: "Dummy" }]
       } as WhisperOutput,
       offsetSec: 100
     }];

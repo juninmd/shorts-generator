@@ -61,9 +61,9 @@ describe("config", () => {
 
   describe("error handling", () => {
     it("should throw error if required env is missing", () => {
-      delete process.env.DUMMY_REQUIRED_KEY;
-      expect(() => requiredEnv("DUMMY_REQUIRED_KEY")).toThrow("Missing required environment variable: DUMMY_REQUIRED_KEY");
-      expect(requiredEnv("DUMMY_REQUIRED_KEY", "fallback")).toBe("fallback");
+      delete process.env.SOME_ENV_VAR_REQUIRED;
+      expect(() => requiredEnv("SOME_ENV_VAR_REQUIRED")).toThrow("Missing required environment variable: SOME_ENV_VAR_REQUIRED");
+      expect(requiredEnv("SOME_ENV_VAR_REQUIRED", "fallback")).toBe("fallback");
     });
   });
 });

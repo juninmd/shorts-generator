@@ -125,12 +125,12 @@ describe("CLI Interactive", () => {
   it("should trigger progress callback from runPipeline", async () => {
     setupMocks(["3", "https://example.com/url", "AUTO"], { channels: [], specificUrls: ["https://example.com/url"] }, []);
     vi.mocked(runPipeline).mockImplementation(async (config, cb) => {
-      if (cb) cb({ stage: "test", progress: 50.5, message: "msg" });
+      if (cb) cb({ stage: "dummy", progress: 50.5, message: "msg" });
       return [];
     });
 
     await runInteractive();
 
-    expect(logger.info).toHaveBeenCalledWith({ stage: "test", progress: "51%", message: "msg" }, "Pipeline status");
+    expect(logger.info).toHaveBeenCalledWith({ stage: "dummy", progress: "51%", message: "msg" }, "Pipeline status");
   });
 });

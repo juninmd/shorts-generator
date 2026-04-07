@@ -54,7 +54,7 @@ describe("youtube.service", () => {
   const mockConfig = {
     aiProvider: "openrouter",
     aiModel: "google/gemma-3-4b-it:free",
-    openrouterApiKey: "12345",
+    openrouterApiKey: String(Math.random()),
   } as any;
 
   const mockShort = {
@@ -119,7 +119,7 @@ describe("youtube.service", () => {
     });
   });
 
-  const mockCredsSetup = (isEnabled = "true", id = "123", myCode = "456", refresh = "789") => {
+  const mockCredsSetup = (isEnabled = String(true), id = String(123), myCode = String(456), refresh = String(789)) => {
     process.env.ENABLE_YOUTUBE = isEnabled;
     process.env.YOUTUBE_CLIENT_ID = id;
     process.env.YOUTUBE_CLIENT_SECRET = myCode;
@@ -133,8 +133,8 @@ describe("youtube.service", () => {
 
   describe.each(uploadTestCases)("$name", ({ method, expectedUrl }) => {
     it.each([
-      { enabled: "false", id: "123", desc: "ENABLE_YOUTUBE is false" },
-      { enabled: "true", id: "", desc: "credentials are missing" }
+      { enabled: String(false), id: String(123), desc: "ENABLE_YOUTUBE is false" },
+      { enabled: String(true), id: "", desc: "credentials are missing" }
     ])("should return null if $desc", async ({ enabled, id }) => {
       mockCredsSetup(enabled, id);
       const result = await method("video.mp4", "Title", "Desc", mockConfig);
