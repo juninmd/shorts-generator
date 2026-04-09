@@ -111,11 +111,22 @@ describe("youtube.service", () => {
 
     it.each([
       { content: 'invalid json', expected: { title: "Original Title", description: "Original Description" } },
-      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description" } }
+      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description" } },
+      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description" } }
     ])("should fallback properly when JSON parsing fails or misses fields: $content", async ({ content, expected }) => {
       setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
       expect(result).toEqual(expected);
+    });
+
+    it("should handle error thrown by generateText", async () => {
+      process.env.ENABLE_YOUTUBE = "true";
+      vi.mocked(aiModule.generateText).mockRejectedValueOnce(new Error("AI error"));
+      const result = await generateYoutubeMetadata(mockShort, mockConfig);
+      expect(result).toEqual({
+        title: "Original Title",
+        description: "Original Description",
+      });
     });
   });
 
@@ -151,7 +162,8 @@ describe("youtube.service", () => {
 
     it.each([
       { err: new Error("Error with 123, 456, and 789"), desc: "standard Error" },
-      { err: "Error with 123", desc: "error string without message property" }
+      { err: "Error with 123", desc: "error string without message property" },
+      { err: { code: 403, message: "quotaExceeded" }, desc: "quota error" }
     ])("should log error and handle failures for $desc", async ({ err }) => {
       vi.useFakeTimers();
       try {
