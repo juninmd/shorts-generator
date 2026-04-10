@@ -23,7 +23,7 @@ function getFfmpegPath(): string {
 /**
  * Render the short video using FFmpeg with vertical crop and burnt subtitles.
  * Optimized for quality and audio clarity.
- * 
+ *
  * @param faceX Normalized horizontal center (0 to 1) for smart cropping.
  */
 export async function renderShort(
@@ -41,17 +41,30 @@ export async function renderShort(
     .replace(/\\/g, "/")
     .replace(/:/g, "\\:");
 
-  // Smart Crop Logic:
-  // Center the 9:16 crop around faceX (normalized 0-1 coordinate)
-  // We need to ensure the crop box doesn't go out of bounds [0, iw]
-  const cropW = `min(iw\\,ih*${w}/${h})`;
-  const cropH = `min(ih\\,iw*${h}/${w})`;
-  const centerX = `iw*${faceX}`;
-  const startX = `max(0\\,min(iw-${cropW}\\,${centerX}-${cropW}/2))`;
+  // Get actual video dimensions to compute crop box as integers (avoids FFmpeg expression bugs)
+  const { width: inputW, height: inputH } = await getInputDimensions(inputPath);
+  const targetAspect = w / h;
+
+  let cropW: number, cropH: number;
+  if (inputW / inputH >= targetAspect) {
+    // Landscape source: crop width, keep full height
+    cropH = inputH;
+    cropW = Math.floor(inputH * targetAspect);
+  } else {
+    // Portrait/square source: crop height, keep full width
+    cropW = inputW;
+    cropH = Math.floor(inputW / targetAspect);
+  }
+
+  // Center crop on detected face, clamped to valid range
+  const startX = Math.max(0, Math.min(inputW - cropW, Math.round(inputW * faceX - cropW / 2)));
+  const startY = Math.max(0, Math.floor((inputH - cropH) / 2));
+
+  logger.debug({ inputW, inputH, cropW, cropH, startX, startY, faceX }, "Crop parameters");
 
   // Video filter: Smart Crop → Lanczos Scale → Denoise → Sharpen → 60FPS → Color Fix → Progress Bar → Subtitles
   const filters = [
-    `crop=${cropW}:${cropH}:${startX}:0`,
+    `crop=${cropW}:${cropH}:${startX}:${startY}`,
     `scale=${w}:${h}:flags=lanczos`,
     `hqdn3d=1.5:1.5:6:6`, // High-quality denoise for cleaner image
     `unsharp=5:5:0.8:5:5:0.0`, // Sharper edges
@@ -119,4 +132,17 @@ export async function renderShort(
     logger.error({ err, command: [ffmpegBin, ...args].join(" ") }, "FFmpeg CRASHED!");
     throw new Error(`FFmpeg failed: ${err.message}`);
   }
+}
+
+/**
+ * Get video dimensions (width, height) via ffprobe.
+ */
+function getInputDimensions(filePath: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) return resolve({ width: 1920, height: 1080 });
+      const stream = metadata.streams.find((s) => s.codec_type === "video");
+      resolve({ width: stream?.width ?? 1920, height: stream?.height ?? 1080 });
+    });
+  });
 }
