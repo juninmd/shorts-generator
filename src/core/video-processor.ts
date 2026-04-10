@@ -84,7 +84,7 @@ async function detectFaceCenter(inputPath: string, clip: ShortClip, config: Pipe
       await execFileAsync(ffmpegBin, [
         "-ss", String(frameTime),
         "-i", inputPath,
-        "-vf", "eq=contrast=1.3:brightness=0.1,scale=1280:720", // Boost visibility for AI
+        "-vf", "eq=contrast=1.3:brightness=0.1,scale=1280:-2", // Boost visibility for AI (preserve aspect ratio)
         "-frames:v", "1",
         "-q:v", "1", // High quality frame
         "-y",
