@@ -56,7 +56,6 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
     const metadata = JSON.parse(cleanContent);
     return {
       title: metadata.title || short.clip.title,
-      /* v8 ignore next */
       description: metadata.description || short.clip.description,
     };
   } catch (error) {
@@ -158,11 +157,9 @@ export const uploadToYouTube = async (
     logger.info({ url }, "✅ Vídeo enviado com sucesso para o YouTube!");
     return url;
   } catch (error: any) {
-    /* v8 ignore start */
-    const errorMessage = sanitize(error.message || String(error));
+    const errorMessage = sanitize(error?.message || String(error));
     logger.error({ error: errorMessage }, "❌ Erro fatal no upload do YouTube após retries");
     return null;
-    /* v8 ignore stop */
   }
 };
 
@@ -227,10 +224,8 @@ export const uploadFullVideoToYouTube = async (
     logger.info({ url }, "✅ Vídeo COMPLETO enviado com sucesso para o YouTube!");
     return url;
   } catch (error: any) {
-    /* v8 ignore start */
-    const errorMessage = sanitize(error.message || String(error));
+    const errorMessage = sanitize(error?.message || String(error));
     logger.error({ error: errorMessage }, "❌ Erro fatal no upload do vídeo completo pro YouTube após retries");
     return null;
-    /* v8 ignore stop */
   }
 };
