@@ -122,7 +122,8 @@ app.get("/api/jobs", (c) => {
     jobId: id,
     status: job.status,
     progress: job.progress,
-    /* v8 ignore next */ shortsCount: job.results.reduce((sum, r) => sum + (r.shorts?.length || 0), 0),
+    /* v8 ignore next */
+    shortsCount: job.results.reduce((sum, r) => sum + (r.shorts?.length || 0), 0),
     createdAt: job.createdAt,
   }));
 
