@@ -4,29 +4,22 @@ import { nanoid } from "nanoid";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import type {
-  ApiGenerateResponse,
-  PipelineProgress,
-  PipelineResult,
-} from "../types.js";
 import { loadConfig } from "../core/config.js";
-import { runPipeline, processUrl } from "../core/pipeline.js";
+import { runPipeline } from "../core/pipeline.js";
 import { logger } from "../core/logger.js";
+import {
+  createJob,
+  getJob,
+  updateJobProgress,
+  completeJob,
+  failJob,
+  listJobs,
+  getAllShorts,
+} from "./job-store.js";
 
 export const app = new Hono();
 
 app.use("/*", cors());
-
-// In-memory job store
-const jobs = new Map<
-  string,
-  {
-    status: ApiGenerateResponse["status"];
-    results: PipelineResult[];
-    progress: PipelineProgress | null;
-    createdAt: string;
-  }
->();
 
 const GenerateBodySchema = z.object({
   urls: z.array(z.string().url()).optional().default([]),
@@ -34,10 +27,8 @@ const GenerateBodySchema = z.object({
   videoLimit: z.number().int().positive().optional().default(3),
 });
 
-// ─── Health check ───
 app.get("/api/health", (c) => c.json({ status: "ok", timestamp: new Date().toISOString() }));
 
-// ─── Start generation job ───
 app.post("/api/generate", async (c) => {
   const body = await c.req.json();
   const parsed = GenerateBodySchema.safeParse(body);
@@ -53,55 +44,28 @@ app.post("/api/generate", async (c) => {
   }
 
   const jobId = nanoid(12);
-  const config = loadConfig({
-    specificUrls: urls,
-    channels,
-    videoLimit,
-  });
+  const config = loadConfig({ specificUrls: urls, channels, videoLimit });
 
-  jobs.set(jobId, {
-    status: "processing",
-    results: [],
-    progress: null,
-    createdAt: new Date().toISOString(),
-  });
+  createJob(jobId);
 
-  // Run pipeline in background
   (async () => {
     try {
       const results = await runPipeline(config, (progress) => {
-        const job = jobs.get(jobId);
-        if (job) job.progress = progress;
+        updateJobProgress(jobId, progress);
       });
-
-      const job = jobs.get(jobId);
-      if (job) {
-        job.status = "completed";
-        job.results = results;
-      }
+      completeJob(jobId, results);
     } catch (err) {
       logger.error({ jobId, error: err }, "Job failed");
-      const job = jobs.get(jobId);
-      if (job) {
-        job.status = "failed";
-        job.progress = {
-          stage: "error",
-          videoId: "",
-          videoTitle: "",
-          message: err instanceof Error ? err.message : String(err),
-          progress: 0,
-        };
-      }
+      failJob(jobId, err);
     }
   })();
 
   return c.json({ jobId, status: "processing" }, 202);
 });
 
-// ─── Get job status ───
 app.get("/api/jobs/:jobId", (c) => {
   const { jobId } = c.req.param();
-  const job = jobs.get(jobId);
+  const job = getJob(jobId);
 
   if (!job) {
     return c.json({ error: "Job not found" }, 404);
@@ -116,20 +80,10 @@ app.get("/api/jobs/:jobId", (c) => {
   });
 });
 
-// ─── List all jobs ───
 app.get("/api/jobs", (c) => {
-  const jobList = Array.from(jobs.entries()).map(([id, job]) => ({
-    jobId: id,
-    status: job.status,
-    progress: job.progress,
-    shortsCount: job.results.reduce((sum, r) => sum + r.shorts.length, 0),
-    createdAt: job.createdAt,
-  }));
-
-  return c.json(jobList);
+  return c.json(listJobs());
 });
 
-// ─── Download a generated short ───
 app.get("/api/shorts/:videoId/:clipId", async (c) => {
   const { videoId, clipId } = c.req.param();
   const config = loadConfig();
@@ -148,30 +102,6 @@ app.get("/api/shorts/:videoId/:clipId", async (c) => {
   });
 });
 
-// ─── List generated shorts ───
 app.get("/api/shorts", (c) => {
-  const allShorts = Array.from(jobs.values())
-    .filter((j) => j.status === "completed")
-    .flatMap((j) =>
-      j.results.flatMap((r) =>
-        r.shorts.map((s) => ({
-          id: s.id,
-          videoId: r.videoId,
-          title: s.clip.title,
-          description: s.clip.description,
-          viralScore: s.clip.viralScore,
-          duration: s.clip.duration,
-          startTime: s.clip.startTime,
-          endTime: s.clip.endTime,
-          originalVideoUrl: s.originalVideoUrl,
-          originalVideoTitle: s.originalVideoTitle,
-          channelName: s.channelName,
-          status: s.status,
-          createdAt: s.createdAt,
-          downloadUrl: `/api/shorts/${r.videoId}/${s.id}`,
-        })),
-      ),
-    );
-
-  return c.json(allShorts);
+  return c.json(getAllShorts());
 });
