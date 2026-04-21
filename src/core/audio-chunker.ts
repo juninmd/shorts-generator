@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
@@ -82,4 +82,3 @@ export function cleanupChunkFiles(chunks: { path: string }[]): void {
     try { fs.unlinkSync(p); } catch { /* ignore */ }
   }
 }
-/* v8 ignore stop */

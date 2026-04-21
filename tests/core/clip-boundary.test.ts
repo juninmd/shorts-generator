@@ -121,4 +121,31 @@ describe("clip-boundary", () => {
     expect(result.startTime).toBe(1);
     expect(result.endTime).toBe(9);
   });
+
+  it("should return segment[0].start if targetTime > all segment starts", () => {
+    // Start is 30, but the last segment starts at 16.
+    // The code will fall through and return segments[0].start (which is 0).
+    const clip = { startTime: 30, endTime: 35 };
+    const result = snapToSentenceBoundaries(clip, mockSegments, mockConfig);
+    expect(result.startTime).toBe(0);
+  });
+
+  it("should return last segment end if targetTime > all segment ends", () => {
+    const clip = { startTime: 12, endTime: 30 };
+    const result = snapToSentenceBoundaries(clip, mockSegments, mockConfig);
+    expect(result.endTime).toBe(20);
+  });
+
+  it("should shrink to meet max duration and return candidate end without strong punctuation", () => {
+    const customSegments: TranscriptSegment[] = [
+      { start: 0, end: 5, text: "Sentence 1" }, // no strong punctuation
+      { start: 6, end: 10, text: "Sentence 2" }, // no strong punctuation
+      { start: 11, end: 15, text: "Sentence 3" }, // no strong punctuation
+      { start: 16, end: 20, text: "Sentence 4" }, // no strong punctuation
+    ];
+    const clip = { startTime: 0, endTime: 18 };
+    const result = snapToSentenceBoundaries(clip, customSegments, mockConfig);
+    // Start is 0. maxEnd is 15. Candidates are Seg 1, Seg 2, Seg 3. None has strong punct.
+    expect(result.endTime).toBe(15);
+  });
 });
