@@ -65,11 +65,12 @@ describe("Server Index", () => {
 
   it("should execute startServer if file is run directly", async () => {
     const { serve } = await import("@hono/node-server");
+    const path = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
 
     // Setup argv so that isMain evaluates to true
-    // fileURLToPath(import.meta.url) will return the path to the index.ts file (when running locally)
-    // we just need process.argv[1] to be a substring
-    process.argv = ["node", "src/server/index.ts"];
+    const scriptPath = path.resolve(process.cwd(), "src/server/index.ts");
+    process.argv = ["node", scriptPath];
 
     // We import it, which will execute the isMain block
     await import("../../src/server/index.js");

@@ -274,4 +274,27 @@ describe("Server Routes", () => {
       expect(json[0].downloadUrl).toBe("/api/shorts/vid1/short1");
     });
   });
+
+  describe("DELETE /api/jobs/:jobId", () => {
+    it("should return 404 for unknown job", async () => {
+      const res = await app.request("/api/jobs/unknown", { method: "DELETE" });
+      expect(res.status).toBe(404);
+      expect(await res.json()).toEqual({ error: "Job not found" });
+    });
+
+    it("should delete job and return 200", async () => {
+      jobs.set("to-delete", {
+        status: "processing",
+        progress: null,
+        results: [],
+        createdAt: "time",
+      });
+      expect(jobs.has("to-delete")).toBe(true);
+
+      const res = await app.request("/api/jobs/to-delete", { method: "DELETE" });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ status: "deleted" });
+      expect(jobs.has("to-delete")).toBe(false);
+    });
+  });
 });

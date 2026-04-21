@@ -98,134 +98,131 @@ async function withRetry<T>(
   throw lastError;
 }
 
-export const uploadToYouTube = async (
-  videoPath: string,
-  title: string,
-  description: string,
-  config: PipelineConfig
-): Promise<string | null> => {
-  const isEnabled = process.env.ENABLE_YOUTUBE === "true";
+interface YouTubeAuth {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+}
 
-  if (!isEnabled) {
-    logger.info("⏩ Upload para o YouTube desativado (ENABLE_YOUTUBE=false)");
-    return null;
-  }
-
+function getYouTubeAuth(): YouTubeAuth | null {
   const clientId = process.env.YOUTUBE_CLIENT_ID;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
   const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
 
   if (!clientId || !clientSecret || !refreshToken) {
-    logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload.");
     return null;
   }
 
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  return { clientId, clientSecret, refreshToken };
+}
 
-  const youtube = google.youtube({ version: "v3", auth: oauth2Client });
-
-  logger.info({ videoPath, title, description: description.slice(0, 120) }, "📤 Fazendo upload para o YouTube Shorts...");
-
-  const sanitize = (msg: string) =>
-    [clientId, clientSecret, refreshToken].reduce(
-      (s, secret) => s.replace(new RegExp(secret!, "g"), "***HIDDEN***"),
+function createSanitizer(auth: YouTubeAuth) {
+  const secrets = [auth.clientId, auth.clientSecret, auth.refreshToken].filter(Boolean);
+  return (msg: string) =>
+    secrets.reduce(
+      (s, secret) => s.replace(new RegExp(secret, "g"), "***HIDDEN***"),
       msg,
     );
+}
+
+async function performUpload(
+  videoPath: string,
+  requestBody: any,
+  auth: YouTubeAuth,
+  logMessage: string
+): Promise<string | null> {
+  const oauth2Client = new google.auth.OAuth2(auth.clientId, auth.clientSecret);
+  oauth2Client.setCredentials({ refresh_token: auth.refreshToken });
+
+  const youtube = google.youtube({ version: "v3", auth: oauth2Client });
+  const sanitize = createSanitizer(auth);
+
+  logger.info({ videoPath, title: requestBody.snippet.title }, logMessage);
 
   try {
     const res = await withRetry(() =>
       youtube.videos.insert({
         part: ["snippet", "status"],
-        requestBody: {
-          snippet: {
-            title,
-            description,
-            tags: ["quiz", "shorts", "curiosidades", "viral"],
-            categoryId: "27", // Education
-          },
-          status: {
-            privacyStatus: "public",
-            selfDeclaredMadeForKids: false,
-          },
-        },
+        requestBody,
         media: { body: fs.createReadStream(videoPath) },
       }),
     );
 
-    const url = `https://youtube.com/shorts/${res.data?.id}`;
-    logger.info({ url }, "✅ Vídeo enviado com sucesso para o YouTube!");
+    const videoId = res.data?.id;
+    const url = videoId ? (requestBody.snippet.categoryId === "27" ? `https://youtube.com/shorts/${videoId}` : `https://youtube.com/watch?v=${videoId}`) : null;
+    
+    if (url) {
+      logger.info({ url }, "✅ Vídeo enviado com sucesso para o YouTube!");
+    }
     return url;
   } catch (error: any) {
     const errorMessage = sanitize(error?.message || String(error));
     logger.error({ error: errorMessage }, "❌ Erro fatal no upload do YouTube após retries");
     return null;
   }
+}
+
+export const uploadToYouTube = async (
+  videoPath: string,
+  title: string,
+  description: string,
+  _config: PipelineConfig
+): Promise<string | null> => {
+  if (process.env.ENABLE_YOUTUBE !== "true") return null;
+
+  const auth = getYouTubeAuth();
+  if (!auth) {
+    logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload.");
+    return null;
+  }
+
+  return performUpload(
+    videoPath,
+    {
+      snippet: {
+        title: title.slice(0, 100),
+        description,
+        tags: ["quiz", "shorts", "curiosidades", "viral"],
+        categoryId: "27", // Education
+      },
+      status: {
+        privacyStatus: "public",
+        selfDeclaredMadeForKids: false,
+      },
+    },
+    auth,
+    "📤 Fazendo upload para o YouTube Shorts..."
+  );
 };
 
 export const uploadFullVideoToYouTube = async (
   videoPath: string,
   title: string,
   description: string,
-  config: PipelineConfig
+  _config: PipelineConfig
 ): Promise<string | null> => {
-  const isEnabled = process.env.ENABLE_YOUTUBE === "true";
+  if (process.env.ENABLE_YOUTUBE !== "true") return null;
 
-  if (!isEnabled) {
-    logger.info("⏩ Upload completo para o YouTube desativado (ENABLE_YOUTUBE=false)");
-    return null;
-  }
-
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) {
+  const auth = getYouTubeAuth();
+  if (!auth) {
     logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload do vídeo completo.");
     return null;
   }
 
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-
-  const youtube = google.youtube({
-    version: "v3",
-    auth: oauth2Client,
-  });
-
-  logger.info({ videoPath }, "📤 Fazendo upload do vídeo COMPLETO para o YouTube...");
-
-  const sanitize = (msg: string) =>
-    [clientId, clientSecret, refreshToken].reduce(
-      (s, secret) => s.replace(new RegExp(secret!, "g"), "***HIDDEN***"),
-      msg,
-    );
-
-  try {
-    const res = await withRetry(() =>
-      youtube.videos.insert({
-        part: ["snippet", "status"],
-        requestBody: {
-          snippet: {
-            title: title.slice(0, 100),
-            description,
-            categoryId: "22", // People & Blogs
-          },
-          status: {
-            privacyStatus: "public",
-            selfDeclaredMadeForKids: false,
-          },
-        },
-        media: { body: fs.createReadStream(videoPath) },
-      }),
-    );
-
-    const url = `https://youtube.com/watch?v=${res.data?.id}`;
-    logger.info({ url }, "✅ Vídeo COMPLETO enviado com sucesso para o YouTube!");
-    return url;
-  } catch (error: any) {
-    const errorMessage = sanitize(error?.message || String(error));
-    logger.error({ error: errorMessage }, "❌ Erro fatal no upload do vídeo completo pro YouTube após retries");
-    return null;
-  }
+  return performUpload(
+    videoPath,
+    {
+      snippet: {
+        title: title.slice(0, 100),
+        description,
+        categoryId: "22", // People & Blogs
+      },
+      status: {
+        privacyStatus: "public",
+        selfDeclaredMadeForKids: false,
+      },
+    },
+    auth,
+    "📤 Fazendo upload do vídeo COMPLETO para o YouTube..."
+  );
 };

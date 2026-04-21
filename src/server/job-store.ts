@@ -59,6 +59,10 @@ export function listJobs() {
   }));
 }
 
+export function deleteJob(jobId: string): void {
+  jobs.delete(jobId);
+}
+
 export function getAllShorts() {
   return Array.from(jobs.values())
     .filter((j) => j.status === "completed")
