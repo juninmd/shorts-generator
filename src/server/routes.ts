@@ -15,6 +15,7 @@ import {
   failJob,
   listJobs,
   getAllShorts,
+  deleteJob,
 } from "./job-store.js";
 
 export const app = new Hono();
@@ -82,6 +83,19 @@ app.get("/api/jobs/:jobId", (c) => {
 
 app.get("/api/jobs", (c) => {
   return c.json(listJobs());
+});
+
+app.delete("/api/jobs/:jobId", (c) => {
+  const { jobId } = c.req.param();
+  const job = getJob(jobId);
+
+  if (!job) {
+    return c.json({ error: "Job not found" }, 404);
+  }
+
+  deleteJob(jobId);
+
+  return c.json({ status: "deleted" });
 });
 
 app.get("/api/shorts/:videoId/:clipId", async (c) => {
