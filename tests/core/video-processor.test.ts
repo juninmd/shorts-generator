@@ -103,13 +103,15 @@ describe("video-processor", () => {
     const execFileCalls = vi.mocked(execFile).mock.calls;
     expect(execFileCalls.length).toBeGreaterThan(0);
     const args = execFileCalls[0][1] as string[];
-    const vfArgIndex = args.indexOf("-vf");
-    expect(vfArgIndex).toBeGreaterThan(-1);
-    expect(args[vfArgIndex + 1]).toContain("crop=");
-    expect(args[vfArgIndex + 1]).toContain("scale=");
-    expect(args[vfArgIndex + 1]).toContain("ass=");
+    const filterArgIndex = args.indexOf("-filter_complex");
+    expect(filterArgIndex).toBeGreaterThan(-1);
+    expect(args[filterArgIndex + 1]).toContain("split=2");
+    expect(args[filterArgIndex + 1]).toContain("force_original_aspect_ratio=decrease");
+    expect(args[filterArgIndex + 1]).toContain("overlay=(W-w)/2:(H-h)/2");
+    expect(args[filterArgIndex + 1]).toContain("ass=");
+    expect(args).toContain("[v]");
     // Watermark is now embedded in the ASS file, not via drawtext
-    expect(args[vfArgIndex + 1]).not.toContain("drawtext");
+    expect(args[filterArgIndex + 1]).not.toContain("drawtext");
   });
 
   it("processClip should handle ffmpeg error events", async () => {
