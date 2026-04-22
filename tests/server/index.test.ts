@@ -103,7 +103,7 @@ describe("Server Index", () => {
       handlers["SIGTERM"]();
     }
 
-    expect(logger.info).toHaveBeenCalledWith("Shutting down server...");
+    expect(logger.info).toHaveBeenCalledWith({ signal: "SIGTERM" }, "Shutting down server...");
     expect(mockClose).toHaveBeenCalled();
     expect(processExitSpy).toHaveBeenCalledWith(0);
 
