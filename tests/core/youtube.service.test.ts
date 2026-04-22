@@ -160,6 +160,14 @@ describe("youtube.service", () => {
       expect(insertMock).toHaveBeenCalled();
     });
 
+    it("should return null if upload succeeds but no id is returned", async () => {
+      mockCredsSetup();
+      insertMock.mockResolvedValueOnce({ data: {} });
+      const result = await method("video.mp4", "Title", "Desc", mockConfig);
+      expect(result).toBeNull();
+      expect(insertMock).toHaveBeenCalled();
+    });
+
     it.each([
       { err: new Error("Error with 123, 456, and 789"), desc: "standard Error" },
       { err: "Error with 123", desc: "error string without message property" },

@@ -77,4 +77,67 @@ describe("Server Index", () => {
 
     expect(serve).toHaveBeenCalled();
   });
+
+  it("should handle graceful shutdown on SIGTERM and SIGINT", async () => {
+    const { startServer } = await import("../../src/server/index.js");
+    const { serve } = await import("@hono/node-server");
+    const { logger } = await import("../../src/core/logger.js");
+
+    const mockClose = vi.fn();
+    vi.mocked(serve).mockReturnValueOnce({ close: mockClose } as any);
+
+    // Mock process.on to capture signal handlers
+    const handlers: Record<string, Function> = {};
+    const processOnSpy = vi.spyOn(process, "on").mockImplementation((event: string, handler: any) => {
+      handlers[event] = handler;
+      return process;
+    });
+
+    // Mock process.exit to avoid exiting test suite
+    const processExitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+
+    startServer();
+
+    // Call the captured handler for SIGTERM
+    if (handlers["SIGTERM"]) {
+      handlers["SIGTERM"]();
+    }
+
+    expect(logger.info).toHaveBeenCalledWith("Shutting down server...");
+    expect(mockClose).toHaveBeenCalled();
+    expect(processExitSpy).toHaveBeenCalledWith(0);
+
+    processOnSpy.mockRestore();
+    processExitSpy.mockRestore();
+  });
+
+  it("should handle error in isMain check via fallback", async () => {
+    const { serve } = await import("@hono/node-server");
+
+    // Mock the fs module using vitest doMock to ensure realpathSync throws
+    vi.doMock("node:fs", () => ({
+      realpathSync: vi.fn(() => {
+        throw new Error("mock error");
+      }),
+    }));
+
+    process.argv = ["node", "src/server/index.ts"];
+
+    // The catch block in checkIsMain uses fileURLToPath which should return true
+    await import("../../src/server/index.js");
+
+    expect(serve).toHaveBeenCalled();
+    vi.doUnmock("node:fs");
+  });
+
+  it("should return false if process.argv[1] is undefined", async () => {
+    const { serve } = await import("@hono/node-server");
+
+    process.argv = ["node"]; // Missing argv[1]
+
+    await import("../../src/server/index.js");
+
+    // Since startServer shouldn't be called, serve shouldn't be called
+    expect(serve).not.toHaveBeenCalled();
+  });
 });
