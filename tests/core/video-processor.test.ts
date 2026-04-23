@@ -144,4 +144,48 @@ describe("video-processor", () => {
     const duration = await getVideoDuration("test.mp4");
     expect(duration).toBe(0);
   });
+
+  it("getFileStartTime handles errors", async () => {
+    const { getFileStartTime } = await import("../../src/core/video-processor.js");
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(new Error("ffprobe error"), null as any);
+    });
+
+    const startTime = await getFileStartTime("test.mp4");
+    expect(startTime).toBe(0);
+  });
+
+  it("getFileStartTime handles valid format start_time", async () => {
+    const { getFileStartTime } = await import("../../src/core/video-processor.js");
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(null, { format: { start_time: 15.5 } } as any);
+    });
+
+    const startTime = await getFileStartTime("test.mp4");
+    expect(startTime).toBe(15.5);
+  });
+
+  it("getFileStartTime handles invalid string start_time", async () => {
+    const { getFileStartTime } = await import("../../src/core/video-processor.js");
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(null, { format: { start_time: "invalid" } } as any);
+    });
+
+    const startTime = await getFileStartTime("test.mp4");
+    expect(startTime).toBe(0);
+  });
+
+  it("getFileStartTime handles missing start_time", async () => {
+    const { getFileStartTime } = await import("../../src/core/video-processor.js");
+    const ffmpegModule = await import("fluent-ffmpeg");
+    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
+      cb(null, { format: {} } as any);
+    });
+
+    const startTime = await getFileStartTime("test.mp4");
+    expect(startTime).toBe(0);
+  });
 });

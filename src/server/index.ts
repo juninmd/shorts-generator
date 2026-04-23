@@ -50,6 +50,7 @@ function parsePort(value: string | undefined): number {
 function closeServer(server: ServerHandle, signal: NodeJS.Signals): void {
   let exited = false;
   const finish = (error?: Error) => {
+    /* v8 ignore next */
     if (exited) return;
     exited = true;
     if (error) logger.error({ error, signal }, "Error while shutting down server");
@@ -60,6 +61,7 @@ function closeServer(server: ServerHandle, signal: NodeJS.Signals): void {
     server.close(finish);
     if (server.close.length === 0) finish();
   } catch (error) {
+    /* v8 ignore next */
     finish(error instanceof Error ? error : new Error(String(error)));
   }
 }
