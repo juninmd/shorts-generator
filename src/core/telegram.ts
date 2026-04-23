@@ -32,13 +32,18 @@ export async function sendFullVideoToTelegram(
   const durationStr = `${durationMin}:${durationSec.toString().padStart(2, "0")}`;
 
   const caption = [
-    `🎬 <b>${escapeHtml(video.title)}</b>`,
+    `🎬 <b>VÍDEO COMPLETO</b>`,
+    `──────────────────────`,
+    `📌 <b>${escapeHtml(video.title)}</b>`,
     ``,
-    `📺 Canal: ${escapeHtml(video.channelName)}`,
-    `⏱ Duração: ${durationStr}`,
-    `👁 Visualizações: ${video.viewCount ? video.viewCount.toLocaleString("pt-BR") : "N/A"}`,
-    youtubeOutputUrl ? `🔴 Seu Repost no YouTube: <a href="${youtubeOutputUrl}">${youtubeOutputUrl}</a>` : "",
-    `🔗 Link original: <a href="${video.url}">${escapeHtml(video.url)}</a>`,
+    `📺 <b>Canal:</b> ${escapeHtml(video.channelName)}`,
+    `⏱ <b>Duração:</b> ${durationStr}`,
+    `👁 <b>Visualizações:</b> ${video.viewCount ? video.viewCount.toLocaleString("pt-BR") : "N/A"}`,
+    ``,
+    youtubeOutputUrl ? `🔴 <b>Repost no YouTube:</b> <a href="${youtubeOutputUrl}">Assistir agora</a>` : "",
+    `🔗 <b>Link Original:</b> <a href="${video.url}">Ver no YouTube</a>`,
+    `──────────────────────`,
+    `<i>Processado via Shorts Generator AI</i>`
   ].filter(line => line !== "").join("\n");
 
   try {
@@ -98,17 +103,21 @@ export async function sendToTelegram(
   const timeRange = `${startMin}:${startSec.toString().padStart(2, "0")} - ${endMin}:${endSec.toString().padStart(2, "0")}`;
 
   const caption = [
+    `✂️ <b>NOVO SHORT GERADO</b>`,
+    `──────────────────────`,
     `🎬 <b>${escapeHtml(short.clip.title)}</b>`,
     ``,
-    `📺 Canal: ${escapeHtml(short.channelName)}`,
-    `🎥 Vídeo original: ${escapeHtml(short.originalVideoTitle)}`,
-    youtubeUrl ? `🔴 Assistir no YouTube: <a href="${youtubeUrl}">${youtubeUrl}</a>` : "",
-    `🔗 Link original: <a href="${short.originalVideoUrl}">${escapeHtml(short.originalVideoUrl)}</a>`,
-    `⏱ Corte: ${timeRange}`,
-    `⭐ Score viral: ${short.clip.viralScore}/10`,
+    `📺 <b>Canal:</b> ${escapeHtml(short.channelName)}`,
+    `🎥 <b>Original:</b> ${escapeHtml(short.originalVideoTitle)}`,
+    `⏱ <b>Corte:</b> <code>${timeRange}</code>`,
+    `⭐ <b>Score Viral:</b> ${short.clip.viralScore}/10`,
     ``,
-    `💡 ${escapeHtml(short.clip.reason)}`,
+    `💡 <b>Insight:</b> <i>${escapeHtml(short.clip.reason)}</i>`,
     ``,
+    youtubeUrl ? `🔴 <b>YouTube:</b> <a href="${youtubeUrl}">Assistir Short</a>` : "",
+    `🔗 <b>Original:</b> <a href="${short.originalVideoUrl}">Link</a>`,
+    ``,
+    `──────────────────────`,
     short.clip.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).map(escapeHtml).join(" "),
   ].filter(line => line !== "").join("\n");
 
@@ -166,18 +175,20 @@ export async function sendSummary(
   const status = errors.length === 0 ? "✅ Sucesso" : "⚠️ Com erros";
 
   const message = [
-    `📊 <b>Resumo do processamento</b>`,
-    ``,
-    `${status}`,
-    `📺 Canal: ${escapeHtml(channelName)}`,
-    `🎥 Vídeo: ${escapeHtml(videoTitle)}`,
-    `✂️ Shorts gerados: ${shortsCount}`,
-    errors.length > 0 ? `❌ Erros: ${errors.length}` : "",
+    `📊 <b>RESUMO DO PROCESSAMENTO</b>`,
+    `──────────────────────`,
+    `Estado: ${status}`,
+    `📺 <b>Canal:</b> ${escapeHtml(channelName)}`,
+    `🎥 <b>Vídeo:</b> ${escapeHtml(videoTitle)}`,
+    `✂️ <b>Shorts Gerados:</b> ${shortsCount}`,
+    errors.length > 0 ? `❌ <b>Erros:</b> ${errors.length}` : "",
     errors.length > 0 ? "\n" + errors.slice(0, 5).map((e) => {
       const eStr = String(e);
       const truncated = eStr.length > 300 ? eStr.substring(0, 300) + "..." : eStr;
       return `• ${escapeHtml(truncated)}`;
     }).join("\n") + (errors.length > 5 ? `\n• ...e mais ${errors.length - 5} erros` : "") : "",
+    `──────────────────────`,
+    `<i>Pipeline concluído em ${new Date().toLocaleDateString('pt-BR')}</i>`
   ]
     .filter(Boolean)
     .join("\n");
