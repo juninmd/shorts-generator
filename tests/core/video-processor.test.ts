@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { processClip, getVideoDuration } from "../../src/core/video-processor.js";
+import { processClip, getVideoDuration, getFileStartTime } from "../../src/core/video-processor.js";
 import type { DownloadedVideo, ShortClip, PipelineConfig } from "../../src/types.js";
 import fs from "node:fs";
 import { execFile } from "node:child_process";
+import ffmpegModule from "fluent-ffmpeg";
 
 vi.mock("node:child_process", () => ({
   execFile: vi.fn(),
@@ -79,69 +80,92 @@ describe("video-processor", () => {
     vi.clearAllMocks();
   });
 
-  it("getVideoDuration returns correct duration", async () => {
-    const duration = await getVideoDuration("test.mp4");
-    expect(duration).toBe(120);
-  });
-
-  it("processClip should resolve and run ffmpeg with correct params", async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-
-    vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
-      const cb = callback || options || args;
-      if (typeof cb === "function") cb(null, { stdout: "", stderr: "" });
-      return {} as any;
+  describe("getVideoDuration", () => {
+    it("returns correct duration", async () => {
+      const duration = await getVideoDuration("test.mp4");
+      expect(duration).toBe(120);
     });
 
-    const result = await processClip(mockVideo, mockClip, mockConfig);
-
-    expect(result.id).toBe("clip1");
-    expect(result.outputPath).toContain("clip1.mp4");
-    expect(result.subtitlePath).toContain("clip1.ass");
-    expect(result.status).toBe("completed");
-
-    const execFileCalls = vi.mocked(execFile).mock.calls;
-    expect(execFileCalls.length).toBeGreaterThan(0);
-    const args = execFileCalls[0][1] as string[];
-    const filterArgIndex = args.indexOf("-filter_complex");
-    expect(filterArgIndex).toBeGreaterThan(-1);
-    expect(args[filterArgIndex + 1]).toContain("split=2");
-    expect(args[filterArgIndex + 1]).toContain("force_original_aspect_ratio=decrease");
-    expect(args[filterArgIndex + 1]).toContain("overlay=(W-w)/2:(H-h)/2");
-    expect(args[filterArgIndex + 1]).toContain("ass=");
-    expect(args).toContain("[v]");
-    // Watermark is now embedded in the ASS file, not via drawtext
-    expect(args[filterArgIndex + 1]).not.toContain("drawtext");
-  });
-
-  it("processClip should handle ffmpeg error events", async () => {
-    const configWithoutWatermark = { ...mockConfig, watermarkText: "" };
-
-    vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
-      const cb = callback || options || args;
-      if (typeof cb === "function") cb(new Error("Test error"), { stdout: "", stderr: "Test error stderr" });
-      return {} as any;
+    it("handles errors", async () => {
+      vi.mocked(ffmpegModule.ffprobe).mockImplementationOnce((path, cb) => {
+        cb(new Error("ffprobe error"), null as any);
+      });
+      await expect(getVideoDuration("test.mp4")).rejects.toThrow("ffprobe error");
     });
 
-    await expect(processClip(mockVideo, mockClip, configWithoutWatermark)).rejects.toThrow("Test error");
+    it("handles missing format duration", async () => {
+      vi.mocked(ffmpegModule.ffprobe).mockImplementationOnce((path, cb) => {
+        cb(null, {} as any);
+      });
+      const duration = await getVideoDuration("test.mp4");
+      expect(duration).toBe(0);
+    });
   });
 
-  it("getVideoDuration handles errors", async () => {
-    const ffmpegModule = await import("fluent-ffmpeg");
-    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
-      cb(new Error("ffprobe error"), null as any);
+  describe("processClip", () => {
+    it("should resolve and run ffmpeg with correct params", async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") cb(null, { stdout: "", stderr: "" });
+        return {} as any;
+      });
+
+      const result = await processClip(mockVideo, mockClip, mockConfig);
+
+      expect(result.id).toBe("clip1");
+      expect(result.outputPath).toContain("clip1.mp4");
+      expect(result.subtitlePath).toContain("clip1.ass");
+      expect(result.status).toBe("completed");
+
+      const execFileCalls = vi.mocked(execFile).mock.calls;
+      expect(execFileCalls.length).toBeGreaterThan(0);
+      const args = execFileCalls[0][1] as string[];
+      const filterArgIndex = args.indexOf("-filter_complex");
+      expect(filterArgIndex).toBeGreaterThan(-1);
+      expect(args[filterArgIndex + 1]).toContain("split=2");
+      expect(args[filterArgIndex + 1]).toContain("force_original_aspect_ratio=decrease");
+      expect(args[filterArgIndex + 1]).toContain("overlay=(W-w)/2:(H-h)/2");
+      expect(args[filterArgIndex + 1]).toContain("ass=");
+      expect(args).toContain("[v]");
+      expect(args[filterArgIndex + 1]).not.toContain("drawtext");
     });
 
-    await expect(getVideoDuration("test.mp4")).rejects.toThrow("ffprobe error");
+    it("should handle ffmpeg error events", async () => {
+      const configWithoutWatermark = { ...mockConfig, watermarkText: "" };
+
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") cb(new Error("Test error"), { stdout: "", stderr: "Test error stderr" });
+        return {} as any;
+      });
+
+      await expect(processClip(mockVideo, mockClip, configWithoutWatermark)).rejects.toThrow("Test error");
+    });
   });
 
-  it("getVideoDuration handles missing format duration", async () => {
-    const ffmpegModule = await import("fluent-ffmpeg");
-    vi.mocked(ffmpegModule.default.ffprobe).mockImplementationOnce((path, cb) => {
-      cb(null, {} as any);
+  describe("getFileStartTime", () => {
+    describe.each([
+      { desc: "correct start time", format: { start_time: "10.5" }, expected: 10.5 },
+      { desc: "NaN start time directly", format: { start_time: "invalid" }, expected: 0 },
+      { desc: "missing start time", format: {}, expected: 0 },
+    ])("handles $desc", ({ format, expected }) => {
+      it(`resolves to ${expected}`, async () => {
+        vi.mocked(ffmpegModule.ffprobe).mockImplementationOnce((path, cb) => {
+          cb(null, { format } as any);
+        });
+        const startTime = await getFileStartTime("test.mp4");
+        expect(startTime).toBe(expected);
+      });
     });
 
-    const duration = await getVideoDuration("test.mp4");
-    expect(duration).toBe(0);
+    it("handles errors", async () => {
+      vi.mocked(ffmpegModule.ffprobe).mockImplementationOnce((path, cb) => {
+        cb(new Error("ffprobe error"), null as any);
+      });
+      const startTime = await getFileStartTime("test.mp4");
+      expect(startTime).toBe(0);
+    });
   });
 });
