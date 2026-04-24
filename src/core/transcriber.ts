@@ -100,13 +100,55 @@ async function transcribeAudioFile(
   return raw;
 }
 
+async function transcribeRemote(
+  audioPath: string,
+  config: PipelineConfig,
+  onProgress?: (pct: number) => void,
+): Promise<WhisperOutput> {
+  const url = new URL("/asr", config.whisperBaseUrl);
+  url.searchParams.append("task", "transcribe");
+  url.searchParams.append("language", "pt");
+  url.searchParams.append("output", "json");
+  url.searchParams.append("word_timestamps", "True");
+
+  logger.info({ url: url.toString() }, "Sending audio to remote Whisper service");
+
+  const formData = new FormData();
+  const fileBuffer = fs.readFileSync(audioPath);
+  const blob = new Blob([fileBuffer], { type: "audio/wav" });
+  formData.append("audio_file", blob, path.basename(audioPath));
+
+  const response = await fetch(url.toString(), {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Remote Whisper failed (${response.status}): ${errorText}`);
+  }
+
+  const raw = (await response.json()) as any;
+  
+  // Normalize language name (OpenAI Whisper often returns full name like 'portuguese')
+  if (raw.language === "portuguese") raw.language = "pt";
+
+  return raw as WhisperOutput;
+}
+
  /* v8 ignore start */
 export async function transcribeVideo(video: DownloadedVideo, config: PipelineConfig): Promise<Transcript> {
-  logger.info({ videoId: video.id, title: video.title, model: config.whisperModel }, "Starting local Whisper transcription");
+  const isRemote = !!config.whisperBaseUrl;
+  
+  if (isRemote) {
+    logger.info({ videoId: video.id, title: video.title, baseUrl: config.whisperBaseUrl }, "Starting remote Whisper transcription");
+  } else {
+    logger.info({ videoId: video.id, title: video.title, model: config.whisperModel }, "Starting local Whisper transcription");
+  }
 
   const outputDir = path.join(config.tempDir, video.id, "whisper_out");
   fs.mkdirSync(outputDir, { recursive: true });
-  const uvBin = await findUvBinary();
+  const uvBin = isRemote ? "" : await findUvBinary();
   const onProgress = (config as any).onProgress as ((pct: number) => void) | undefined;
 
   let raw: WhisperOutput;
@@ -122,13 +164,19 @@ export async function transcribeVideo(video: DownloadedVideo, config: PipelineCo
       const chunkOnProgress = onProgress
         ? (pct: number) => onProgress(((i + pct / 100) / chunks.length) * 100)
         : undefined;
-      const data = await transcribeAudioFile(chunkPath, outputDir, config.whisperModel, uvBin, chunkOnProgress);
+      
+      const data = isRemote 
+        ? await transcribeRemote(chunkPath, config, chunkOnProgress)
+        : await transcribeAudioFile(chunkPath, outputDir, config.whisperModel, uvBin, chunkOnProgress);
+      
       chunkOutputs.push({ data, offsetSec });
     }
     cleanupChunkFiles(chunks);
     raw = mergeWhisperOutputs(chunkOutputs);
   } else {
-    raw = await transcribeAudioFile(video.audioPath, outputDir, config.whisperModel, uvBin, onProgress);
+    raw = isRemote 
+      ? await transcribeRemote(video.audioPath, config, onProgress)
+      : await transcribeAudioFile(video.audioPath, outputDir, config.whisperModel, uvBin, onProgress);
   }
 
   fs.rmSync(outputDir, { recursive: true, force: true });
