@@ -97,6 +97,7 @@ export interface PipelineConfig {
   /** Ollama base URL (only used when aiProvider is "ollama") */
   ollamaBaseUrl: string;
   whisperModel: string;
+  whisperBaseUrl?: string;
   telegramBotToken: string;
   telegramChatId: string;
   verticalWidth: number;

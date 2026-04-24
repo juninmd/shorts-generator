@@ -66,6 +66,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     openrouterApiKey: optionalEnv("OPENROUTER_API_KEY", ""),
     ollamaBaseUrl: optionalEnv("OLLAMA_BASE_URL", "http://localhost:11434"),
     whisperModel: optionalEnv("WHISPER_MODEL", "tiny"),
+    whisperBaseUrl: optionalEnv("WHISPER_BASE_URL", ""),
     telegramBotToken: optionalEnv("TELEGRAM_BOT_TOKEN", ""),
     telegramChatId: optionalEnv("TELEGRAM_CHAT_ID", ""),
     verticalWidth: 1080,
