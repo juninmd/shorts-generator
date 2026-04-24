@@ -31,14 +31,20 @@ describe("Server Index error handling", () => {
     process.argv = originalArgv;
   });
 
-  it("rejects invalid PORT values before starting the server", async () => {
-    const { serve } = await import("@hono/node-server");
-    const { startServer } = await import("../../src/server/index.js");
+  describe("port validation", () => {
+    describe.each([
+      { portStr: "abc", err: "Invalid PORT value: abc" },
+      { portStr: "0", err: "PORT must be between 1 and 65535: 0" },
+      { portStr: "70000", err: "PORT must be between 1 and 65535: 70000" },
+    ])("rejects $portStr", ({ portStr, err }) => {
+      it(`throws "${err}" before starting the server`, async () => {
+        const { serve } = await import("@hono/node-server");
+        const { startServer } = await import("../../src/server/index.js");
 
-    expect(() => startServer("abc")).toThrow("Invalid PORT value: abc");
-    expect(() => startServer("0")).toThrow("PORT must be between 1 and 65535: 0");
-    expect(() => startServer("70000")).toThrow("PORT must be between 1 and 65535: 70000");
-    expect(serve).not.toHaveBeenCalled();
+        expect(() => startServer(portStr)).toThrow(err);
+        expect(serve).not.toHaveBeenCalled();
+      });
+    });
   });
 
   it("logs and rethrows server startup errors", async () => {
@@ -58,69 +64,64 @@ describe("Server Index error handling", () => {
     );
   });
 
-  it("exits with failure if server close throws during shutdown", async () => {
-    const { serve } = await import("@hono/node-server");
-    const { logger } = await import("../../src/core/logger.js");
-    const { startServer } = await import("../../src/server/index.js");
-    const closeError = new Error("close failed");
-    const handlers: Record<string, Function> = {};
+  describe("shutdown logic", () => {
+    let handlers: Record<string, Function>;
+    let exitSpy: any;
 
-    vi.mocked(serve).mockReturnValueOnce({ close: vi.fn(() => { throw closeError; }) } as any);
-    vi.spyOn(process, "on").mockImplementation((event: string, handler: any) => {
-      handlers[event] = handler;
-      return process;
+    beforeEach(async () => {
+      handlers = {};
+      vi.spyOn(process, "on").mockImplementation((event: string, handler: any) => {
+        handlers[event] = handler;
+        return process;
+      });
+      exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
     });
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
 
-    startServer();
-    handlers["SIGTERM"]?.("SIGTERM");
-    handlers["SIGINT"]?.("SIGINT");
+    it("exits with failure if server close throws during shutdown", async () => {
+      const { serve } = await import("@hono/node-server");
+      const { logger } = await import("../../src/core/logger.js");
+      const { startServer } = await import("../../src/server/index.js");
+      const closeError = new Error("close failed");
 
-    expect(logger.error).toHaveBeenCalledWith(
-      { error: closeError, signal: "SIGTERM" },
-      "Error while shutting down server",
-    );
-    expect(exitSpy).toHaveBeenCalledWith(1);
-  });
+      vi.mocked(serve).mockReturnValueOnce({ close: vi.fn(() => { throw closeError; }) } as any);
 
+      startServer();
+      handlers["SIGTERM"]?.("SIGTERM");
+      handlers["SIGINT"]?.("SIGINT");
 
-  it("exits with failure if server close throws a string instead of Error", async () => {
-    const { serve } = await import("@hono/node-server");
-    const { logger } = await import("../../src/core/logger.js");
-    const { startServer } = await import("../../src/server/index.js");
-    const handlers: Record<string, Function> = {};
-
-    vi.mocked(serve).mockReturnValueOnce({ close: vi.fn(() => { throw "string error"; }) } as any);
-    vi.spyOn(process, "on").mockImplementation((event: string, handler: any) => {
-      handlers[event] = handler;
-      return process;
+      expect(logger.error).toHaveBeenCalledWith(
+        { error: closeError, signal: "SIGTERM" },
+        "Error while shutting down server",
+      );
+      expect(exitSpy).toHaveBeenCalledWith(1);
     });
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
 
-    startServer();
-    handlers["SIGTERM"]?.("SIGTERM");
+    it("exits with failure if server close throws a string instead of Error", async () => {
+      const { serve } = await import("@hono/node-server");
+      const { logger } = await import("../../src/core/logger.js");
+      const { startServer } = await import("../../src/server/index.js");
 
-    expect(logger.error).toHaveBeenCalled();
-    expect(exitSpy).toHaveBeenCalledWith(1);
-  });
+      vi.mocked(serve).mockReturnValueOnce({ close: vi.fn(() => { throw "string error"; }) } as any);
 
-  it("does not call finish twice if close calls it synchronously", async () => {
-    const { serve } = await import("@hono/node-server");
-    const { startServer } = await import("../../src/server/index.js");
-    const handlers: Record<string, Function> = {};
+      startServer();
+      handlers["SIGTERM"]?.("SIGTERM");
 
-    vi.mocked(serve).mockReturnValueOnce({ close: vi.fn((cb) => { cb?.(); cb?.(); }) } as any);
-    vi.spyOn(process, "on").mockImplementation((event: string, handler: any) => {
-      handlers[event] = handler;
-      return process;
+      expect(logger.error).toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
     });
-    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
 
-    startServer();
-    handlers["SIGTERM"]?.("SIGTERM");
+    it("does not call finish twice if close calls it synchronously", async () => {
+      const { serve } = await import("@hono/node-server");
+      const { startServer } = await import("../../src/server/index.js");
 
-    expect(exitSpy).toHaveBeenCalledTimes(1);
-    expect(exitSpy).toHaveBeenCalledWith(0);
+      vi.mocked(serve).mockReturnValueOnce({ close: vi.fn((cb) => { cb?.(); cb?.(); }) } as any);
+
+      startServer();
+      handlers["SIGTERM"]?.("SIGTERM");
+
+      expect(exitSpy).toHaveBeenCalledTimes(1);
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    });
   });
 
   it("exits with 1 if main script execution throws", async () => {
