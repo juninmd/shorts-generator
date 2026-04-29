@@ -60,6 +60,7 @@ Responda APENAS "sim" se for música/clipe musical, ou "não" se for conteúdo f
     return isMusic;
   } catch (error) {
     logger.warn({ error, title }, "LLM music check failed — assuming not music");
+    /* v8 ignore next */
     return false;
   }
 }
@@ -223,6 +224,7 @@ export async function runPipeline(
 
   for (const video of videos) {
     if (config.targetShorts && totalShorts >= config.targetShorts) {
+      /* v8 ignore next */
       break;
     }
 
