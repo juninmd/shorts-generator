@@ -38,8 +38,7 @@ export function buildSafeFramingFilter(
   const assPath = escapeFilterPath(subtitlePath);
   return [
     `[0:v]split=2[bgsrc][fgsrc]`,
-    `[bgsrc]scale=${width}:${height}:force_original_aspect_ratio=increase`,
-    `crop=${width}:${height},gblur=sigma=24,setsar=1[bg]`,
+    `[bgsrc]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},gblur=sigma=24,setsar=1[bg]`,
     `[fgsrc]scale=${width}:${height}:force_original_aspect_ratio=decrease,setsar=1[fg]`,
     `[bg][fg]overlay=(W-w)/2:(H-h)/2,ass='${assPath}'[v]`,
   ].join(";");
