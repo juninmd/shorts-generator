@@ -18,6 +18,7 @@ export async function analyzeTranscript(
   const minCuts = config.maxClipsOverride ?? getMinCuts(transcript.duration);
   const maxCuts = config.maxClipsOverride ?? getMaxCuts(transcript.duration);
   const formatted = formatTranscriptForLLM(transcript.segments);
+  const forceFallback = process.env.FORCE_FALLBACK_CLIPS === "true";
 
   logger.info(
     { videoId: transcript.videoId, minCuts, maxCuts, duration: transcript.duration, transcriptChars: formatted.length },
@@ -25,9 +26,11 @@ export async function analyzeTranscript(
   );
 
   const t0 = Date.now();
-  let rawClips = formatted.length > CHUNK_THRESHOLD_CHARS
-    ? await analyzeInChunks(transcript, videoTitle, channelName, config, minCuts, maxCuts, analyzeSinglePass)
-    : await analyzeSinglePass(formatted, videoTitle, channelName, config, minCuts, maxCuts);
+  let rawClips = forceFallback
+    ? []
+    : formatted.length > CHUNK_THRESHOLD_CHARS
+      ? await analyzeInChunks(transcript, videoTitle, channelName, config, minCuts, maxCuts, analyzeSinglePass)
+      : await analyzeSinglePass(formatted, videoTitle, channelName, config, minCuts, maxCuts);
 
   if (rawClips.length === 0) {
     rawClips = buildFallbackClips(transcript, videoTitle, minCuts, maxCuts, config);
