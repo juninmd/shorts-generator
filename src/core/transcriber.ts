@@ -15,6 +15,30 @@ import {
 } from "./audio-chunker.js";
 
 const execFileAsync = promisify(execFile);
+const REMOTE_WHISPER_TIMEOUT_MS = Number(process.env.WHISPER_REQUEST_TIMEOUT_MS ?? 600_000);
+const REMOTE_WHISPER_RETRIES = Number(process.env.WHISPER_REQUEST_RETRIES ?? 2);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function errorDetails(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause instanceof Error ? { name: error.cause.name, message: error.cause.message } : error.cause,
+    };
+  }
+  return { message: String(error) };
+}
+
+function shouldRetryRemoteWhisper(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.name === "AbortError" || error.name === "TimeoutError") return true;
+  return /fetch failed|ECONNRESET|ECONNREFUSED|UND_ERR|socket|terminated/i.test(error.message);
+}
 
 async function findUvBinary(): Promise<string> {
   const isWindows = process.platform === "win32";
@@ -111,29 +135,54 @@ async function transcribeRemote(
   url.searchParams.append("output", "json");
   url.searchParams.append("word_timestamps", "True");
 
-  logger.info({ url: url.toString() }, "Sending audio to remote Whisper service");
-
-  const formData = new FormData();
   const fileBuffer = fs.readFileSync(audioPath);
-  const blob = new Blob([fileBuffer], { type: "audio/wav" });
-  formData.append("audio_file", blob, path.basename(audioPath));
 
-  const response = await fetch(url.toString(), {
-    method: "POST",
-    body: formData,
-  });
+  for (let attempt = 1; attempt <= REMOTE_WHISPER_RETRIES + 1; attempt++) {
+    try {
+      logger.info(
+        { url: url.toString(), attempt, timeoutMs: REMOTE_WHISPER_TIMEOUT_MS, sizeKB: Math.round(fileBuffer.length / 1024) },
+        "Sending audio to remote Whisper service",
+      );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Remote Whisper failed (${response.status}): ${errorText}`);
+      const formData = new FormData();
+      const blob = new Blob([fileBuffer], { type: "audio/wav" });
+      formData.append("audio_file", blob, path.basename(audioPath));
+
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        body: formData,
+        signal: AbortSignal.timeout(REMOTE_WHISPER_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(`Remote Whisper failed (${response.status}): ${errorText}`);
+        if (response.status >= 500 && attempt <= REMOTE_WHISPER_RETRIES) {
+          logger.warn({ attempt, status: response.status, error: errorDetails(error) }, "Remote Whisper failed, retrying");
+          await sleep(5_000 * attempt);
+          continue;
+        }
+        throw error;
+      }
+
+      const raw = (await response.json()) as any;
+
+      // Normalize language name (OpenAI Whisper often returns full name like 'portuguese')
+      if (raw.language === "portuguese") raw.language = "pt";
+
+      return raw as WhisperOutput;
+    } catch (error) {
+      if (attempt <= REMOTE_WHISPER_RETRIES && shouldRetryRemoteWhisper(error)) {
+        logger.warn({ attempt, error: errorDetails(error) }, "Remote Whisper request failed, retrying");
+        await sleep(5_000 * attempt);
+        continue;
+      }
+      logger.error({ attempt, error: errorDetails(error) }, "Remote Whisper request failed");
+      throw error;
+    }
   }
 
-  const raw = (await response.json()) as any;
-  
-  // Normalize language name (OpenAI Whisper often returns full name like 'portuguese')
-  if (raw.language === "portuguese") raw.language = "pt";
-
-  return raw as WhisperOutput;
+  throw new Error("Remote Whisper failed after retries");
 }
 
  /* v8 ignore start */
