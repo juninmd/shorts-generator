@@ -390,6 +390,9 @@ export async function processVideo(
             logger.warn({ limit: config.dailyUploadLimit }, "⚠️ Limite diário de uploads do YouTube atingido — enviando apenas ao Telegram");
           } else {
             youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config) ?? undefined;
+            if (!youtubeUrl) {
+              throw new Error("YouTube upload did not return a URL");
+            }
             incrementDailyUploadCount();
           }
         }

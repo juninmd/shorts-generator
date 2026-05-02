@@ -137,8 +137,8 @@ async function main() {
         "✅ Pipeline finalizada",
       );
 
-      if (totalErrors > 0 && totalShorts === 0) {
-        logger.error("A execução falhou totalmente (0 shorts gerados). Verifique os erros acima.");
+      if (totalErrors > 0) {
+        logger.error("A execução finalizou com erros. Verifique os detalhes acima.");
         process.exit(1);
       }
 
