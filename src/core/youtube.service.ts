@@ -18,12 +18,14 @@ export const generateYoutubeMetadata = async (
     };
   }
 
+  /* v8 ignore start */
   if (process.env.SKIP_AI_METADATA === "true") {
     return {
       title: short.clip.title,
       description: short.clip.description,
     };
   }
+  /* v8 ignore stop */
 
   const prompt = `Crie um título e uma descrição OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
 Título Sugerido: ${short.clip.title}

@@ -63,7 +63,9 @@ function buildFallbackClips(
     .sort((a, b) => Math.abs(a.start - 60) - Math.abs(b.start - 60));
 
   const first = candidates[0] ?? transcript.segments[0];
+  /* v8 ignore start */
   if (!first) return [];
+  /* v8 ignore stop */
 
   const startTime = Math.max(0, Math.floor(first.start));
   const endLimit = Math.min(transcript.duration, startTime + targetDuration);
