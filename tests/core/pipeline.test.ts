@@ -244,4 +244,14 @@ describe("pipeline", () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("Telegram failed");
   });
+
+  it("runPipeline breaks iteration when targetShorts is already reached", async () => {
+    vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip, mockClip]);
+    // Pass 2 specificUrls, but targetShorts is 1. The first video should produce shorts,
+    // and the second video should be skipped because target is reached.
+    const localConfig = { ...mockConfig, targetShorts: 1, channels: [], specificUrls: ["url1", "url2"], videoLimit: 1 } as PipelineConfig;
+
+    const results = await runPipeline(localConfig);
+    expect(results).toHaveLength(1);
+  });
 });
