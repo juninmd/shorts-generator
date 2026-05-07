@@ -109,9 +109,9 @@ export async function analyzeSinglePass(
   );
 
   try {
-    logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Enviando prompt para AI Provider via Tool Calling");
+    logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Enviando prompt para AI Provider (Tool-Hybrid Mode)");
 
-    const { toolCalls } = await generateText({
+    const { toolCalls, text } = await generateText({
       model: createModel(config),
       tools: {
         analyze: {
@@ -119,22 +119,41 @@ export async function analyzeSinglePass(
           parameters: ClipSchema,
         },
       },
-      toolChoice: "required",
+      toolChoice: "auto", // Permite que ele escolha entre Tool ou Texto
       prompt,
-      temperature: 0.6,
+      temperature: 0.7,
     });
 
-    const object = toolCalls[0]?.args as any;
+    let clips: ClipItem[] = [];
 
-    if (!object?.clips) {
-      logger.warn("AI não retornou campo 'clips' via Tool Calling.");
+    // Tenta extrair das tool calls
+    if (toolCalls && toolCalls.length > 0) {
+      const object = toolCalls[0].args as any;
+      if (object?.clips) clips = object.clips;
+    }
+
+    // Se não veio via tool, tenta extrair do texto (Regex fallback)
+    if (clips.length === 0 && text) {
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.clips) clips = parsed.clips;
+          else if (Array.isArray(parsed)) clips = parsed;
+        }
+      } catch (e) {
+        logger.error({ text: text.substring(0, 500) }, "Falha ao dar parse no JSON do texto da IA");
+      }
+    }
+
+    if (clips.length === 0) {
+      logger.warn({ hasText: !!text, toolCallsCount: toolCalls?.length }, "AI não retornou cortes válidos em nenhum formato.");
       return [];
     }
     
-    if (object.clips.length === 0) logger.info("AI retornou 0 cortes.");
-    return object.clips;
+    return clips;
   } catch (err) {
-    logger.error({ err, errorMessage: (err as Error).message }, "Falha na chamada do LLM via Tool Calling");
+    logger.error({ err, errorMessage: (err as Error).message }, "Falha crítica na chamada do LLM");
     return [];
   }
 }
