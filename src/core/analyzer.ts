@@ -1,5 +1,5 @@
 
-import { generateObject } from "ai";
+import { generateText } from "ai";
 import { nanoid } from "nanoid";
 import type { Transcript, ShortClip, TranscriptSegment, TranscriptWord, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -109,20 +109,32 @@ export async function analyzeSinglePass(
   );
 
   try {
-    logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Enviando prompt para AI Provider");
+    logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Enviando prompt para AI Provider via Tool Calling");
 
-    const { object } = await generateObject({
+    const { toolCalls } = await generateText({
       model: createModel(config),
-      schema: ClipSchema,
+      tools: {
+        analyze: {
+          description: "Analisa o transcript e retorna os melhores momentos para Shorts",
+          parameters: ClipSchema,
+        },
+      },
+      toolChoice: "required",
       prompt,
       temperature: 0.6,
     });
 
-    if (!object?.clips) return [];
+    const object = toolCalls[0]?.args as any;
+
+    if (!object?.clips) {
+      logger.warn("AI não retornou campo 'clips' via Tool Calling.");
+      return [];
+    }
+    
     if (object.clips.length === 0) logger.info("AI retornou 0 cortes.");
     return object.clips;
   } catch (err) {
-    logger.error({ err, errorMessage: (err as Error).message }, "Falha na chamada do LLM");
+    logger.error({ err, errorMessage: (err as Error).message }, "Falha na chamada do LLM via Tool Calling");
     return [];
   }
 }
