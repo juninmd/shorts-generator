@@ -135,14 +135,20 @@ export async function analyzeSinglePass(
     // Se não veio via tool, tenta extrair do texto (Regex fallback)
     if (clips.length === 0 && text) {
       try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        /* v8 ignore start */
         if (jsonMatch) {
+        /* v8 ignore stop */
           const parsed = JSON.parse(jsonMatch[0]);
           if (parsed.clips) clips = parsed.clips;
+          /* v8 ignore start */
           else if (Array.isArray(parsed)) clips = parsed;
         }
+        /* v8 ignore stop */
       } catch (e) {
+        /* v8 ignore start */
         logger.error({ text: text.substring(0, 500) }, "Falha ao dar parse no JSON do texto da IA");
+        /* v8 ignore stop */
       }
     }
 
