@@ -4,7 +4,7 @@ import type { Transcript, PipelineConfig } from "../../src/types.js";
 import * as aiModule from "ai";
 
 vi.mock("ai", () => ({
-  generateObject: vi.fn(),
+  generateText: vi.fn(),
 }));
 
 vi.mock("../../src/core/ai-provider.js", () => ({
@@ -56,8 +56,8 @@ describe("analyzer", () => {
       ],
     };
 
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: mockResponse,
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: mockResponse }],
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
@@ -68,7 +68,7 @@ describe("analyzer", () => {
   });
 
   it("should return a fallback clip when LLM fails", async () => {
-    vi.mocked(aiModule.generateObject).mockRejectedValue(new Error("AI Error"));
+    vi.mocked(aiModule.generateText).mockRejectedValue(new Error("AI Error"));
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
 
@@ -100,8 +100,8 @@ describe("analyzer", () => {
       ],
     };
 
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: mockResponse,
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: mockResponse }],
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
@@ -152,8 +152,8 @@ describe("analyzer", () => {
       ],
     };
 
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: mockResponse,
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: mockResponse }],
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
@@ -163,8 +163,8 @@ describe("analyzer", () => {
   });
 
   it("should return a fallback clip if AI returns empty clips list", async () => {
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: { clips: [] },
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: { clips: [] } }],
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
@@ -173,8 +173,8 @@ describe("analyzer", () => {
   });
 
   it("should return a fallback clip if AI resolves without clips array", async () => {
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: {}, // missing clips
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: {} }], // missing clips
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
@@ -184,8 +184,8 @@ describe("analyzer", () => {
 
   it("should use fallback clips if FORCE_FALLBACK_CLIPS is true", async () => {
     process.env.FORCE_FALLBACK_CLIPS = "true";
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: { clips: [{ title: "AI Clip", startTime: 10, endTime: 40 }] },
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: { clips: [{ title: "AI Clip", startTime: 10, endTime: 40 }] } }],
     } as any);
 
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
@@ -204,8 +204,8 @@ describe("analyzer", () => {
       language: "pt",
     };
 
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: { clips: [] },
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: { clips: [] } }],
     } as any);
 
     const clips = await analyzeTranscript(emptyTranscript, "Title", "Channel", mockConfig);
@@ -213,7 +213,7 @@ describe("analyzer", () => {
   });
 
   it("should return empty array if fallback clip duration is too long", async () => {
-    vi.mocked(aiModule.generateObject).mockResolvedValue({ object: { clips: [] } } as any);
+    vi.mocked(aiModule.generateText).mockResolvedValue({ toolCalls: [{ args: { clips: [] } }] } as any);
     const mockConfigShort = { ...mockConfig, maxShortDuration: 1 };
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfigShort as any);
     expect(clips).toHaveLength(0);
@@ -230,7 +230,7 @@ describe("analyzer", () => {
       ],
       duration: 120,
     };
-    vi.mocked(aiModule.generateObject).mockResolvedValue({ object: { clips: [] } } as any);
+    vi.mocked(aiModule.generateText).mockResolvedValue({ toolCalls: [{ args: { clips: [] } }] } as any);
     const clips = await analyzeTranscript(multiSegmentTranscript, "Title", "Channel", mockConfig);
     expect(clips).toHaveLength(1);
     // It actually snaps to boundaries which could be 58 or whatever logic snapToSentenceBoundaries implements
@@ -245,8 +245,8 @@ describe("analyzer", () => {
       ...mockTranscript,
       segments: [{ start: 0, end: 1, text: "A" }],
     };
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: { clips: [] },
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: { clips: [] } }],
     } as any);
     const clips = await analyzeTranscript(noCandidateTranscript, "Title", "Channel", mockConfig);
     expect(clips).toHaveLength(1);
@@ -284,8 +284,8 @@ describe("analyzer", () => {
       ],
     };
 
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: mockResponse,
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: mockResponse }],
     } as any);
 
     const clips = await analyzeTranscript(largeTranscript, "Title", "Channel", mockConfig);
@@ -308,8 +308,8 @@ describe("analyzer", () => {
       ],
     };
 
-    vi.mocked(aiModule.generateObject).mockResolvedValue({
-      object: mockResponse,
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      toolCalls: [{ args: mockResponse }],
     } as any);
 
     const transcriptWithWords = {
