@@ -37,10 +37,7 @@ export function buildSafeFramingFilter(
 ): string {
   const assPath = escapeFilterPath(subtitlePath);
   return [
-    `[0:v]split=2[bgsrc][fgsrc]`,
-    `[bgsrc]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},gblur=sigma=24,setsar=1[bg]`,
-    `[fgsrc]scale=${width}:${height}:force_original_aspect_ratio=decrease,setsar=1[fg]`,
-    `[bg][fg]overlay=(W-w)/2:(H-h)/2,ass='${assPath}'[v]`,
+    `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,ass='${assPath}'[v]`
   ].join(";");
 }
 
