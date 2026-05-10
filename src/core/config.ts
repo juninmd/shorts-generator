@@ -41,6 +41,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
   const keepTempFiles = optionalEnv("KEEP_TEMP_FILES", "false") === "true";
   const dailyUploadLimit = parseInt(optionalEnv("MAX_DAILY_UPLOADS", "70"), 10);
   const maxVideoDurationSec = parseFloat(optionalEnv("MAX_VIDEO_DURATION_HOURS", "1")) * 3600;
+  const videoQuery = optionalEnv("VIDEO_QUERY", "") || undefined;
 
   const config: PipelineConfig = {
     channels,
@@ -48,13 +49,14 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     videoLimit: parseInt(optionalEnv("VIDEO_LIMIT", "1"), 10),
     maxCutsPerBlock: 10,
     minuteBlockSize: 20,
-    maxShortDuration: parseInt(optionalEnv("MAX_SHORT_DURATION", "59"), 10),
+    maxShortDuration: Math.min(59, parseInt(optionalEnv("MAX_SHORT_DURATION", "59"), 10)),
     minShortDuration: parseInt(optionalEnv("MIN_SHORT_DURATION", "15"), 10),
     maxVideoSizeBytes: maxVideoSizeMb * 1024 * 1024,
     skipVideoSizeCheck,
     keepTempFiles,
     dailyUploadLimit,
     maxVideoDurationSec,
+    videoQuery,
     minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "1"), 10),
     targetShorts: Number(optionalEnv("TARGET_SHORTS", "0")) || undefined,
     fullVideoCount: Number(optionalEnv("FULL_VIDEO_COUNT", "0")) || undefined,

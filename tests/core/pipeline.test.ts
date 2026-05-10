@@ -254,4 +254,47 @@ describe("pipeline", () => {
     const results = await runPipeline(localConfig);
     expect(results).toHaveLength(1);
   });
+
+  it("runPipeline filters videos by videoQuery (title match)", async () => {
+    const matchingVideo = { ...mockVideoInfo, id: "v1", title: "Evangelho do Dia - Reflexão" };
+    const nonMatchingVideo = { ...mockVideoInfo, id: "v2", title: "Música de Adoração" };
+    vi.mocked(youtube.getVideoInfo).mockResolvedValue(null);
+    vi.mocked(youtube.getChannelVideos).mockResolvedValue([matchingVideo, nonMatchingVideo]);
+    const queryConfig = { ...mockConfig, specificUrls: [], videoQuery: "evangelho" } as PipelineConfig;
+
+    const results = await runPipeline(queryConfig);
+    expect(results).toHaveLength(1);
+    expect(results[0].videoTitle).toBe("Evangelho do Dia - Reflexão");
+  });
+
+  it("runPipeline processes all videos when videoQuery is undefined", async () => {
+    const video1 = { ...mockVideoInfo, id: "v1", title: "Video A" };
+    const video2 = { ...mockVideoInfo, id: "v2", title: "Video B" };
+    vi.mocked(youtube.getVideoInfo).mockResolvedValue(null);
+    vi.mocked(youtube.getChannelVideos).mockResolvedValue([video1, video2]);
+    const noQueryConfig = { ...mockConfig, specificUrls: [], videoLimit: 5 } as PipelineConfig;
+
+    const results = await runPipeline(noQueryConfig);
+    expect(results).toHaveLength(2);
+  });
+
+  it("runPipeline filters specificUrls by videoQuery", async () => {
+    const matchingVideo = { ...mockVideoInfo, title: "Homilia sobre o evangelho" };
+    vi.mocked(youtube.getVideoInfo).mockResolvedValue(matchingVideo);
+    vi.mocked(youtube.getChannelVideos).mockResolvedValue([]);
+    const queryConfig = { ...mockConfig, channels: [], specificUrls: ["url1"], videoQuery: "homilia" } as PipelineConfig;
+
+    const results = await runPipeline(queryConfig);
+    expect(results).toHaveLength(1);
+  });
+
+  it("runPipeline skips specificUrls that don't match videoQuery", async () => {
+    const nonMatchingVideo = { ...mockVideoInfo, title: "Música de Natal" };
+    vi.mocked(youtube.getVideoInfo).mockResolvedValue(nonMatchingVideo);
+    vi.mocked(youtube.getChannelVideos).mockResolvedValue([]);
+    const queryConfig = { ...mockConfig, channels: [], specificUrls: ["url1"], videoQuery: "evangelho" } as PipelineConfig;
+
+    const results = await runPipeline(queryConfig);
+    expect(results).toHaveLength(0);
+  });
 });

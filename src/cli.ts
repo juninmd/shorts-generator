@@ -23,6 +23,7 @@ async function main() {
       const clipsIndex = args.indexOf("--clips");
       const targetShortsIndex = args.indexOf("--target-shorts");
       const fullCountIndex = args.indexOf("--full");
+      const queryIndex = args.indexOf("--query");
 
       const overrides: Record<string, any> = {};
 
@@ -76,6 +77,12 @@ async function main() {
           overrides.fullVideoCount = n;
           logger.info({ fullVideoCount: n }, "🎯 Meta de vídeos completos definida via --full");
         }
+      }
+
+      // 7. Video title query filter
+      if (queryIndex !== -1 && args[queryIndex + 1]) {
+        overrides.videoQuery = args[queryIndex + 1]!;
+        logger.info({ videoQuery: overrides.videoQuery }, "🔍 Filtro de título definido via --query");
       }
 
       const config = loadConfig(overrides);
@@ -177,6 +184,7 @@ Options (generate):
   --limit          Max videos to fetch per channel (default: 3)
   --clips          Exactly how many clips to generate per video (ex: 2)
   --target-shorts  Total number of shorts to generate in this run (ex: 15)
+  --query          Filter videos by title (case-insensitive substring match)
   --full           For generate:top, number of full videos to post (ex: 5)
 
 Examples:

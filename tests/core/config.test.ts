@@ -36,6 +36,24 @@ describe("config", () => {
       const config = loadConfig();
       expect(config.aiTimeoutMs).toBe(600_000);
     });
+
+    it("should clamp maxShortDuration to 59s even if env is higher", () => {
+      process.env.MAX_SHORT_DURATION = "120";
+      const config = loadConfig();
+      expect(config.maxShortDuration).toBe(59);
+    });
+
+    it("should read VIDEO_QUERY from env", () => {
+      process.env.VIDEO_QUERY = "evangelho";
+      const config = loadConfig();
+      expect(config.videoQuery).toBe("evangelho");
+    });
+
+    it("should set videoQuery to undefined when empty", () => {
+      process.env.VIDEO_QUERY = "";
+      const config = loadConfig();
+      expect(config.videoQuery).toBeUndefined();
+    });
   });
 
   describe("getMaxCuts", () => {

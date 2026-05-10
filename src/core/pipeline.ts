@@ -193,11 +193,16 @@ export async function runPipeline(
     throw error;
   }
 
+  logger.info(
+    { channels: config.channels, urls: config.specificUrls, videoQuery: config.videoQuery || 'none' },
+    "Pipeline starting",
+  );
+
   const videos: VideoInfo[] = [];
 
   for (const url of config.specificUrls) {
     const info = await getVideoInfo(url);
-    if (info && (await isVideoWithinLimits(info, config))) {
+    if (info && matchesVideoQuery(info, config) && (await isVideoWithinLimits(info, config))) {
       videos.push(info);
     }
   }
@@ -281,12 +286,25 @@ async function selectValidVideos(
 ): Promise<VideoInfo[]> {
   const selected: VideoInfo[] = [];
   for (const video of videos) {
+    if (!matchesVideoQuery(video, config)) continue;
     if (!(await isVideoWithinLimits(video, config))) continue;
     logger.info({ videoId: video.id, title: video.title }, "Selected valid video");
     selected.push(video);
     if (selected.length >= config.videoLimit) break;
   }
   return selected;
+}
+
+/**
+ * Check if a video title matches the optional query filter.
+ */
+function matchesVideoQuery(video: VideoInfo, config: PipelineConfig): boolean {
+  if (!config.videoQuery) return true;
+  const match = video.title.toLowerCase().includes(config.videoQuery.toLowerCase());
+  if (!match) {
+    logger.debug({ videoId: video.id, title: video.title, query: config.videoQuery }, "Video filtered out by query");
+  }
+  return match;
 }
 
 /**
