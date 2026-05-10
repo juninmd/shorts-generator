@@ -1,5 +1,5 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { ollama } from "ai-sdk-ollama";
 import type { LanguageModel } from "ai";
 import type { PipelineConfig } from "../types.js";
 
@@ -12,10 +12,8 @@ export function createModel(config: PipelineConfig): LanguageModel {
     return openrouter(config.aiModel);
   }
 
-  const ollama = createOpenAICompatible({
-    name: "ollama",
-    baseURL: config.ollamaBaseUrl + "/v1",
+  return ollama(config.aiModel, {
+    structuredOutputs: true,
   });
-  return ollama.languageModel(config.aiModel);
   /* v8 ignore stop */
 }

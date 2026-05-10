@@ -18,23 +18,15 @@ export async function analyzeTranscript(
   const minCuts = config.maxClipsOverride ?? getMinCuts(transcript.duration);
   const maxCuts = config.maxClipsOverride ?? getMaxCuts(transcript.duration);
   const formatted = formatTranscriptForLLM(transcript.segments);
-  const forceFallback = process.env.FORCE_FALLBACK_CLIPS === "true";
-
   logger.info(
     { videoId: transcript.videoId, minCuts, maxCuts, duration: transcript.duration, transcriptChars: formatted.length },
     "🧠 Analisando vídeo com AI Provider...",
   );
 
   const t0 = Date.now();
-  let rawClips = forceFallback
-    ? []
-    : formatted.length > CHUNK_THRESHOLD_CHARS
-      ? await analyzeInChunks(transcript, videoTitle, channelName, config, minCuts, maxCuts, analyzeSinglePass)
-      : await analyzeSinglePass(formatted, videoTitle, channelName, config, minCuts, maxCuts);
-
-  if (rawClips.length === 0) {
-    rawClips = buildFallbackClips(transcript, videoTitle, minCuts, maxCuts, config);
-  }
+  const rawClips = formatted.length > CHUNK_THRESHOLD_CHARS
+    ? await analyzeInChunks(transcript, videoTitle, channelName, config, minCuts, maxCuts, analyzeSinglePass)
+    : await analyzeSinglePass(formatted, videoTitle, channelName, config, minCuts, maxCuts);
 
   logger.info({ videoId: transcript.videoId, rawClips: rawClips.length }, "Raw clips from LLM before filtering");
 
@@ -48,50 +40,7 @@ export async function analyzeTranscript(
   return result;
 }
 
-function buildFallbackClips(
-  transcript: Transcript,
-  videoTitle: string,
-  minCuts: number,
-  maxCuts: number,
-  config: PipelineConfig,
-): ClipItem[] {
-  if (transcript.segments.length === 0) return [];
 
-  const targetDuration = Math.min(config.maxShortDuration, Math.max(config.minShortDuration, 45));
-  const candidates = transcript.segments
-    .filter((segment) => segment.end - segment.start >= 2 && segment.text.trim().length >= 20)
-    .sort((a, b) => Math.abs(a.start - 60) - Math.abs(b.start - 60));
-
-  const first = candidates[0] ?? transcript.segments[0];
-  /* v8 ignore start */
-  if (!first) return [];
-  /* v8 ignore stop */
-
-  const startTime = Math.max(0, Math.floor(first.start));
-  const endLimit = Math.min(transcript.duration, startTime + targetDuration);
-  const endSegment = transcript.segments
-    .filter((segment) => segment.end > startTime + config.minShortDuration && segment.end <= endLimit)
-    .at(-1);
-  const endTime = Math.max(startTime + config.minShortDuration, Math.floor(endSegment?.end ?? endLimit));
-
-  if (endTime <= startTime || endTime - startTime > config.maxShortDuration) return [];
-
-  logger.warn(
-    { videoId: transcript.videoId, minCuts, maxCuts, startTime, endTime },
-    "AI returned no clips; using deterministic fallback clip",
-  );
-
-  return [{
-    title: "Uma mensagem de fé para hoje",
-    description: `Trecho selecionado automaticamente de ${videoTitle}.`,
-    contentValue: "Trecho com reflexão espiritual selecionado como fallback quando a IA local não retornou cortes.",
-    startTime,
-    endTime,
-    viralScore: 5,
-    reason: "Fallback determinístico para manter a geração e postagem quando o provedor de IA falha ou retorna vazio.",
-    hashtags: ["#fé", "#oração", "#católico", "#evangelho"],
-  }];
-}
 
 // ─── Single-pass LLM call ────────────────────────────────────────────────────
 

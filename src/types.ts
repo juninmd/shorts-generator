@@ -121,6 +121,8 @@ export interface PipelineConfig {
   dailyUploadLimit: number;
   /** Maximum video duration (seconds) to include from channel listings. Default: 3h */
   maxVideoDurationSec: number;
+  /** Optional query string to filter videos by title (case-insensitive substring match) */
+  videoQuery?: string;
   /** Optional progress callback (used by transcriber) */
   onProgress?: (percent: number) => void;
 }
