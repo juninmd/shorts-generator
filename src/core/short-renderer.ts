@@ -37,7 +37,7 @@ export function buildSafeFramingFilter(
 ): string {
   const assPath = escapeFilterPath(subtitlePath);
   return [
-    `[0:v]scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos,crop=${width}:${height},setsar=1,ass='${assPath}'[v]`
+    `[0:v]scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos+accurate_rnd,crop=${width}:${height},hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1,ass='${assPath}'[v]`
   ].join(";");
 }
 
@@ -67,8 +67,10 @@ export async function renderShort(
     "-c:v", config.videoEncoder,
     "-preset", isNvenc ? "p7" : "slow",
     ...qualityArgs,
+    "-profile:v", "high",
+    "-level", "4.1",
     "-c:a", "aac",
-    "-b:a", "192k",
+    "-b:a", "256k",
     "-ar", "44100",
     "-movflags", "+faststart",
     "-pix_fmt", "yuv420p",

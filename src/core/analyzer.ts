@@ -67,6 +67,7 @@ export async function analyzeSinglePass(
       temperature: 0.7,
     });
 
+    logger.debug({ aiObject: JSON.stringify(object).substring(0, 1000) }, "Objeto retornado pela IA");
     const clips = object.clips || [];
 
     if (clips.length === 0) {
