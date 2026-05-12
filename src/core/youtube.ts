@@ -431,7 +431,7 @@ export async function downloadVideoSection(
   return withCookies(config, async (tempCookiePath) => {
     const args = [
       ...getYtDlpBaseArgs(config, tempCookiePath),
-      "-f", "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+      "-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
       "--no-playlist",
       "--no-warnings",
       "--download-sections", `*${start}-${end}`,

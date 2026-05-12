@@ -37,7 +37,7 @@ export function buildSafeFramingFilter(
 ): string {
   const assPath = escapeFilterPath(subtitlePath);
   return [
-    `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,ass='${assPath}'[v]`
+    `[0:v]scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos,crop=${width}:${height},setsar=1,ass='${assPath}'[v]`
   ].join(";");
 }
 
@@ -54,7 +54,7 @@ export async function renderShort(
     config.verticalHeight,
   );
   const isNvenc = config.videoEncoder.includes("nvenc");
-  const qualityArgs = isNvenc ? ["-cq", "20"] : ["-crf", "20"];
+  const qualityArgs = isNvenc ? ["-cq", "18"] : ["-crf", "18"];
   const args = [
     "-ss", String(clip.startTime),
     "-i", inputPath,
@@ -65,7 +65,7 @@ export async function renderShort(
     "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
     "-t", String(clip.duration),
     "-c:v", config.videoEncoder,
-    "-preset", isNvenc ? "p4" : "fast",
+    "-preset", isNvenc ? "p7" : "slow",
     ...qualityArgs,
     "-c:a", "aac",
     "-b:a", "192k",

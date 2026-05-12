@@ -409,9 +409,10 @@ export async function processVideo(
           } else {
             youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config) ?? undefined;
             if (!youtubeUrl) {
-              throw new Error("YouTube upload did not return a URL");
+              logger.warn({ clipId: short.id }, "YouTube upload failed, skipping URL but continuing to Telegram");
+            } else {
+              incrementDailyUploadCount();
             }
-            incrementDailyUploadCount();
           }
         }
         const msgId = await sendToTelegram(short, config, youtubeUrl);

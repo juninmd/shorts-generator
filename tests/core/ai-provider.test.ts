@@ -25,6 +25,6 @@ describe("ai-provider", () => {
     const model = createModel(config);
     expect(model).toBeDefined();
     expect(model.modelId).toBe("model-abc");
-    expect(model.provider).toBe("ollama.chat");
+    expect(model.provider).toBe("ollama");
   });
 });

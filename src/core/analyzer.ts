@@ -1,5 +1,5 @@
 
-import { generateText } from "ai";
+import { generateText, generateObject } from "ai";
 import { nanoid } from "nanoid";
 import type { Transcript, ShortClip, TranscriptSegment, TranscriptWord, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -58,51 +58,56 @@ export async function analyzeSinglePass(
   );
 
   try {
-    logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Enviando prompt para AI Provider (Tool-Hybrid Mode)");
+    logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Enviando prompt para AI Provider (Object Mode)");
 
-    const { toolCalls, text } = await generateText({
+    const { object } = await generateObject({
       model: createModel(config),
-      tools: {
-        analyze: {
-          description: "Analisa o transcript e retorna os melhores momentos para Shorts",
-          parameters: ClipSchema,
-        },
-      },
-      toolChoice: "auto", // Permite que ele escolha entre Tool ou Texto
+      schema: ClipSchema,
       prompt,
       temperature: 0.7,
     });
 
-    let clips: ClipItem[] = [];
-
-    // Tenta extrair das tool calls
-    if (toolCalls && toolCalls.length > 0) {
-      const object = toolCalls[0].args as any;
-      if (object?.clips) clips = object.clips;
-    }
-
-    // Se não veio via tool, tenta extrair do texto (Regex fallback)
-    if (clips.length === 0 && text) {
-      try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.clips) clips = parsed.clips;
-          else if (Array.isArray(parsed)) clips = parsed;
-        }
-      } catch (e) {
-        logger.error({ text: text.substring(0, 500) }, "Falha ao dar parse no JSON do texto da IA");
-      }
-    }
+    const clips = object.clips || [];
 
     if (clips.length === 0) {
-      logger.warn({ hasText: !!text, toolCallsCount: toolCalls?.length }, "AI não retornou cortes válidos em nenhum formato.");
+      logger.warn("AI retornou objeto vazio ou sem clips.");
       return [];
     }
     
     return clips;
   } catch (err) {
-    logger.error({ err, errorMessage: (err as Error).message }, "Falha crítica na chamada do LLM");
+    logger.error({ err, errorMessage: (err as Error).message }, "Falha crítica na chamada do LLM (Object Mode). Tentando fallback...");
+    return analyzeSinglePassFallback(transcript, videoTitle, channelName, config, minCuts, maxCuts);
+  }
+}
+
+async function analyzeSinglePassFallback(
+  transcript: string,
+  videoTitle: string,
+  channelName: string,
+  config: PipelineConfig,
+  minCuts: number,
+  maxCuts: number,
+): Promise<ClipItem[]> {
+  const prompt = buildAnalysisPrompt(
+    transcript, videoTitle, channelName, minCuts, maxCuts,
+    config.minShortDuration, config.maxShortDuration,
+  );
+
+  try {
+    const { text } = await generateText({
+      model: createModel(config),
+      prompt: prompt + "\n\nIMPORTANTE: Retorne APENAS o JSON no formato solicitado, sem textos explicativos.",
+      temperature: 0.7,
+    });
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.clips || (Array.isArray(parsed) ? parsed : []);
+    }
+    return [];
+  } catch (e) {
     return [];
   }
 }

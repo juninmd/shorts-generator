@@ -7,10 +7,11 @@ import { logger } from "../../src/core/logger.js";
 
 describe("LLM Analysis Integration", () => {
   const config: PipelineConfig = {
-    aiProvider: "ollama",
+    aiProvider: (process.env.AI_PROVIDER as any) || "ollama",
     aiModel: process.env.AI_MODEL || "qwen3:1.7b",
     aiTimeoutMs: 300_000,
-    ollamaBaseUrl: "http://localhost:11434",
+    ollamaBaseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
+    openrouterApiKey: process.env.OPENROUTER_API_KEY || "",
     minShortDuration: 15,
     maxShortDuration: 59,
     maxClipsOverride: 3,
