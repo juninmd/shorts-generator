@@ -24,13 +24,11 @@ describe("short-renderer", () => {
     vi.clearAllMocks();
   });
 
-  it("buildSafeFramingFilter keeps the full source image over a blurred fill", () => {
+  it("buildSafeFramingFilter fills the screen with zoomed crop and lanczos scaling", () => {
     const filter = buildSafeFramingFilter("C:\\tmp\\clip.ass", 1080, 1920);
 
-    expect(filter).toContain("scale=1080:1920:force_original_aspect_ratio=increase");
-    expect(filter).toContain("gblur=sigma=24");
-    expect(filter).toContain("scale=1080:1920:force_original_aspect_ratio=decrease");
-    expect(filter).toContain("overlay=(W-w)/2:(H-h)/2");
+    expect(filter).toContain("scale=w='if(gt(iw/ih,1080/1920),-1,1080)':h='if(gt(iw/ih,1080/1920),1920,-1)':flags=lanczos");
+    expect(filter).toContain("crop=1080:1920");
     expect(filter).toContain("ass='C\\:/tmp/clip.ass'");
   });
 

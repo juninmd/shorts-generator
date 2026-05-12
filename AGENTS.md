@@ -21,7 +21,7 @@
 
 1. **Size Limit**: **Max 150 lines per file**.
 2. **Clean Logic**: Separation of concerns enforced across all layers.
-3. **Validation**: All changes require successful tests and linting.
+3. **Validation**: All changes require successful tests (`npm test`), linting, and smoke tests (`npm run smoke-test`).
 4. **Security**: Sensitive data must be excluded from context.
 
 ## 🤝 Interaction Protocol

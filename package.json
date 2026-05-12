@@ -21,7 +21,8 @@
     "web:dev": "pnpm --dir web run dev",
     "web:build": "pnpm --dir web run build",
     "web:preview": "pnpm --dir web run preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke-test": "tsx scripts/smoke-test.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.37",
