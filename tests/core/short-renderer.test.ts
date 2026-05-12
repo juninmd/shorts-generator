@@ -27,7 +27,9 @@ describe("short-renderer", () => {
   it("buildSafeFramingFilter fills the screen with zoomed crop and lanczos scaling", () => {
     const filter = buildSafeFramingFilter("C:\\tmp\\clip.ass", 1080, 1920);
 
-    expect(filter).toContain("scale=w='if(gt(iw/ih,1080/1920),-1,1080)':h='if(gt(iw/ih,1080/1920),1920,-1)':flags=lanczos");
+    expect(filter).toContain("scale=w='if(gt(iw/ih,1080/1920),-1,1080)':h='if(gt(iw/ih,1080/1920),1920,-1)':flags=lanczos+accurate_rnd");
+    expect(filter).toContain("hqdn3d=1.5:1.5:3:3");
+    expect(filter).toContain("unsharp=3:3:0.5:3:3:0.5");
     expect(filter).toContain("crop=1080:1920");
     expect(filter).toContain("ass='C\\:/tmp/clip.ass'");
   });
