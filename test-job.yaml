@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: shorts-generator-test-manual
+  namespace: shorts-generator
+spec:
+  template:
+    spec:
+      containers:
+      - name: shorts-generator
+        image: ghcr.io/juninmd/shorts-generator:latest
+        imagePullPolicy: Always
+        command: ["pnpm", "run", "generate"]
+        args: ["--url", "https://www.youtube.com/watch?v=ybcOKbe1H1c", "--clips", "1"]
+        env:
+        - name: YOUTUBE_CHANNELS
+          value: "@FreiGilsonSomdoMonteOFICIAL"
+        - name: WHISPER_MODEL
+          value: "tiny"
+        - name: AI_PROVIDER
+          value: "openrouter"
+        - name: AI_MODEL
+          value: "google/gemini-2.0-flash-lite-001"
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secret
+              key: OPENROUTER_API_KEY
+        - name: YOUTUBE_REFRESH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secret
+              key: YOUTUBE_REFRESH_TOKEN
+        - name: YOUTUBE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secret
+              key: YOUTUBE_CLIENT_ID
+        - name: YOUTUBE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secret
+              key: YOUTUBE_CLIENT_SECRET
+        - name: ENABLE_YOUTUBE
+          value: "true"
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secret
+              key: TELEGRAM_BOT_TOKEN
+        - name: TELEGRAM_CHAT_ID
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secret
+              key: TELEGRAM_CHAT_ID
+        resources:
+          limits:
+            cpu: "1"
+            memory: "3Gi"
+          requests:
+            cpu: "10m"
+            memory: "1Gi"
+      restartPolicy: Never
+      imagePullSecrets:
+      - name: ghcr-pull-secret
+  backoffLimit: 0
