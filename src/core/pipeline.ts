@@ -20,7 +20,7 @@ import { getPostedTopVideos, markVideoAsPosted, isDailyLimitReached, incrementDa
 import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
-import { sendToTelegram, sendSummary, sendFullVideoToTelegram } from "./telegram.js";
+import { sendToTelegram, sendSummary, sendFullVideoToTelegram, sendErrorAlert } from "./telegram.js";
 import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube } from "./youtube.service.js";
 import { generateText } from "ai";
 import { logger } from "./logger.js";
@@ -77,6 +77,7 @@ export async function runTopVideoPipeline(
     await verifyYoutubeAccess(config);
   } catch (error: any) {
     logger.fatal({ error: error.message }, "Top Pipeline aborted: YouTube access check failed");
+    await sendErrorAlert("Verificação de acesso ao YouTube (generate:top)", error, config);
     throw error;
   }
 
@@ -168,6 +169,7 @@ export async function runTopVideoPipeline(
   } catch (error: any) {
     logger.error({ error, videoId: targetVideo.id }, "Failed to process full top video");
     if (!config.keepTempFiles) cleanupVideo(targetVideo.id, config);
+    await sendErrorAlert(`Vídeo completo: ${targetVideo.title}`, error, config);
     return [{
       videoId: targetVideo.id,
       videoTitle: targetVideo.title,
@@ -190,6 +192,7 @@ export async function runPipeline(
     await verifyYoutubeAccess(config);
   } catch (error: any) {
     logger.fatal({ error: error.message }, "Pipeline aborted: YouTube access check failed");
+    await sendErrorAlert("Verificação de acesso ao YouTube (generate)", error, config);
     throw error;
   }
 
@@ -429,6 +432,7 @@ export async function processVideo(
     logger.error({ videoId: video.id, error: err }, "Fatal video error");
     errors.push(String(err));
     if (!config.keepTempFiles) cleanupVideo(video.id, config);
+    await sendSummary(video.title, video.channelName, shorts.length, errors, config);
   }
 
   return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts, errors, processingTimeMs: Date.now() - startTime };

@@ -159,6 +159,38 @@ export async function sendToTelegram(
 }
 
 /**
+ * Send a fatal/unexpected error alert to Telegram.
+ */
+export async function sendErrorAlert(
+  title: string,
+  error: unknown,
+  config: PipelineConfig,
+): Promise<void> {
+  if (!config.telegramBotToken || !config.telegramChatId) return;
+
+  const bot = new Bot(config.telegramBotToken);
+  const errStr = error instanceof Error
+    ? `${error.message}${error.stack ? `\n\n<pre>${escapeHtml(error.stack.slice(0, 600))}</pre>` : ""}`
+    : escapeHtml(String(error)).slice(0, 600);
+
+  const message = [
+    `🚨 <b>ERRO FATAL NA PIPELINE</b>`,
+    `──────────────────────`,
+    `📌 <b>Contexto:</b> ${escapeHtml(title)}`,
+    ``,
+    `❌ ${errStr}`,
+    `──────────────────────`,
+    `<i>${new Date().toLocaleString("pt-BR")}</i>`,
+  ].join("\n");
+
+  try {
+    await bot.api.sendMessage(config.telegramChatId, message, { parse_mode: "HTML" });
+  } catch (e) {
+    logger.error({ e }, "Failed to send error alert to Telegram");
+  }
+}
+
+/**
  * Send a summary message to Telegram after processing.
  */
 export async function sendSummary(
