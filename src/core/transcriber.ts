@@ -2,6 +2,7 @@
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import type { Transcript, TranscriptSegment, TranscriptWord, DownloadedVideo, PipelineConfig } from "../types.js";
@@ -36,7 +37,9 @@ function errorDetails(error: unknown): Record<string, unknown> {
 
 function shouldRetryRemoteWhisper(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  if (error.name === "AbortError" || error.name === "TimeoutError") return true;
+  if (error.name === "AbortError" || error.name === "TimeoutError" || error.name === "HeadersTimeoutError" || error.name === "BodyTimeoutError") return true;
+  const cause = (error as any).cause;
+  if (cause instanceof Error && (cause.name === "HeadersTimeoutError" || cause.name === "BodyTimeoutError")) return true;
   return /fetch failed|ECONNRESET|ECONNREFUSED|UND_ERR|socket|terminated/i.test(error.message);
 }
 
@@ -144,28 +147,46 @@ async function transcribeRemote(
         "Sending audio to remote Whisper service",
       );
 
-      const formData = new FormData();
-      const blob = new Blob([fileBuffer], { type: "audio/wav" });
-      formData.append("audio_file", blob, path.basename(audioPath));
+      const boundary = `----FormBoundary${Date.now()}`;
+      const filename = path.basename(audioPath);
+      const partHeader = Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="audio_file"; filename="${filename}"\r\nContent-Type: audio/wav\r\n\r\n`,
+      );
+      const partFooter = Buffer.from(`\r\n--${boundary}--\r\n`);
+      const bodyBuf = Buffer.concat([partHeader, fileBuffer, partFooter]);
 
-      const response = await fetch(url.toString(), {
-        method: "POST",
-        body: formData,
-        signal: AbortSignal.timeout(REMOTE_WHISPER_TIMEOUT_MS),
+      const raw = await new Promise<any>((resolve, reject) => {
+        const parsedUrl = new URL(url.toString());
+        const req = http.request(
+          {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || 80,
+            path: parsedUrl.pathname + parsedUrl.search,
+            method: "POST",
+            headers: {
+              "Content-Type": `multipart/form-data; boundary=${boundary}`,
+              "Content-Length": bodyBuf.length,
+            },
+            timeout: REMOTE_WHISPER_TIMEOUT_MS,
+          },
+          (res) => {
+            const chunks: Buffer[] = [];
+            res.on("data", (chunk: Buffer) => chunks.push(chunk));
+            res.on("end", () => {
+              const text = Buffer.concat(chunks).toString("utf-8");
+              if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+                reject(new Error(`Remote Whisper failed (${res.statusCode}): ${text}`));
+              } else {
+                try { resolve(JSON.parse(text)); } catch { reject(new Error(`Invalid JSON from Whisper: ${text.slice(0, 200)}`)); }
+              }
+            });
+          },
+        );
+        req.on("timeout", () => { req.destroy(new Error("HeadersTimeoutError: request timed out")); });
+        req.on("error", reject);
+        req.write(bodyBuf);
+        req.end();
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        const error = new Error(`Remote Whisper failed (${response.status}): ${errorText}`);
-        if (response.status >= 500 && attempt <= REMOTE_WHISPER_RETRIES) {
-          logger.warn({ attempt, status: response.status, error: errorDetails(error) }, "Remote Whisper failed, retrying");
-          await sleep(5_000 * attempt);
-          continue;
-        }
-        throw error;
-      }
-
-      const raw = (await response.json()) as any;
 
       // Normalize language name (OpenAI Whisper often returns full name like 'portuguese')
       if (raw.language === "portuguese") raw.language = "pt";
