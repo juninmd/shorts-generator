@@ -49,6 +49,7 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
       prompt,
       temperature: 0.5,
       maxOutputTokens: 256,
+      maxRetries: 5,
     });
 
     let cleanContent = text.trim();
@@ -159,7 +160,7 @@ async function performUpload(
 
     const videoId = res.data?.id;
     const url = videoId ? (requestBody.snippet.categoryId === "27" ? `https://youtube.com/shorts/${videoId}` : `https://youtube.com/watch?v=${videoId}`) : null;
-    
+
     if (url) {
       logger.info({ url }, "✅ Vídeo enviado com sucesso para o YouTube!");
     }
@@ -200,7 +201,7 @@ export const uploadToYouTube = async (
       },
     },
     auth,
-    "📤 Fazendo upload para o YouTube Shorts..."
+    "🚀 Fazendo upload para o YouTube Shorts..."
   );
 };
 
@@ -232,6 +233,6 @@ export const uploadFullVideoToYouTube = async (
       },
     },
     auth,
-    "📤 Fazendo upload do vídeo COMPLETO para o YouTube..."
+    "🚀 Fazendo upload do vídeo COMPLETO para o YouTube..."
   );
 };
