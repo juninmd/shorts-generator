@@ -1,12 +1,12 @@
-﻿import { generateText, generateObject } from \"ai\";
-import { nanoid } from \"nanoid\";
-import type { Transcript, ShortClip, TranscriptSegment, TranscriptWord, PipelineConfig } from \"../types.js\";
-import { logger } from \"./logger.js\";
-import { snapToSentenceBoundaries } from \"./clip-boundary.js\";
-import { getMinCuts, getMaxCuts } from \"./config.js\";
-import { createModel } from \"./ai-provider.js\";
-import { ClipSchema, type ClipItem } from \"./analyzer-schema.js\";
-import { formatTranscriptForLLM, analyzeInChunks, CHUNK_THRESHOLD_CHARS } from \"./analyzer-chunks.js\";
+﻿import { generateText, generateObject } from "ai";
+import { nanoid } from "nanoid";
+import type { Transcript, ShortClip, TranscriptSegment, TranscriptWord, PipelineConfig } from "../types.js";
+import { logger } from "./logger.js";
+import { snapToSentenceBoundaries } from "./clip-boundary.js";
+import { getMinCuts, getMaxCuts } from "./config.js";
+import { createModel } from "./ai-provider.js";
+import { ClipSchema, type ClipItem } from "./analyzer-schema.js";
+import { formatTranscriptForLLM, analyzeInChunks, CHUNK_THRESHOLD_CHARS } from "./analyzer-chunks.js";
 
 export async function analyzeTranscript(
   transcript: Transcript,
@@ -19,7 +19,7 @@ export async function analyzeTranscript(
   const formatted = formatTranscriptForLLM(transcript.segments);
   logger.info(
     { videoId: transcript.videoId, minCuts, maxCuts, duration: transcript.duration, transcriptChars: formatted.length },
-    \"ðŸ§  Analisando vÃ­deo com AI Provider...\",
+    "ðŸ§  Analisando vÃ­deo com AI Provider...",
   );
 
   const t0 = Date.now();
@@ -27,13 +27,13 @@ export async function analyzeTranscript(
     ? await analyzeInChunks(transcript, videoTitle, channelName, config, minCuts, maxCuts, analyzeSinglePass)   
     : await analyzeSinglePass(formatted, videoTitle, channelName, config, minCuts, maxCuts);
 
-  logger.info({ videoId: transcript.videoId, rawClips: rawClips.length }, \"Raw clips from LLM before filtering\");
+  logger.info({ videoId: transcript.videoId, rawClips: rawClips.length }, "Raw clips from LLM before filtering");
 
   const result = processClips(rawClips, transcript, config, maxCuts);
 
   logger.info(
     { videoId: transcript.videoId, clipsFound: result.length, elapsedSec: ((Date.now() - t0) / 1000).toFixed(1) },
-    \"âœ… AnÃ¡lise concluÃ­da!\",
+    "âœ… AnÃ¡lise concluÃ­da!",
   );
 
   return result;
@@ -58,7 +58,7 @@ export async function analyzeSinglePass(
   const timeoutId = setTimeout(() => controller.abort(), config.aiTimeoutMs || 600000);
 
   try {
-    logger.debug({ model: config.aiModel, promptLength: prompt.length }, \"Enviando prompt para AI Provider (Object Mode)\");
+    logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Enviando prompt para AI Provider (Object Mode)");
 
     const { object } = await generateObject({
       model: createModel(config),
@@ -70,11 +70,11 @@ export async function analyzeSinglePass(
     });
 
     clearTimeout(timeoutId);
-    logger.debug({ aiObject: JSON.stringify(object).substring(0, 1000) }, \"Objeto retornado pela IA\");
+    logger.debug({ aiObject: JSON.stringify(object).substring(0, 1000) }, "Objeto retornado pela IA");
     
     const clips = object.clips || [];
     if (clips.length === 0) {
-      logger.warn(\"AI retornou objeto vazio ou sem clips.\");
+      logger.warn("AI retornou objeto vazio ou sem clips.");
       return [];
     }
 
@@ -82,9 +82,9 @@ export async function analyzeSinglePass(
   } catch (err: any) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      logger.error({ videoTitle }, \"Timeout na chamada do LLM (Object Mode)\");
+      logger.error({ videoTitle }, "Timeout na chamada do LLM (Object Mode)");
     } else {
-      logger.error({ err, errorMessage: err.message }, \"Falha crÃ­tica na chamada do LLM (Object Mode). Tentando fallback...\");
+      logger.error({ err, errorMessage: err.message }, "Falha crÃ­tica na chamada do LLM (Object Mode). Tentando fallback...");
     }
     return analyzeSinglePassFallback(transcript, videoTitle, channelName, config, minCuts, maxCuts);
   } finally {
@@ -111,7 +111,7 @@ async function analyzeSinglePassFallback(
   try {
     const { text } = await generateText({
       model: createModel(config),
-      prompt: prompt + \"\\n\\nIMPORTANTE: Retorne APENAS o JSON no formato solicitado, sem textos explicativos.\", 
+      prompt: prompt + "\\n\\nIMPORTANTE: Retorne APENAS o JSON no formato solicitado, sem textos explicativos.", 
       temperature: 0.7,
       maxRetries: 5,
       abortSignal: controller.signal as any,
@@ -126,7 +126,7 @@ async function analyzeSinglePassFallback(
     return [];
   } catch (e: any) {
     clearTimeout(timeoutId);
-    logger.error({ error: e.message }, \"Falha no fallback do LLM\");
+    logger.error({ error: e.message }, "Falha no fallback do LLM");
     return [];
   } finally {
     clearTimeout(timeoutId);
@@ -145,10 +145,10 @@ function buildAnalysisPrompt(
   maxDuration: number,
 ): string {
   return `VocÃª Ã© um editor especializado em conteÃºdo espiritual e religioso para YouTube Shorts.
-Sua missÃ£o: encontrar trechos que sejam \"pÃ­lulas de conteÃºdo\" â€” autocontidos, com sentido completo, sem depender do resto do vÃ­deo.
+Sua missÃ£o: encontrar trechos que sejam "pÃ­lulas de conteÃºdo" â€” autocontidos, com sentido completo, sem depender do resto do vÃ­deo.
 
-VÃDEO: \"${videoTitle}\"
-CANAL: \"${channelName}\"
+VÃDEO: "${videoTitle}"
+CANAL: "${channelName}"
 
 PRIORIDADE â€” selecione por este tipo de conteÃºdo (nesta ordem):
 1. Passagens bÃ­blicas citadas E comentadas (inclua inÃ­cio e fim da citaÃ§Ã£o)
@@ -165,8 +165,8 @@ OBRIGATÃ“RIO:
 - Retornar no mÃ­nimo ${minClips} e no mÃ¡ximo ${Math.min(20, maxClips)} cortes
 
 PROIBIDO â€” nÃ£o selecione trechos que:
-- Comecem com referÃªncias ao que foi dito antes (\"como vimos\", \"voltando\", \"como mencionei\")
-- Referenciem gestos, slides ou \"o que estÃ¡ na tela\"
+- Comecem com referÃªncias ao que foi dito antes ("como vimos", "voltando", "como mencionei")
+- Referenciem gestos, slides ou "o que estÃ¡ na tela"
 - Sejam interrompidos no meio de uma histÃ³ria ou argumento
 
 PONTUAÃ‡ÃƒO viralScore (1â€“10):
@@ -175,7 +175,7 @@ PONTUAÃ‡ÃƒO viralScore (1â€“10):
 - 5â€“6: ReflexÃ£o interessante com contexto leve dispensÃ¡vel
 - 1â€“4: Fragmento incompleto ou dependente de contexto
 
-TÃ­tulos em PortuguÃªs (pt-BR), mÃ¡x 50 caracteres, sem: \"corte\", \"clipe\", \"short\", \"vÃ­deo\", \"canal\", \"parte\". 
+TÃ­tulos em PortuguÃªs (pt-BR), mÃ¡x 50 caracteres, sem: "corte", "clipe", "short", "vÃ­deo", "canal", "parte". 
 
 TRANSCRIÃ‡ÃƒO:
 ${transcript}`;
@@ -199,11 +199,11 @@ function processClips(clips: ClipItem[], transcript: Transcript, config: Pipelin
         minShortDuration: config.minShortDuration,
         maxShortDuration: config.maxShortDuration,
         transcriptDuration: transcript.duration,
-      }, \"Clip filtered out\");
+      }, "Clip filtered out");
     }
     return ok;
   });
-  logger.info({ total: clips.length, afterFilter: filtered.length }, \"processClips filter result\");
+  logger.info({ total: clips.length, afterFilter: filtered.length }, "processClips filter result");
   return filtered
     .sort((a, b) => b.viralScore - a.viralScore)
     .slice(0, maxCuts)
