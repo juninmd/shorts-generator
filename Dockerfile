@@ -1,5 +1,5 @@
 # Use Node.js 22 as the base image
-FROM node:22-slim AS base
+FROM node:26-slim AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
