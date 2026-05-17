@@ -12,8 +12,8 @@ importers:
         specifier: ^2.0.37
         version: 2.0.37(zod@3.25.76)
       '@hono/node-server':
-        specifier: ^1.13.0
-        version: 1.19.9(hono@4.12.3)
+        specifier: ^2.0.2
+        version: 2.0.2(hono@4.12.3)
       '@openrouter/ai-sdk-provider':
         specifier: ^2.3.3
         version: 2.3.3(ai@6.0.140(zod@3.25.76))(zod@3.25.76)
@@ -563,9 +563,9 @@ packages:
   '@grammyjs/types@3.25.0':
     resolution: {integrity: sha512-iN9i5p+8ZOu9OMxWNcguojQfz4K/PDyMPOnL7PPCON+SoA/F8OKMH3uR7CVUkYfdNe0GCz8QOzAWrnqusQYFOg==}
 
-  '@hono/node-server@1.19.9':
-    resolution: {integrity: sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw==}
-    engines: {node: '>=18.14.1'}
+  '@hono/node-server@2.0.2':
+    resolution: {integrity: sha512-tXlTi1h/4V7sDe7i97IVP+9re9ZU7wXZZggnR5ucCRclf1+AX6YhGStrR5w8bLj+3Mlyl0pKfBh9gqTqqnGKfQ==}
+    engines: {node: '>=20'}
     peerDependencies:
       hono: ^4
 
@@ -2109,7 +2109,7 @@ snapshots:
 
   '@grammyjs/types@3.25.0': {}
 
-  '@hono/node-server@1.19.9(hono@4.12.3)':
+  '@hono/node-server@2.0.2(hono@4.12.3)':
     dependencies:
       hono: 4.12.3
 
