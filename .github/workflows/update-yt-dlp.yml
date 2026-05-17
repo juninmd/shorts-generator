@@ -34,7 +34,7 @@ jobs:
           sed -i "s/\"yt-dlp>=.*\"/\"yt-dlp>=$LATEST_VERSION\"/" tests/yt-download/pyproject.toml
 
       - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "chore: daily update of yt-dlp dependency"
           file_pattern: "tests/yt-download/pyproject.toml"
