@@ -10,10 +10,11 @@ This document records the repository improvement pass applied on 2026-05-17.
 
 ## Automation Added Or Confirmed
 
-- Security policy: Added in this pass.
-- Dependabot: Added in this pass with detected ecosystems.
-- EditorConfig: Added in this pass.
+- Security policy: Already present before this pass.
+- Dependabot: Already present before this pass.
+- EditorConfig: Already present before this pass.
 - Project Health workflow: Existing workflows were present; added a dedicated Project Health workflow.
+- Pull request quality checklist: Added in this pass.
 
 ## Available Root Commands
 
