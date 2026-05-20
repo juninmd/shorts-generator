@@ -34,11 +34,14 @@ export function buildSafeFramingFilter(
   subtitlePath: string,
   width: number,
   height: number,
+  logoPath?: string | null,
 ): string {
   const assPath = escapeFilterPath(subtitlePath);
-  return [
-    `[0:v]scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos+accurate_rnd,crop=${width}:${height},hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1,ass='${assPath}'[v]`
-  ].join(";");
+  const baseVideo = `[0:v]scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos+accurate_rnd,crop=${width}:${height},hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1,ass='${assPath}'[base]`;
+  if (!logoPath) {
+    return `${baseVideo};[base]copy[v]`;
+  }
+  return `${baseVideo};[1:v]scale=180:-1[logo];[base][logo]overlay=W-w-36:36[v]`;
 }
 
 export async function renderShort(
@@ -48,16 +51,21 @@ export async function renderShort(
   clip: ShortClip,
   config: PipelineConfig,
 ): Promise<void> {
+  const logoPath = config.managedRun?.logoPath && fs.existsSync(config.managedRun.logoPath)
+    ? config.managedRun.logoPath
+    : null;
   const filter = buildSafeFramingFilter(
     subtitlePath,
     config.verticalWidth,
     config.verticalHeight,
+    logoPath,
   );
   const isNvenc = config.videoEncoder.includes("nvenc");
   const qualityArgs = isNvenc ? ["-cq", "18"] : ["-crf", "18"];
   const args = [
     "-ss", String(clip.startTime),
     "-i", inputPath,
+    ...(logoPath ? ["-i", logoPath] : []),
     "-y",
     "-filter_complex", filter,
     "-map", "[v]",

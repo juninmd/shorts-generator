@@ -2,9 +2,16 @@
 import { config as dotenvConfig } from "dotenv";
 dotenvConfig({ override: true });
 
+import { randomUUID } from "node:crypto";
+import { ChannelBundleRepository } from "./core/channel-bundle-repository.js";
+import { ChannelConfigResolver, buildManagedPipelineConfig } from "./core/channel-config-resolver.js";
 import { loadConfig } from "./core/config.js";
+import { loadControlPlaneConfig } from "./core/control-plane-config.js";
+import { getControlPlanePool } from "./core/control-plane-db.js";
 import { runPipeline, runTopVideoPipeline } from "./core/pipeline.js";
+import { ManagedRunRepository } from "./core/managed-run-repository.js";
 import { logger } from "./core/logger.js";
+import { createSecretStore } from "./core/secret-store.js";
 import { startServer } from "./server/index.js";
 import { runInteractive } from "./cli-interactive.js";
 
@@ -24,6 +31,7 @@ async function main() {
       const targetShortsIndex = args.indexOf("--target-shorts");
       const fullCountIndex = args.indexOf("--full");
       const queryIndex = args.indexOf("--query");
+      const managedChannelIndex = args.indexOf("--managed-channel");
 
       const overrides: Record<string, any> = {};
 
@@ -85,7 +93,15 @@ async function main() {
         logger.info({ videoQuery: overrides.videoQuery }, "🔍 Filtro de título definido via --query");
       }
 
-      const config = loadConfig(overrides);
+      const managedChannelId = managedChannelIndex !== -1 ? args[managedChannelIndex + 1]?.trim() : undefined;
+      const baseConfig = loadConfig(overrides);
+
+      if (managedChannelId) {
+        await runManagedChannel(managedChannelId, baseConfig);
+        break;
+      }
+
+      const config = baseConfig;
 
       if (config.channels.length === 0 && config.specificUrls.length === 0) {
         logger.error(
@@ -197,6 +213,40 @@ Environment Variables:
 `);
       break;
     }
+  }
+}
+
+async function runManagedChannel(channelId: string, baseConfig = loadConfig()): Promise<void> {
+  const controlPlaneConfig = loadControlPlaneConfig();
+  const db = getControlPlanePool(controlPlaneConfig);
+  const repository = new ChannelBundleRepository(db);
+  const runRepository = new ManagedRunRepository(db);
+  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
+  const runId = randomUUID();
+  const resolved = await resolver.resolveRunConfig(runId, channelId);
+  const config = buildManagedPipelineConfig(baseConfig, runId, resolved);
+
+  await runRepository.createRun(runId, channelId, "cli", {
+    channel: resolved.channel,
+    profile: resolved.profile,
+    focuses: resolved.focuses,
+    sources: resolved.sources,
+    youtubeAccount: {
+      provider: resolved.publishingAccount.provider,
+      accountId: resolved.publishingAccount.accountId,
+      accountIdentifier: resolved.publishingAccount.accountIdentifier,
+    },
+  });
+
+  try {
+    const results = await runPipeline(config, (progress) => {
+      void runRepository.updateProgress(runId, progress);
+      logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Pipeline status");
+    });
+    await runRepository.completeRun(runId, results);
+  } catch (error) {
+    await runRepository.failRun(runId, error);
+    throw error;
   }
 }
 

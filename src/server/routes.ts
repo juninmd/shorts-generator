@@ -7,6 +7,7 @@ import { z } from "zod";
 import { loadConfig } from "../core/config.js";
 import { runPipeline } from "../core/pipeline.js";
 import { logger } from "../core/logger.js";
+import { registerAdminRoutes } from "./admin-routes.js";
 import {
   createJob,
   getJob,
@@ -20,7 +21,9 @@ import {
 
 export const app = new Hono();
 
-app.use("/*", cors());
+const apiAllowedOrigins = (process.env.ADMIN_ALLOWED_ORIGINS ?? "http://localhost:5173")
+  .split(",").map((o) => o.trim()).filter(Boolean);
+app.use("/api/*", cors({ origin: apiAllowedOrigins }));
 
 const GenerateBodySchema = z.object({
   urls: z.array(z.string().url()).optional().default([]),
@@ -47,26 +50,29 @@ app.post("/api/generate", async (c) => {
   const jobId = nanoid(12);
   const config = loadConfig({ specificUrls: urls, channels, videoLimit });
 
-  createJob(jobId);
+  await createJob(jobId);
 
-  (async () => {
+  void (async () => {
     try {
       const results = await runPipeline(config, (progress) => {
-        updateJobProgress(jobId, progress);
+        void updateJobProgress(jobId, progress);
       });
-      completeJob(jobId, results);
+      await completeJob(jobId, results);
     } catch (err) {
       logger.error({ jobId, error: err }, "Job failed");
-      failJob(jobId, err);
+      await failJob(jobId, err);
     }
-  })();
+  })().catch(/* v8 ignore next */(err) => {
+    logger.error({ jobId, error: err }, "Unhandled error in job runner");
+    void failJob(jobId, err);
+  });
 
   return c.json({ jobId, status: "processing" }, 202);
 });
 
-app.get("/api/jobs/:jobId", (c) => {
+app.get("/api/jobs/:jobId", async (c) => {
   const { jobId } = c.req.param();
-  const job = getJob(jobId);
+  const job = await getJob(jobId);
 
   if (!job) {
     return c.json({ error: "Job not found" }, 404);
@@ -81,19 +87,19 @@ app.get("/api/jobs/:jobId", (c) => {
   });
 });
 
-app.get("/api/jobs", (c) => {
-  return c.json(listJobs());
+app.get("/api/jobs", async (c) => {
+  return c.json(await listJobs());
 });
 
-app.delete("/api/jobs/:jobId", (c) => {
+app.delete("/api/jobs/:jobId", async (c) => {
   const { jobId } = c.req.param();
-  const job = getJob(jobId);
+  const job = await getJob(jobId);
 
   if (!job) {
     return c.json({ error: "Job not found" }, 404);
   }
 
-  deleteJob(jobId);
+  await deleteJob(jobId);
 
   return c.json({ status: "deleted" });
 });
@@ -116,6 +122,8 @@ app.get("/api/shorts/:videoId/:clipId", async (c) => {
   });
 });
 
-app.get("/api/shorts", (c) => {
-  return c.json(getAllShorts());
+app.get("/api/shorts", async (c) => {
+  return c.json(await getAllShorts());
 });
+
+registerAdminRoutes(app);

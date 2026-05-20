@@ -1,28 +1,34 @@
-# 🚀 Shorts Generator
+# Shorts Generator
 
-[![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen.svg)]()
-[![Protocol: Antigravity](https://img.shields.io/badge/Protocol-Antigravity-orange.svg)]()
+Painel de controle para geração e publicação de shorts por canal, com persistência em PostgreSQL, tokens criptografados por canal e interface admin dedicada.
 
-> A modern, high-performance project built with **Node.js / TypeScript**. Orchestrated under the Antigravity protocol.
+## Fluxo Atual
 
-## ✨ Features
+- Backend API: `pnpm start` sobe o Hono em `http://localhost:3001`.
+- Admin web: `pnpm web:dev` sobe a interface Vite para gerenciar canais, focos, fontes e disparar runs.
+- Banco: o control plane roda migrations automaticamente quando `ADMIN_API_TOKEN`, `DATABASE_URL` e `CONTROL_PLANE_ENCRYPTION_KEY` estão definidos.
 
-- **High Performance**: Optimized for speed and low resource usage.
-- **Clean Architecture**: Built following strict Antigravity guidelines.
-- **Automated**: Integrated with modern CI/CD and verification scripts.
+## Variáveis Obrigatórias do Control Plane
 
-## 🛠️ Tech Stack
+```env
+PORT=3001
+DATABASE_URL=postgres://user:password@localhost:5432/shorts_generator
+ADMIN_API_TOKEN=troque-este-token
+ADMIN_ALLOWED_ORIGINS=http://localhost:5173
+CONTROL_PLANE_ENCRYPTION_KEY=base64-da-chave-de-32-bytes
+CONTROL_PLANE_ENCRYPTION_KEY_VERSION=v1
+```
 
-- **Primary Technology**: Node.js / TypeScript
-- **Architecture**: Modular and domain-driven.
+## Comandos Verificados
 
-## 🛡️ Antigravity Protocol
+```bash
+pnpm test
+pnpm build
+pnpm bootstrap:control-plane
+pnpm --dir web run test
+pnpm --dir web run build
+```
 
-This project follows the **Antigravity** code standards:
-- **150-Line Limit**: Applied to all logic modules.
-- **Strict Typing**: Avoiding dynamic/any types.
-- **Clean Code**: DRY, KISS, and SOLID principles applied rigorously.
+## Bootstrap Local
 
----
-
-*"Simplicity is the ultimate sophistication."*
+`pnpm bootstrap:control-plane` cria um canal inicial de desenvolvimento sem gravar token em texto puro. Depois disso, abra a UI admin, salve as credenciais do canal de publicação e dispare o run pelo painel.

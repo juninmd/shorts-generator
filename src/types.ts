@@ -70,6 +70,21 @@ export interface GeneratedShort {
   createdAt: string;
 }
 
+export interface YouTubeAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+}
+
+export interface ManagedRunContext {
+  runId: string;
+  channelId: string;
+  channelName: string;
+  accountId?: string;
+  focusLabels: string[];
+  logoPath?: string | null;
+}
+
 export interface PipelineConfig {
   channels: string[];
   specificUrls: string[];
@@ -123,6 +138,8 @@ export interface PipelineConfig {
   maxVideoDurationSec: number;
   /** Optional query string to filter videos by title (case-insensitive substring match) */
   videoQuery?: string;
+  youtubeAuth?: YouTubeAuthConfig;
+  managedRun?: ManagedRunContext;
   /** Optional progress callback (used by transcriber) */
   onProgress?: (percent: number) => void;
 }

@@ -19,7 +19,25 @@ vi.mock("../../src/core/logger.js", () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
+    debug: vi.fn(),
   },
+}));
+
+vi.mock("../../src/core/control-plane-config.js", () => ({
+  tryLoadControlPlaneConfig: vi.fn(() => null),
+}));
+
+vi.mock("../../src/core/control-plane-db.js", () => ({
+  getControlPlanePool: vi.fn(() => ({})),
+}));
+
+vi.mock("../../src/core/control-plane-migrations.js", () => ({
+  runControlPlaneMigrations: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../../src/server/job-store.js", () => ({
+  cleanupOldJobs: vi.fn().mockReturnValue(0),
+  jobs: new Map(),
 }));
 
 describe("Server Index", () => {
@@ -139,5 +157,34 @@ describe("Server Index", () => {
 
     // Since startServer shouldn't be called, serve shouldn't be called
     expect(serve).not.toHaveBeenCalled();
+  });
+
+  it("should run migrations and start server when control plane config is present", async () => {
+    const controlPlaneCfg = {
+      adminToken: "tok", allowedOrigins: ["http://localhost:5173"],
+      databaseUrl: "postgres://x", encryptionKey: Buffer.alloc(32), encryptionKeyVersion: "v1",
+    };
+    vi.doMock("../../src/core/control-plane-config.js", () => ({
+      tryLoadControlPlaneConfig: vi.fn(() => controlPlaneCfg),
+    }));
+
+    const { runControlPlaneMigrations } = await import("../../src/core/control-plane-migrations.js");
+    const { startServer } = await import("../../src/server/index.js");
+
+    await startServer("4001");
+
+    expect(vi.mocked(runControlPlaneMigrations)).toHaveBeenCalled();
+    vi.doUnmock("../../src/core/control-plane-config.js");
+  });
+
+  it("cleanupOldJobs timer fires after interval", async () => {
+    vi.useFakeTimers();
+    const { startServer } = await import("../../src/server/index.js");
+    const { cleanupOldJobs } = await import("../../src/server/job-store.js");
+
+    startServer("4002");
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    vi.useRealTimers();
   });
 });
