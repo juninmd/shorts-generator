@@ -1,9 +1,15 @@
 import { google } from "googleapis";
 import fs from "node:fs";
 import { generateText } from "ai";
-import type { GeneratedShort, PipelineConfig } from "../types.js";
+import type { GeneratedShort, PipelineConfig, YouTubeAuthConfig } from "../types.js";
+
+interface YouTubeVideoInsertBody {
+  snippet: { title: string; description: string; tags?: string[]; categoryId?: string };
+  status: { privacyStatus: string; selfDeclaredMadeForKids?: boolean };
+}
 import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
+import { withRetry } from "./retry-backoff.js";
 
 export const generateYoutubeMetadata = async (
   short: GeneratedShort,
@@ -33,6 +39,7 @@ Descrição Sugerida: ${short.clip.description}
 Contexto do Canal: ${short.channelName}
 Motivo da Viralização: ${short.clip.reason}
 Hashtags Sugeridas: ${short.clip.hashtags?.join(", ")}
+Focos do canal de destino: ${config.managedRun?.focusLabels.join(", ") || "não informado"}
 
 O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
 A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags?.join(" ")}.
@@ -77,47 +84,11 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
   }
 };
 
-/**
- * Retry an async operation with exponential backoff.
- * Quota errors (HTTP 403/quotaExceeded) are not retried — they won't recover within the run.
- */
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  maxAttempts: number = 3,
-  baseDelayMs: number = 8000,
-): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      lastError = error;
-      const isQuotaError =
-        error?.message?.includes("quotaExceeded") ||
-        error?.message?.includes("quota") ||
-        error?.code === 403;
-      if (isQuotaError || attempt === maxAttempts) throw error;
-      const delay = baseDelayMs * Math.pow(2, attempt - 1);
-      logger.warn(
-        { attempt, maxAttempts, delayMs: delay },
-        "YouTube upload failed, retrying...",
-      );
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-  throw lastError;
-}
 
-interface YouTubeAuth {
-  clientId: string;
-  clientSecret: string;
-  refreshToken: string;
-}
-
-function getYouTubeAuth(): YouTubeAuth | null {
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const refreshToken = process.env.YOUTUBE_REFRESH_TOKEN;
+function getYouTubeAuth(config: PipelineConfig): YouTubeAuthConfig | null {
+  const clientId = config.youtubeAuth?.clientId ?? process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = config.youtubeAuth?.clientSecret ?? process.env.YOUTUBE_CLIENT_SECRET;
+  const refreshToken = config.youtubeAuth?.refreshToken ?? process.env.YOUTUBE_REFRESH_TOKEN;
 
   if (!clientId || !clientSecret || !refreshToken) {
     return null;
@@ -126,7 +97,7 @@ function getYouTubeAuth(): YouTubeAuth | null {
   return { clientId, clientSecret, refreshToken };
 }
 
-function createSanitizer(auth: YouTubeAuth) {
+function createSanitizer(auth: YouTubeAuthConfig) {
   const secrets = [auth.clientId, auth.clientSecret, auth.refreshToken].filter(Boolean);
   return (msg: string) =>
     secrets.reduce(
@@ -137,8 +108,9 @@ function createSanitizer(auth: YouTubeAuth) {
 
 async function performUpload(
   videoPath: string,
-  requestBody: any,
-  auth: YouTubeAuth,
+  requestBody: YouTubeVideoInsertBody,
+  auth: YouTubeAuthConfig,
+  config: PipelineConfig,
   logMessage: string
 ): Promise<string | null> {
   const oauth2Client = new google.auth.OAuth2(auth.clientId, auth.clientSecret);
@@ -147,15 +119,19 @@ async function performUpload(
   const youtube = google.youtube({ version: "v3", auth: oauth2Client });
   const sanitize = createSanitizer(auth);
 
-  logger.info({ videoPath, title: requestBody.snippet.title }, logMessage);
+  logger.info({
+    videoPath,
+    title: requestBody.snippet.title,
+    runId: config.managedRun?.runId,
+    channelId: config.managedRun?.channelId,
+    accountId: config.managedRun?.accountId,
+    destination: config.managedRun?.channelName,
+  }, logMessage);
 
   try {
-    const res = await withRetry(() =>
-      youtube.videos.insert({
-        part: ["snippet", "status"],
-        requestBody,
-        media: { body: fs.createReadStream(videoPath) },
-      }),
+    const res = await withRetry(
+      () => youtube.videos.insert({ part: ["snippet", "status"], requestBody, media: { body: fs.createReadStream(videoPath) } }),
+      { maxAttempts: 3, baseDelayMs: 8000, logMessage: "YouTube upload failed, retrying..." },
     );
 
     const videoId = res.data?.id;
@@ -176,11 +152,11 @@ export const uploadToYouTube = async (
   videoPath: string,
   title: string,
   description: string,
-  _config: PipelineConfig
+  config: PipelineConfig
 ): Promise<string | null> => {
   if (process.env.ENABLE_YOUTUBE !== "true") return null;
 
-  const auth = getYouTubeAuth();
+  const auth = getYouTubeAuth(config);
   if (!auth) {
     logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload.");
     return null;
@@ -192,7 +168,7 @@ export const uploadToYouTube = async (
       snippet: {
         title: title.slice(0, 100),
         description,
-        tags: ["quiz", "shorts", "curiosidades", "viral"],
+        tags: ["quiz", "shorts", "curiosidades", "viral", ...config.managedRun?.focusLabels ?? []],
         categoryId: "27", // Education
       },
       status: {
@@ -201,6 +177,7 @@ export const uploadToYouTube = async (
       },
     },
     auth,
+    config,
     "🚀 Fazendo upload para o YouTube Shorts..."
   );
 };
@@ -209,11 +186,11 @@ export const uploadFullVideoToYouTube = async (
   videoPath: string,
   title: string,
   description: string,
-  _config: PipelineConfig
+  config: PipelineConfig
 ): Promise<string | null> => {
   if (process.env.ENABLE_YOUTUBE !== "true") return null;
 
-  const auth = getYouTubeAuth();
+  const auth = getYouTubeAuth(config);
   if (!auth) {
     logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload do vídeo completo.");
     return null;
@@ -233,6 +210,7 @@ export const uploadFullVideoToYouTube = async (
       },
     },
     auth,
+    config,
     "🚀 Fazendo upload do vídeo COMPLETO para o YouTube..."
   );
 };

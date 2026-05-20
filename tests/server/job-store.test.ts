@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   jobs,
   createJob,
@@ -8,8 +8,15 @@ import {
   failJob,
   listJobs,
   getAllShorts,
+  deleteJob,
+  cleanupOldJobs,
 } from "../../src/server/job-store.js";
 import type { PipelineResult } from "../../src/types.js";
+
+vi.mock("../../src/core/control-plane-db.js", () => ({
+  getOptionalPool: vi.fn(() => null),
+  queryRows: vi.fn().mockResolvedValue([]),
+}));
 
 describe("Job Store", () => {
   beforeEach(() => {
@@ -164,5 +171,96 @@ describe("Job Store", () => {
     expect(short.videoId).toBe("vid2");
     expect(short.title).toBe("Title");
     expect(short.downloadUrl).toBe("/api/shorts/vid2/short1");
+  });
+
+  it("deleteJob removes the job from the map", () => {
+    createJob("job-del");
+    expect(getJob("job-del")).toBeDefined();
+    deleteJob("job-del");
+    expect(getJob("job-del")).toBeUndefined();
+  });
+
+  describe("DB path (getOptionalPool returns pool)", () => {
+    const mockDb = { query: vi.fn(async () => ({ rows: [] })) };
+
+    beforeEach(async () => {
+      const { getOptionalPool, queryRows } = await import("../../src/core/control-plane-db.js");
+      vi.mocked(getOptionalPool).mockReturnValue(mockDb as any);
+      vi.mocked(queryRows).mockResolvedValue([]);
+      mockDb.query.mockResolvedValue({ rows: [] });
+    });
+
+    afterEach(async () => {
+      const { getOptionalPool } = await import("../../src/core/control-plane-db.js");
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+    });
+
+    it("createJob with DB calls db.query", async () => {
+      await createJob("db-job-1");
+      expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO pipeline_runs"), expect.any(Array));
+    });
+
+    it("getAllShorts with DB returns flatMap from queryRows", async () => {
+      const { queryRows } = await import("../../src/core/control-plane-db.js");
+      vi.mocked(queryRows).mockResolvedValue([{ results: [] }] as any);
+      const result = await getAllShorts();
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it("getJob with DB returns mapped state when row exists", async () => {
+      const { queryRows } = await import("../../src/core/control-plane-db.js");
+      vi.mocked(queryRows).mockResolvedValue([{
+        status: "completed", progress: null, results: [], created_at: "2024-01-01T00:00:00Z",
+      }] as any);
+      const job = await getJob("db-job-1");
+      expect(job?.status).toBe("completed");
+    });
+
+    it("getJob with DB returns undefined when no row", async () => {
+      const { queryRows } = await import("../../src/core/control-plane-db.js");
+      vi.mocked(queryRows).mockResolvedValue([]);
+      const job = await getJob("missing");
+      expect(job).toBeUndefined();
+    });
+
+    it("listJobs with DB returns mapped rows", async () => {
+      const { queryRows } = await import("../../src/core/control-plane-db.js");
+      vi.mocked(queryRows).mockResolvedValue([{
+        id: "r1", status: "processing", progress: null, results: [], created_at: "2024-01-01T00:00:00Z",
+      }] as any);
+      const list = await listJobs();
+      expect(Array.isArray(list)).toBe(true);
+    });
+
+    it("deleteJob with DB calls db.query", async () => {
+      await deleteJob("db-job-1");
+      expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining("DELETE"), expect.any(Array));
+    });
+
+    it("cleanupOldJobs returns 0 when DB pool exists", async () => {
+      expect(cleanupOldJobs()).toBe(0);
+    });
+  });
+
+  describe("cleanupOldJobs", () => {
+    it("removes jobs older than maxAgeMs", () => {
+      const oldDate = new Date(Date.now() - 2 * 86_400_000).toISOString();
+      jobs.set("old-job", { status: "completed", results: [], progress: null, createdAt: oldDate });
+      createJob("new-job");
+
+      const removed = cleanupOldJobs(86_400_000);
+      expect(removed).toBe(1);
+      expect(getJob("old-job")).toBeUndefined();
+      expect(getJob("new-job")).toBeDefined();
+    });
+
+    it("returns 0 when no jobs are old enough", () => {
+      createJob("fresh-job");
+      expect(cleanupOldJobs(86_400_000)).toBe(0);
+    });
+
+    it("returns 0 when no jobs exist", () => {
+      expect(cleanupOldJobs()).toBe(0);
+    });
   });
 });

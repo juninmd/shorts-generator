@@ -1,5 +1,5 @@
 /* v8 ignore start */
-import { execFile } from "node:child_process";
+import { execFile, type ExecFileOptions } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
 import fs from "node:fs";
@@ -73,26 +73,26 @@ async function withCookies<T>(
 /**
  * Execute yt-dlp with better error reporting.
  */
-async function execYtDlp(args: string[], options: any = {}): Promise<{ stdout: string; stderr: string }> {
+async function execYtDlp(args: string[], options: ExecFileOptions = {}): Promise<{ stdout: string; stderr: string }> {
   try {
     const spawnEnv = {
       ...process.env,
-      ...options.env,
-      YTDLP_JS_EXECUTABLE: "node", // Force yt-dlp to use Node.js for EJS challenges
+      ...(options as { env?: NodeJS.ProcessEnv }).env,
+      YTDLP_JS_EXECUTABLE: "node",
     };
     return (await execFileAsync("yt-dlp", args, { ...options, env: spawnEnv, encoding: "utf8" })) as unknown as {
       stdout: string;
       stderr: string;
     };
-  } catch (error: any) {
-    const stderr = error.stderr || "";
+  } catch (error: unknown) {
+    const stderr = error instanceof Error && "stderr" in error ? String((error as NodeJS.ErrnoException & { stderr?: string }).stderr) : "";
     // Redact cookie path from args if present for extra safety
     const safeArgs = args.map((arg, i) => {
       if (i > 0 && args[i - 1] === "--cookies") return "[REDACTED_COOKIE_PATH]";
       return arg;
     });
 
-    const safeMessage = (error.message || "").replace(/cookies-[a-f0-9]+\.txt/g, "[REDACTED_COOKIE_FILE]");
+    const safeMessage = (error instanceof Error ? error.message : String(error)).replace(/cookies-[a-f0-9]+\.txt/g, "[REDACTED_COOKIE_FILE]");
 
     logger.error({
       args: safeArgs,
@@ -135,8 +135,8 @@ export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void>
         return;
       }
       throw new Error("YouTube formats not found in response.");
-    } catch (error: any) {
-      const msg = error.stderr || error.message || "";
+    } catch (error: unknown) {
+      const msg = (error instanceof Error ? ((error as NodeJS.ErrnoException & { stderr?: string }).stderr ?? error.message) : String(error));
       const lowerMsg = msg.toLowerCase();
       
       if (lowerMsg.includes("sign in to confirm you are not a bot") || 
@@ -321,7 +321,8 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
       );
 
       const outputLines = stdout.trim().split("\n");
-      let raw: any = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let raw: Record<string, any> | null = null;
       for (const line of outputLines.reverse()) {
         const trimmed = line.trim();
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {

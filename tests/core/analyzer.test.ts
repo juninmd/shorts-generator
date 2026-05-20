@@ -66,6 +66,10 @@ describe("analyzer", () => {
     expect(clips).toHaveLength(1);
     expect(clips[0].title).toBe("Clip 1");
     expect(clips[0].duration).toBe(30);
+    const prompt = vi.mocked(aiModule.generateObject).mock.calls[0]?.[0].prompt;
+    expect(prompt).toContain("Voc\u00ea \u00e9");
+    expect(prompt).toContain("conte\u00fado");
+    expect(prompt).not.toMatch(new RegExp("[\\u00f0\\u0178\\u00e2\\u20ac]"));
   });
 
   it("should return empty array when LLM fails", async () => {
@@ -218,6 +222,34 @@ describe("analyzer", () => {
     const clips = await analyzeTranscript(largeTranscript, "Title", "Channel", mockConfig);
     expect(clips).toHaveLength(1);
     expect(clips[0].title).toBe("Clip Chunks");
+  });
+
+  it("should log AbortError differently and still call fallback", async () => {
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+    vi.mocked(aiModule.generateObject).mockRejectedValue(abortError);
+    vi.mocked(aiModule.generateText).mockRejectedValue(new Error("fallback also failed"));
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0); // fallback also fails → []
+  });
+
+  it("should return empty array when fallback text has no JSON", async () => {
+    vi.mocked(aiModule.generateObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: "no json here at all" } as any);
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
+  });
+
+  it("should parse JSON from fallback generateText response", async () => {
+    vi.mocked(aiModule.generateObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: JSON.stringify({ clips: [{ title: "FB Clip", description: "D", startTime: 10, endTime: 40, viralScore: 8, reason: "R", hashtags: [] }] }),
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("FB Clip");
   });
 
   it("should correctly handle words within the clip range", async () => {

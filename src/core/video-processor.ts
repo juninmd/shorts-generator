@@ -30,6 +30,8 @@ export async function processClip(
     {
       clipId: clip.id,
       videoId: video.id,
+      channelId: config.managedRun?.channelId,
+      logoPath: config.managedRun?.logoPath,
       start: clip.startTime,
       end: clip.endTime,
       duration: clip.duration,

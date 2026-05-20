@@ -1,4 +1,4 @@
-# 📋 SETUP CONCLUÍDO - Shorts Generator
+# SETUP CONCLUÍDO - Shorts Generator
 
 ## ✅ O que foi feito
 
@@ -33,66 +33,41 @@ Cada pasta com:
 
 ## 🚀 Como Usar a App
 
-### **Opção 1: CLI (Command Line)**
+### Opção 1: API + Admin UI
 
 ```bash
-# Gerar shorts de canais específicos
-pnpm generate --channel "UCxxxxxxxxx"
-
-# Gerar shorts de URLs
-pnpm generate --url "https://youtube.com/watch?v=ABC123"
-
-# Customizar dias retroativos
-pnpm generate --days 7 --channel "UCxxx"
-```
-
-### **Opção 2: Servidor Web**
-
-```bash
-# Iniciar servidor (porta 3000)
+# API backend
 pnpm start
 
-# Abrir em http://localhost:3000
-# Interface para gerar e gerenciar shorts
+# Admin UI
+pnpm web:dev
+
+# Bootstrap local de um canal inicial
+pnpm bootstrap:control-plane
 ```
 
-### **Opção 3: Desenvolvimento**
+### Opção 2: Validação
 
 ```bash
-# Mode watch com hot-reload
-pnpm dev
-
-# Web dev server com Vite
-pnpm web:dev
+pnpm test
+pnpm build
+pnpm --dir web run test
+pnpm --dir web run build
 ```
 
 ---
 
-## ⚙️ Configuração Requerida
+## Configuração Requerida
 
-Crie um arquivo `.env` na raiz:
+Crie um arquivo `.env` na raiz com o contrato atual do control plane:
 
 ```env
-# OBRIGATÓRIO - Uma dessas opções:
-YOUTUBE_CHANNELS=UCxxxxxxxxx,UCyyyyyyyyy
-# OU
-VIDEO_URLS=https://youtube.com/watch?v=ABC,https://youtube.com/watch?v=DEF
-
-# OPCIONAL - Processamento
-DAYS_BACK=1                    # Padrão: 1 dia
-MAX_SHORT_DURATION=59          # Padrão: 59 segundos
-MIN_SHORT_DURATION=15          # Padrão: 15 segundos
-
-# OPCIONAL - LLM para análise de momentos virais
-# Use local Ollama (gratuito):
-OLLAMA_API_URL=http://localhost:11434
-# OU use API OpenAI:
-LLM_API_KEY=sk-xxxxx
-LLM_MODEL=gpt-4
-
-# OPCIONAL - Notificações Telegram
-TELEGRAM_BOT_TOKEN=123:ABCXYZ
-TELEGRAM_CHAT_ID=-999999
+PORT=3001
+DATABASE_URL=postgres://user:password@localhost:5432/shorts_generator
+ADMIN_API_TOKEN=troque-este-token
+ADMIN_ALLOWED_ORIGINS=http://localhost:5173
+CONTROL_PLANE_ENCRYPTION_KEY=base64-da-chave-de-32-bytes
+CONTROL_PLANE_ENCRYPTION_KEY_VERSION=v1
 ```
 
 ---
@@ -159,13 +134,13 @@ pnpm build
 
 ---
 
-## ✨ Próximas Etapas
+## Próximas Etapas
 
-1. **Configurar `.env`** com canais/URLs do YouTube
-2. **Teste local** com `pnpm generate`
-3. **Monitor** os shorts em `output/`
-4. **Deploy** quando estiver satisfeito
+1. Configurar `.env` com Postgres, token admin e chave de criptografia.
+2. Rodar `pnpm bootstrap:control-plane` para criar o canal inicial.
+3. Abrir a UI admin e cadastrar as credenciais reais do canal de publicação.
+4. Disparar um run por canal e verificar os registros persistidos em `pipeline_runs`.
 
 ---
 
-**Tudo pronto! A app está 100% configurada e operacional.** 🎉
+Tudo pronto para operar o control plane localmente.

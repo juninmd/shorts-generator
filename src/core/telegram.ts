@@ -3,6 +3,7 @@ import { Bot, InputFile } from "grammy";
 import fs from "node:fs";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
+import { withRetry } from "./retry-backoff.js";
 
 function escapeHtml(text: string): string {
   if (!text) return "";
@@ -62,11 +63,10 @@ export async function sendFullVideoToTelegram(
     }
 
     const videoFile = new InputFile(video.filePath);
-    const msg = await bot.api.sendVideo(config.telegramChatId, videoFile, {
-      caption,
-      parse_mode: "HTML",
-      supports_streaming: true,
-    });
+    const msg = await withRetry(
+      () => bot.api.sendVideo(config.telegramChatId, videoFile, { caption, parse_mode: "HTML", supports_streaming: true }),
+      { maxAttempts: 2, baseDelayMs: 1000, logMessage: "Telegram sendVideo failed, retrying..." },
+    );
 
     logger.info(
       { videoId: video.id, messageId: msg.message_id },
@@ -140,11 +140,10 @@ export async function sendToTelegram(
     }
 
     const videoFile = new InputFile(short.outputPath);
-    const msg = await bot.api.sendVideo(config.telegramChatId, videoFile, {
-      caption: finalCaption,
-      parse_mode: "HTML",
-      supports_streaming: true,
-    });
+    const msg = await withRetry(
+      () => bot.api.sendVideo(config.telegramChatId, videoFile, { caption: finalCaption, parse_mode: "HTML", supports_streaming: true }),
+      { maxAttempts: 2, baseDelayMs: 1000, logMessage: "Telegram sendVideo failed, retrying..." },
+    );
 
     logger.info(
       { clipId: short.id, messageId: msg.message_id },

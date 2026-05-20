@@ -3,15 +3,37 @@ import { config as dotenvConfig } from "dotenv";
 import { realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { tryLoadControlPlaneConfig } from "../core/control-plane-config.js";
+import { getControlPlanePool } from "../core/control-plane-db.js";
 import { app } from "./routes.js";
+import { cleanupOldJobs } from "./job-store.js";
+import { runControlPlaneMigrations } from "../core/control-plane-migrations.js";
 import { logger } from "../core/logger.js";
 
 dotenvConfig();
 
 type ServerHandle = ReturnType<typeof serve>;
 
-export function startServer(portValue = process.env.PORT): void {
+export function startServer(portValue = process.env.PORT): Promise<void> | void {
   const port = parsePort(portValue);
+
+  const controlPlaneConfig = tryLoadControlPlaneConfig();
+  if (controlPlaneConfig) {
+    return runControlPlaneMigrations(getControlPlanePool(controlPlaneConfig)).then(() => {
+      logger.info({ allowedOrigins: controlPlaneConfig.allowedOrigins }, "Allowed admin origins configured");
+      startListening(port);
+    });
+  }
+
+  startListening(port);
+}
+
+function startListening(port: number): void {
+  const cleanupTimer = setInterval(() => {
+    const removed = cleanupOldJobs();
+    if (removed > 0) logger.debug({ removed }, "Cleaned up old in-memory jobs");
+  }, 60_000);
+  cleanupTimer.unref();
 
   logger.info({ port }, "Starting Shorts Generator API server");
 
@@ -89,10 +111,10 @@ function normalizeScriptPath(value: string): string {
 const isMain = checkIsMain();
 
 if (isMain) {
-  try {
-    startServer();
-  } catch (error) {
+  Promise.resolve()
+    .then(() => startServer())
+    .catch((error) => {
     logger.error({ error }, "Fatal server startup error");
     process.exit(1);
-  }
+    });
 }

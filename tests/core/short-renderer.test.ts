@@ -34,6 +34,12 @@ describe("short-renderer", () => {
     expect(filter).toContain("ass='C\\:/tmp/clip.ass'");
   });
 
+  it("buildSafeFramingFilter includes logo overlay when logoPath is provided", () => {
+    const filter = buildSafeFramingFilter("C:\\tmp\\clip.ass", 1080, 1920, "/logos/wm.png");
+    expect(filter).toContain("[1:v]scale=180:-1[logo]");
+    expect(filter).toContain("[base][logo]overlay=W-w-36:36[v]");
+  });
+
   describe("renderShort validation", () => {
     beforeEach(() => {
       vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {

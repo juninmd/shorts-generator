@@ -2,21 +2,33 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import {
-  getPostedTopVideos,
-  markVideoAsPosted,
   getDailyUploadCount,
   isDailyLimitReached,
-  incrementDailyUploadCount
+  incrementDailyUploadCount,
+  getDailyUploadCountAsync,
+  isDailyLimitReachedAsync,
+  incrementDailyUploadCountAsync,
+  markVideoAsPostedAsync,
+  getPostedTopVideosAsync,
 } from "../../src/core/state.js";
 import { logger } from "../../src/core/logger.js";
+import { getOptionalPool, queryRows } from "../../src/core/control-plane-db.js";
 
 vi.mock("node:fs");
 vi.mock("../../src/core/logger.js", () => ({
-  logger: { debug: vi.fn(), error: vi.fn() }
+  logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
+const mockPool = {
+  query: vi.fn().mockResolvedValue({ rows: [] }),
+};
+
+vi.mock("../../src/core/control-plane-db.js", () => ({
+  getOptionalPool: vi.fn(() => null),
+  queryRows: vi.fn().mockResolvedValue([]),
 }));
 
 describe("State management", () => {
-  const STATE_FILE_PATH = path.resolve(process.cwd(), "posted_top_videos.json");
   const DAILY_UPLOADS_PATH = path.resolve(process.cwd(), "daily_uploads.json");
   const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -29,37 +41,6 @@ describe("State management", () => {
 
     if (writeResult) vi.mocked(fs.writeFileSync).mockImplementation(() => { throw writeResult; });
   };
-
-  describe("getPostedTopVideos", () => {
-    it.each([
-      ["file exists", true, '["vid1", "vid2"]', ["vid1", "vid2"]],
-      ["file does not exist", false, undefined, []],
-    ])("should return parsed array if %s", (_, exists, readRes, expected) => {
-      setupFsMocks(exists as boolean, readRes as string);
-      expect(getPostedTopVideos()).toEqual(expected);
-    });
-
-    it("should return empty array and log error on read failure", () => {
-      setupFsMocks(true, new Error("Read error"));
-      expect(getPostedTopVideos()).toEqual([]);
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(Error) }), "Failed to read posted top videos state");
-    });
-  });
-
-  describe("markVideoAsPosted", () => {
-    it("should append videoId and save to state file", () => {
-      setupFsMocks(true, '["vid1"]');
-      markVideoAsPosted("vid2");
-      expect(fs.writeFileSync).toHaveBeenCalledWith(STATE_FILE_PATH, JSON.stringify(["vid1", "vid2"], null, 2));
-      expect(logger.debug).toHaveBeenCalledWith({ videoId: "vid2" }, "Marked video as posted in state file");
-    });
-
-    it("should log error on write failure", () => {
-      setupFsMocks(true, '["vid1"]', new Error("Write error"));
-      markVideoAsPosted("vid2");
-      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(Error) }), "Failed to save posted top videos state");
-    });
-  });
 
   describe("Daily upload tracking", () => {
     describe("getDailyUploadCount & isDailyLimitReached", () => {
@@ -98,6 +79,66 @@ describe("State management", () => {
         incrementDailyUploadCount();
         expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(Error) }), "Failed to update daily upload count");
       });
+    });
+  });
+
+  describe("Async state functions (DB path)", () => {
+
+    beforeEach(() => {
+      vi.mocked(getOptionalPool).mockReturnValue(mockPool);
+      vi.mocked(queryRows).mockResolvedValue([]);
+      mockPool.query.mockResolvedValue({ rows: [] });
+    });
+
+    afterEach(() => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+    });
+
+    it("getDailyUploadCountAsync returns 0 when no rows", async () => {
+      vi.mocked(queryRows).mockResolvedValue([]);
+      expect(await getDailyUploadCountAsync("global")).toBe(0);
+    });
+
+    it("getDailyUploadCountAsync returns count from DB row", async () => {
+      vi.mocked(queryRows).mockResolvedValue([{ publish_count: 5 }] as any);
+      expect(await getDailyUploadCountAsync("global")).toBe(5);
+    });
+
+    it("isDailyLimitReachedAsync returns true when at limit", async () => {
+      vi.mocked(queryRows).mockResolvedValue([{ publish_count: 10 }] as any);
+      expect(await isDailyLimitReachedAsync(10)).toBe(true);
+    });
+
+    it("isDailyLimitReachedAsync returns false when under limit", async () => {
+      vi.mocked(queryRows).mockResolvedValue([{ publish_count: 3 }] as any);
+      expect(await isDailyLimitReachedAsync(10)).toBe(false);
+    });
+
+    it("incrementDailyUploadCountAsync calls db.query", async () => {
+      await incrementDailyUploadCountAsync("canal-1");
+      expect(mockPool.query).toHaveBeenCalled();
+    });
+
+    it("markVideoAsPostedAsync calls db.query", async () => {
+      await markVideoAsPostedAsync("video-abc");
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining("INSERT"), ["video-abc"]);
+    });
+
+    it("getPostedTopVideosAsync returns video ids from DB", async () => {
+      vi.mocked(queryRows).mockResolvedValue([{ video_id: "vid-1" }, { video_id: "vid-2" }] as any);
+      const result = await getPostedTopVideosAsync();
+      expect(result).toEqual(["vid-1", "vid-2"]);
+    });
+  });
+
+  describe("Async state functions (no-DB fallback)", () => {
+    it("getDailyUploadCountAsync returns count from file when no DB", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      // setupFsMocks to return a count from file
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      const today = new Date().toISOString().slice(0, 10);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ date: today, count: 7 }));
+      expect(await getDailyUploadCountAsync()).toBe(7);
     });
   });
 });

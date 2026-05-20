@@ -1,7 +1,14 @@
-# 🚀 Quick Start Guide
+# Quick Start Guide
 
-## ✅ Instalação Completa
-Todas as dependências foram instaladas com sucesso!
+## Control Plane Atual
+
+O produto agora é orientado por canais gerenciados em PostgreSQL. O fluxo recomendado é:
+
+1. Subir a API em `localhost:3001`
+2. Subir a UI web em `localhost:5173`
+3. Criar ou bootstrapar um canal
+4. Salvar o refresh token criptografado pela UI admin
+5. Disparar runs por canal
 
 ### Dependências Instaladas:
 - ✅ Node.js (v20+)
@@ -50,7 +57,7 @@ pnpm generate --days 7
 
 ### Servidor Web
 ```bash
-# Iniciar servidor (localhost:3000)
+# Iniciar servidor (localhost:3001)
 pnpm start
 
 # Modo desenvolvimento com hot-reload
@@ -74,6 +81,9 @@ pnpm web:preview
 # Rodar testes
 pnpm test
 
+# Rodar testes web
+pnpm --dir web run test
+
 # Type-check
 pnpm typecheck
 
@@ -86,27 +96,21 @@ pnpm build
 ## ⚙️ Configuração
 
 ### Arquivo `.env`
-Crie um arquivo `.env` baseado em `.env.example`:
+Crie um arquivo `.env` com as variáveis do control plane:
 
 ```env
-# YouTube
-YOUTUBE_CHANNELS=UCxxxxxx,UCyyyyyy
-VIDEO_URLS=https://youtube.com/watch?v=abc123
+PORT=3001
+DATABASE_URL=postgres://user:password@localhost:5432/shorts_generator
+ADMIN_API_TOKEN=troque-este-token
+ADMIN_ALLOWED_ORIGINS=http://localhost:5173
+CONTROL_PLANE_ENCRYPTION_KEY=base64-da-chave-de-32-bytes
+CONTROL_PLANE_ENCRYPTION_KEY_VERSION=v1
+```
 
-# Processing
-DAYS_BACK=1
-MAX_SHORT_DURATION=59
-MIN_SHORT_DURATION=15
+Para criar um canal inicial sem token em texto puro:
 
-# Directories
-OUTPUT_DIR=./output
-
-# LLM (Optional - Ollama local)
-OLLAMA_API_URL=http://localhost:11434
-
-# Telegram (Optional)
-TELEGRAM_BOT_TOKEN=your_token_here
-TELEGRAM_CHAT_ID=your_chat_id
+```bash
+pnpm bootstrap:control-plane
 ```
 
 ---
@@ -179,4 +183,4 @@ mkdir -p output/temp
 
 ---
 
-**✨ Pronto para criar shorts! Execute `pnpm generate` para começar.**
+**Pronto para operar o control plane. Abra a UI web e gerencie os canais por lá.**
