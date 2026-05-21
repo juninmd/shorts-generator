@@ -77,6 +77,7 @@ export interface AdminPublishingAccount {
   status: "active" | "inactive";
   accountIdentifier: string;
   clientId?: string;
+  clientSecret?: string;
   hasClientCredentials?: boolean;
   refreshToken?: string;
   hasStoredToken?: boolean;
@@ -91,6 +92,7 @@ export interface AdminChannelBundle {
     status: "active" | "inactive";
     logoPath: string | null;
     watermarkText: string;
+    channelType: "cuts" | "quiz";
     createdAt: string;
     updatedAt: string;
   };

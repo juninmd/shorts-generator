@@ -162,9 +162,14 @@ export interface PipelineProgress {
   | "subtitling"
   | "uploading"
   | "done"
-  | "error";
-  videoId: string;
-  videoTitle: string;
+  | "error"
+  | "generating_quiz"
+  | "generating_tts"
+  | "rendering"
+  | "publishing_telegram"
+  | "publishing_youtube";
+  videoId?: string;
+  videoTitle?: string;
   currentShort?: number;
   totalShorts?: number;
   message: string;

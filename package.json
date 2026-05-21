@@ -13,6 +13,7 @@
     "cli": "tsx src/cli.ts",
     "generate": "tsx src/cli.ts generate",
     "generate:top": "tsx src/cli.ts generate:top",
+    "generate:quiz": "tsx src/cli.ts generate:quiz",
     "generate:url": "tsx src/cli.ts generate --url",
     "test": "vitest run",
     "test:watch": "vitest",

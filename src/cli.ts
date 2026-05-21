@@ -9,6 +9,7 @@ import { loadConfig } from "./core/config.js";
 import { loadControlPlaneConfig } from "./core/control-plane-config.js";
 import { getControlPlanePool } from "./core/control-plane-db.js";
 import { runPipeline, runTopVideoPipeline } from "./core/pipeline.js";
+import { runQuizPipeline } from "./core/quiz/quiz-pipeline.js";
 import { ManagedRunRepository } from "./core/managed-run-repository.js";
 import { logger } from "./core/logger.js";
 import { createSecretStore } from "./core/secret-store.js";
@@ -168,6 +169,39 @@ async function main() {
       break;
     }
 
+    case "generate:quiz": {
+      const overrides: Record<string, any> = {};
+      const config = loadConfig(overrides);
+
+      const progressLogger = (progress: any) => {
+        logger.info(
+          {
+            stage: progress.stage,
+            progress: `${Math.round(progress.progress)}%`,
+            message: progress.message,
+          },
+          "Quiz Pipeline status",
+        );
+      };
+
+      try {
+        const result = await runQuizPipeline(config, progressLogger);
+        logger.info(
+          {
+            success: result.success,
+            outputPath: result.outputPath,
+            telegramSent: result.telegramSent,
+            youtubeUrl: result.youtubeUrl,
+          },
+          "✅ Pipeline de Quiz finalizada com sucesso!",
+        );
+      } catch (err: any) {
+        logger.error({ error: err.message }, "❌ Falha ao rodar pipeline de quiz");
+        process.exit(1);
+      }
+      break;
+    }
+
     case "interactive":
     case undefined: {
       await runInteractive();
@@ -192,6 +226,7 @@ Commands:
   interactive   Interactive menu — choose channel/URL, order, and clip count (default when no command given)
   generate      Generate shorts from YouTube videos (latest)
   generate:top  Generate shorts from a top video (random from top 20 non-music)
+  generate:quiz Generate a new educational quiz short
   server        Start the API server
 
 Options (generate):
