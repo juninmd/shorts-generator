@@ -16,10 +16,11 @@ export async function saveChannel(adminToken: string, channelId: string, payload
       status: payload.channel.status,
       logoPath: payload.channel.logoPath,
       watermarkText: payload.channel.watermarkText,
+      channelType: payload.channel.channelType,
       profile: payload.profile,
       focuses: payload.focuses,
       sources: payload.sources,
-      publishingAccount: payload.publishingAccount,
+      publishingAccounts: payload.publishingAccounts,
     }),
   });
 }
