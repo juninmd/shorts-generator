@@ -9,6 +9,5 @@ jobs:
     uses: juninmd/base-actions/.github/workflows/reusable-docker-build.yml@main
     with:
       image-name: ${{ github.repository }}
-      image-tags: latest,22
     secrets:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
