@@ -22,13 +22,14 @@ export const buildOutputFileName = (quiz: Quiz): string => `quiz_${quiz.tema.rep
 
 export const runQuizPipeline = async (
   config: PipelineConfig,
-  onProgress?: (progress: { stage: string; progress: number; message: string }) => void
+  onProgress?: (progress: { stage: string; progress: number; message: string }) => void,
+  quizTopic?: string
 ): Promise<any> => {
-  logger.info("🚀 Iniciando Pipeline de Quiz Shorts");
+  logger.info({ quizTopic }, "🚀 Iniciando Pipeline de Quiz Shorts");
 
   // Step 1: Content Generation
   onProgress?.({ stage: "generating_quiz", progress: 10, message: "Gerando perguntas do quiz usando IA..." });
-  const quiz = await generateQuiz(config);
+  const quiz = await generateQuiz(config, quizTopic);
   logger.info({ quiz }, "Quiz gerado com sucesso");
 
   const jobId = `quiz-${Date.now()}`;

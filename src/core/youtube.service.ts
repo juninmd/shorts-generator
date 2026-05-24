@@ -86,9 +86,30 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
 
 
 function getYouTubeAuth(config: PipelineConfig): YouTubeAuthConfig | null {
-  const clientId = config.youtubeAuth?.clientId ?? process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = config.youtubeAuth?.clientSecret ?? process.env.YOUTUBE_CLIENT_SECRET;
-  const refreshToken = config.youtubeAuth?.refreshToken ?? process.env.YOUTUBE_REFRESH_TOKEN;
+  const authFromConfig = config.managedRun?.publishingAccounts?.find(a => a.provider === "youtube");
+
+  const clientId = authFromConfig?.clientId ?? config.youtubeAuth?.clientId ?? process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = authFromConfig?.clientSecret ?? config.youtubeAuth?.clientSecret ?? process.env.YOUTUBE_CLIENT_SECRET;
+  
+  // If we have a publishing account from DB, we need to decrypt its token
+  let refreshToken = config.youtubeAuth?.refreshToken ?? process.env.YOUTUBE_REFRESH_TOKEN;
+  
+  if (authFromConfig && authFromConfig.tokenCiphertext) {
+    try {
+      const { createSecretStore } = require("./secret-store.js");
+      const { loadControlPlaneConfig } = require("./control-plane-config.js");
+      const cpConfig = loadControlPlaneConfig();
+      const store = createSecretStore(cpConfig);
+      refreshToken = store.decryptToken(authFromConfig.channelId, authFromConfig.id, {
+        keyVersion: authFromConfig.tokenKeyVersion,
+        iv: authFromConfig.tokenIv,
+        authTag: authFromConfig.tokenAuthTag,
+        ciphertext: authFromConfig.tokenCiphertext
+      });
+    } catch (error) {
+      logger.error({ error }, "Failed to decrypt YouTube refresh token from database");
+    }
+  }
 
   if (!clientId || !clientSecret || !refreshToken) {
     return null;
@@ -147,6 +168,41 @@ async function performUpload(
     return null;
   }
 }
+
+export const addCommentToVideo = async (
+  videoId: string,
+  commentText: string,
+  config: PipelineConfig
+): Promise<void> => {
+  const auth = getYouTubeAuth(config);
+  if (!auth) return;
+
+  const oauth2Client = new google.auth.OAuth2(auth.clientId, auth.clientSecret);
+  oauth2Client.setCredentials({ refresh_token: auth.refreshToken });
+  const youtube = google.youtube({ version: "v3", auth: oauth2Client });
+
+  try {
+    await withRetry(
+      () => youtube.commentThreads.insert({
+        part: ["snippet"],
+        requestBody: {
+          snippet: {
+            videoId,
+            topLevelComment: {
+              snippet: {
+                textOriginal: commentText
+              }
+            }
+          }
+        }
+      }),
+      { maxAttempts: 3, baseDelayMs: 2000, logMessage: "Failed to post YouTube comment, retrying..." }
+    );
+    logger.info({ videoId }, "💬 Comentário com link original adicionado ao vídeo");
+  } catch (error: any) {
+    logger.error({ error: error?.message, videoId }, "❌ Falha ao adicionar comentário no YouTube");
+  }
+};
 
 export const uploadToYouTube = async (
   videoPath: string,
