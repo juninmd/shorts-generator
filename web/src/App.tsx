@@ -262,8 +262,43 @@ function Toast({ msg, type }: { msg: string; type: "ok" | "err" }) {
 }
 
 // ─── Wizard steps ─────────────────────────────────────────────────────────────
-const WIZARD_LABELS = ["Identidade", "Pipeline", "Publicação"];
+const IS_CUTS_ONLY_MODE = import.meta.env.VITE_CHANNEL_FLOW_MODE === "cuts";
+const WIZARD_LABELS = IS_CUTS_ONLY_MODE ? ["Identidade", "Pipeline", "Publicação"] : ["Tipo de fluxo", "Identidade", "Pipeline", "Publicação"];
 const EDITOR_TABS = ["identity", "pipeline", "publishing"] as const;
+const STEP_OFFSET = IS_CUTS_ONLY_MODE ? 0 : 1;
+
+function Step0FlowType({ draft, setDraft }: { draft: AdminChannelBundle; setDraft: (d: AdminChannelBundle) => void }) {
+  const isQuiz = draft.channel.channelType === "quiz";
+  return (
+    <div>
+      <p className="section-title">Qual tipo de conteúdo este canal vai gerar?</p>
+      <p className="section-sub">No cluster de produção use Cortes; Quiz segue disponível fora do modo cluster.</p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+        <button className={`flow-card ${!isQuiz ? "active-cuts" : ""}`} onClick={() => setDraft(ch(draft, { channelType: "cuts" }))}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(99,102,241,.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#a5b4fc" }}><Ico.Scissors /></div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: ".9rem", color: "#e2e8f0" }}>Cortes</div>
+              {!isQuiz && <div style={{ fontSize: ".68rem", color: "#6366f1", fontWeight: 700 }}>✓ Selecionado</div>}
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: ".75rem", color: "#64748b", lineHeight: 1.6 }}>Baixa vídeos de canais do YouTube, a IA identifica os melhores momentos e gera shorts automaticamente.</p>
+        </button>
+        <button className={`flow-card ${isQuiz ? "active-quiz" : ""}`} onClick={() => setDraft(ch(draft, { channelType: "quiz" }))}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(245,158,11,.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fcd34d" }}><Ico.Sparkles /></div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: ".9rem", color: "#e2e8f0" }}>Quiz</div>
+              {isQuiz && <div style={{ fontSize: ".68rem", color: "#f59e0b", fontWeight: 700 }}>✓ Selecionado</div>}
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: ".75rem", color: "#64748b", lineHeight: 1.6 }}>A IA gera perguntas e respostas sobre temas definidos, monta o vídeo com TTS e animações.</p>
+        </button>
+      </div>
+      <HowToGuide flowType={draft.channel.channelType} />
+    </div>
+  );
+}
 
 function Step1Identity({ draft, setDraft }: { draft: AdminChannelBundle; setDraft: (d: AdminChannelBundle) => void }) {
   const isQuiz = draft.channel.channelType === "quiz";
@@ -460,6 +495,7 @@ export default function App() {
 
   const hasToken = !!adminToken;
   const hasChannel = channels.length > 0;
+  const editorStep = isNew ? wizardStep : wizardStep + STEP_OFFSET;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#050914" }}>
@@ -563,20 +599,21 @@ export default function App() {
           <div>
             {error && <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", color: "#fca5a5", fontSize: ".8125rem" }}>⚠ {error}</div>}
 
-            {isNew && <WizardBar step={wizardStep} total={4} labels={WIZARD_LABELS} />}
+            {isNew && <WizardBar step={wizardStep} total={WIZARD_LABELS.length} labels={WIZARD_LABELS} />}
 
             {!isNew && (
               <div style={{ display: "flex", gap: 4, marginBottom: 24, background: "rgba(255,255,255,.04)", borderRadius: 10, padding: 4, width: "fit-content" }}>
                 {EDITOR_TABS.map((k, index) => (
                   <button key={k} className={`tab ${wizardStep === index ? "active" : ""}`}
-                    onClick={() => setWizardStep(index)}>{WIZARD_LABELS[index]}</button>
+                    onClick={() => setWizardStep(index)}>{WIZARD_LABELS[index + STEP_OFFSET]}</button>
                 ))}
               </div>
             )}
 
-            {wizardStep === 0 && <Step1Identity draft={draft} setDraft={setDraft} />}
-            {wizardStep === 1 && <Step2Pipeline draft={draft} setDraft={setDraft} />}
-            {wizardStep === 2 && <Step3Publishing draft={draft} setDraft={setDraft} />}
+            {!IS_CUTS_ONLY_MODE && isNew && editorStep === 0 && <Step0FlowType draft={draft} setDraft={setDraft} />}
+            {editorStep === STEP_OFFSET && <Step1Identity draft={draft} setDraft={setDraft} />}
+            {editorStep === STEP_OFFSET + 1 && <Step2Pipeline draft={draft} setDraft={setDraft} />}
+            {editorStep === STEP_OFFSET + 2 && <Step3Publishing draft={draft} setDraft={setDraft} />}
           </div>
 
           {/* ── Right panel ── */}
@@ -585,7 +622,7 @@ export default function App() {
             {(!hasToken || !hasChannel) && <SetupChecklist hasToken={hasToken} hasChannel={hasChannel} />}
 
             {/* How-to for the current channel type */}
-            <HowToGuide flowType={draft.channel.channelType} />
+            {(!isNew || IS_CUTS_ONLY_MODE || wizardStep > 0) && <HowToGuide flowType={draft.channel.channelType} />}
 
             {/* Runs */}
             <div className="glass" style={{ padding: 20 }}>

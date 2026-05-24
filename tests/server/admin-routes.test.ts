@@ -109,6 +109,7 @@ describe("admin routes", () => {
       DATABASE_URL: "postgres://local:test@localhost:5432/shorts",
       CONTROL_PLANE_ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
     };
+    delete process.env.CHANNEL_FLOW_MODE;
   });
 
   afterEach(() => {
@@ -185,6 +186,20 @@ describe("admin routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("PUT /channels/:channelId rejects quiz channels in cuts-only mode", async () => {
+    process.env.CHANNEL_FLOW_MODE = "cuts";
+    const payload = {
+      slug: "canal-1", name: "Canal 1 Quiz", description: "desc", status: "active",
+      watermarkText: "Canal", logoPath: null, channelType: "quiz",
+      profile: { videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, aiProvider: "ollama", aiModel: "gemma3:1b", sortByViews: false },
+      focuses: [{ key: "catolicos", label: "CatÃ³licos" }],
+      sources: [],
+      publishingAccounts: [],
+    };
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", payload);
+    expect(res.status).toBe(409);
+  });
+
   it("DELETE /channels/:channelId deletes channel", async () => {
     const res = await makeAuthedRequest("/api/admin/channels/canal-1", "DELETE");
     expect(res.status).toBe(200);
@@ -229,5 +244,12 @@ describe("admin routes", () => {
     const body = await res.json() as any;
     expect(body.status).toBe("processing");
     expect(typeof body.runId).toBe("string");
+  });
+
+  it("POST /channels/:channelId/runs rejects quiz runs in cuts-only mode", async () => {
+    process.env.CHANNEL_FLOW_MODE = "cuts";
+    repositoryState.bundle.channel.channelType = "quiz" as any;
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
+    expect(res.status).toBe(409);
   });
 });
