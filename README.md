@@ -4,6 +4,7 @@ Painel de controle para geração e publicação de shorts por canal, com persis
 
 ## Fluxo Atual
 
+- Cluster operacional: foco em canais `cuts`; `quiz` permanece legado/CLI, fora do caminho principal do painel.
 - Backend API: `pnpm start` sobe o Hono em `http://localhost:3001`.
 - Admin web: `pnpm web:dev` sobe a interface Vite para gerenciar canais, focos, fontes e disparar runs.
 - Banco: o control plane roda migrations automaticamente quando `ADMIN_API_TOKEN`, `DATABASE_URL` e `CONTROL_PLANE_ENCRYPTION_KEY` estão definidos.

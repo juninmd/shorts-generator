@@ -6,7 +6,7 @@ O produto agora é orientado por canais gerenciados em PostgreSQL. O fluxo recom
 
 1. Subir a API em `localhost:3001`
 2. Subir a UI web em `localhost:5173`
-3. Criar ou bootstrapar um canal
+3. Criar ou bootstrapar um canal `cuts`
 4. Salvar o refresh token criptografado pela UI admin
 5. Disparar runs por canal
 

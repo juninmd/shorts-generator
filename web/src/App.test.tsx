@@ -27,5 +27,7 @@ describe("App", () => {
 
     expect(screen.getByText("Painel de controle")).toBeInTheDocument();
     expect(screen.getByText("Configure o token para ver os canais")).toBeInTheDocument();
+    expect(screen.getByText("Fontes de vídeos")).toBeInTheDocument();
+    expect(screen.queryByText("Quiz")).not.toBeInTheDocument();
   });
 });
