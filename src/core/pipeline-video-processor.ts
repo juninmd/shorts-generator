@@ -5,7 +5,7 @@ import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
 import { sendToTelegram, sendSummary } from "./telegram.js";
-import { generateYoutubeMetadata, uploadToYouTube } from "./youtube.service.js";
+import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo } from "./youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
 import pLimit from "p-limit";
@@ -106,6 +106,13 @@ export async function processVideo(
               logger.warn({ clipId: short.id }, "YouTube upload failed, skipping URL but continuing to Telegram");
             } else {
               await incrementDailyUploadCountAsync();
+              
+              // Post original video link in comments
+              const videoId = youtubeUrl.split("/").pop();
+              if (videoId) {
+                const commentText = `Vídeo original: ${video.url}`;
+                await addCommentToVideo(videoId, commentText, config);
+              }
             }
           }
         }
