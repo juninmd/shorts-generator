@@ -513,7 +513,7 @@ export default function App() {
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
             <Label>Token admin</Label>
-            <Tooltip tip="Bearer token definido em CONTROL_PLANE_ADMIN_TOKEN no .env do servidor."><span style={{ color: "#334155", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>
+            <Tooltip tip="Bearer token definido em ADMIN_API_TOKEN no .env do servidor."><span style={{ color: "#334155", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>
           </div>
           <div style={{ position: "relative" }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#334155" }}><Ico.Key /></span>
