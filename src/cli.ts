@@ -170,6 +170,9 @@ async function main() {
     }
 
     case "generate:quiz": {
+      const promptIndex = args.indexOf("--prompt");
+      const quizTopic = promptIndex !== -1 ? args[promptIndex + 1] : undefined;
+      
       const overrides: Record<string, any> = {};
       const config = loadConfig(overrides);
 
@@ -185,7 +188,7 @@ async function main() {
       };
 
       try {
-        const result = await runQuizPipeline(config, progressLogger);
+        const result = await runQuizPipeline(config, progressLogger, quizTopic);
         logger.info(
           {
             success: result.success,
@@ -238,10 +241,14 @@ Options (generate):
   --query          Filter videos by title (case-insensitive substring match)
   --full           For generate:top, number of full videos to post (ex: 5)
 
+Options (generate:quiz):
+  --prompt         The topic or specific question for the quiz (ex: "História do Brasil")
+
 Examples:
   pnpm generate --url "https://youtube.com/watch?v=abc,https://youtube.com/watch?v=def"
   pnpm generate --channel "@Handle1,@Handle2" --limit 1 --clips 1
   pnpm generate:top --clips 3
+  pnpm generate:quiz --prompt "Curiosidades sobre o Espaço"
 
 Environment Variables:
   See .env.example for all configuration options.
