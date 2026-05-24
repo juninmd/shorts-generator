@@ -101,6 +101,9 @@ export function registerAdminRoutes(app: Hono): void {
     const now = new Date().toISOString();
     const existing = await repository.getBundle(channelId);
     const payload = parsed.data;
+    if (isCutsOnlyMode() && payload.channelType !== "cuts") {
+      return c.json({ error: "Quiz channels are disabled while CHANNEL_FLOW_MODE=cuts" }, 409);
+    }
     const publishingAccounts = payload.publishingAccounts.map((accountPayload: z.infer<typeof publishingAccountSchema>) =>
       buildPublishingAccount(channelId, accountPayload, existing, secretStore, now),
     );
@@ -166,6 +169,9 @@ export function registerAdminRoutes(app: Hono): void {
     const channelId = channelIdSchema.parse(c.req.param("channelId"));
     const runId = randomUUID();
     const resolved = await resolver.resolveRunConfig(runId, channelId);
+    if (isCutsOnlyMode() && resolved.channel.channelType !== "cuts") {
+      return c.json({ error: "Quiz runs are disabled while CHANNEL_FLOW_MODE=cuts" }, 409);
+    }
     await runRepository.createRun(runId, channelId, adminId, {
       channel: resolved.channel,
       profile: resolved.profile,
@@ -306,4 +312,8 @@ function buildPublishingAccount(
     createdAt: existingAccount?.createdAt ?? now,
     updatedAt: now,
   };
+}
+
+function isCutsOnlyMode(): boolean {
+  return process.env.CHANNEL_FLOW_MODE === "cuts";
 }
