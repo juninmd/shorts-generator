@@ -15,6 +15,7 @@ import { logger } from "./core/logger.js";
 import { createSecretStore } from "./core/secret-store.js";
 import { startServer } from "./server/index.js";
 import { runInteractive } from "./cli-interactive.js";
+import { runControlPlaneMigrations } from "./core/control-plane-migrations.js";
 
 // Filter out '--' separator that pnpm/npm passes through
 const args = process.argv.slice(2).filter((a) => a !== "--");
@@ -265,6 +266,8 @@ async function runManagedChannel(channelId: string, baseConfig = loadConfig()): 
   const runRepository = new ManagedRunRepository(db);
   const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
   const runId = randomUUID();
+
+  await runControlPlaneMigrations(db);
   const resolved = await resolver.resolveRunConfig(runId, channelId);
   const config = buildManagedPipelineConfig(baseConfig, runId, resolved);
 
