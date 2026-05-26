@@ -173,7 +173,14 @@ async function main() {
     case "generate:quiz": {
       const promptIndex = args.indexOf("--prompt");
       const quizTopic = promptIndex !== -1 ? args[promptIndex + 1] : undefined;
-      
+      const managedChannelIndex = args.indexOf("--managed-channel");
+
+      const managedChannelId = managedChannelIndex !== -1 ? args[managedChannelIndex + 1]?.trim() : undefined;
+      if (managedChannelId) {
+        await runQuizManagedChannel(managedChannelId, quizTopic);
+        break;
+      }
+
       const overrides: Record<string, any> = {};
       const config = loadConfig(overrides);
 
@@ -289,6 +296,43 @@ async function runManagedChannel(channelId: string, baseConfig = loadConfig()): 
       logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Pipeline status");
     });
     await runRepository.completeRun(runId, results);
+  } catch (error) {
+    await runRepository.failRun(runId, error);
+    throw error;
+  }
+}
+
+async function runQuizManagedChannel(channelId: string, quizTopic?: string, baseConfig = loadConfig()): Promise<void> {
+  const controlPlaneConfig = loadControlPlaneConfig();
+  const db = getControlPlanePool(controlPlaneConfig);
+  const repository = new ChannelBundleRepository(db);
+  const runRepository = new ManagedRunRepository(db);
+  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
+  const runId = randomUUID();
+
+  await runControlPlaneMigrations(db);
+  const resolved = await resolver.resolveRunConfig(runId, channelId);
+  const config = buildManagedPipelineConfig(baseConfig, runId, resolved);
+
+  await runRepository.createRun(runId, channelId, "cli", {
+    channel: resolved.channel,
+    profile: resolved.profile,
+    focuses: resolved.focuses,
+    sources: resolved.sources,
+    youtubeAccount: {
+      provider: resolved.publishingAccount.provider,
+      accountId: resolved.publishingAccount.accountId,
+      accountIdentifier: resolved.publishingAccount.accountIdentifier,
+    },
+  });
+
+  try {
+    const result = await runQuizPipeline(config, (progress) => {
+      void runRepository.updateProgress(runId, progress);
+      logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Quiz Pipeline status");
+    }, quizTopic);
+    await runRepository.completeRun(runId, []);
+    logger.info({ runId, channelId, success: result.success, youtubeUrl: result.youtubeUrl }, "✅ Quiz pipeline completed");
   } catch (error) {
     await runRepository.failRun(runId, error);
     throw error;
