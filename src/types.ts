@@ -81,6 +81,7 @@ export interface ManagedRunContext {
   channelId: string;
   channelName: string;
   accountId?: string;
+  publishingAccounts?: any[]; // For legacy compatibility in youtube.service.ts
   focusLabels: string[];
   logoPath?: string | null;
 }
@@ -153,8 +154,7 @@ export interface PipelineResult {
   processingTimeMs: number;
 }
 
-export interface PipelineProgress {
-  stage:
+export type PipelineStage =
   | "downloading"
   | "transcribing"
   | "analyzing"
@@ -168,6 +168,9 @@ export interface PipelineProgress {
   | "rendering"
   | "publishing_telegram"
   | "publishing_youtube";
+
+export interface PipelineProgress {
+  stage: PipelineStage;
   videoId?: string;
   videoTitle?: string;
   currentShort?: number;

@@ -27,7 +27,7 @@ interface RunRow {
 }
 
 export class ManagedRunRepository {
-  constructor(private readonly db: Pool) {}
+  constructor(private readonly db: any) {}
 
   async createRun(runId: string, channelId: string, requestedBy: string, snapshot: unknown): Promise<void> {
     await this.db.query(

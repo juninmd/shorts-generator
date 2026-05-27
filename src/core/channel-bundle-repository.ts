@@ -52,7 +52,7 @@ type AccountRow = {
 };
 
 export class ChannelBundleRepository {
-  constructor(private readonly db: Pool) {}
+  constructor(private readonly db: any) {}
 
   async listBundles(): Promise<readonly ManagedChannelBundle[]> {
     const channels = await queryRows<ChannelRow>(this.db, "SELECT * FROM managed_channels ORDER BY name ASC");
