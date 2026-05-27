@@ -65,7 +65,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     fullVideoCount: Number(optionalEnv("FULL_VIDEO_COUNT", "0")) || undefined,
     outputDir,
     tempDir,
-    aiProvider: optionalEnv("AI_PROVIDER", "ollama") as "openrouter" | "ollama",
+    aiProvider: optionalEnv("AI_PROVIDER", "ollama") as "openrouter" | "ollama" | "openai",
     aiModel: optionalEnv("AI_MODEL", optionalEnv("OLLAMA_MODEL", "gemma3:1b")),
     aiTimeoutMs: parseInt(optionalEnv("AI_TIMEOUT_MS", optionalEnv("OLLAMA_TIMEOUT_MS", "600000")), 10),
     openrouterApiKey: optionalEnv("OPENROUTER_API_KEY", ""),
