@@ -40,6 +40,16 @@ vi.mock("../../src/core/control-plane-db.js", () => ({
   getControlPlanePool: vi.fn(() => ({ query: vi.fn() })),
 }));
 
+vi.mock("../../src/core/control-plane-config.js", () => ({
+  tryLoadControlPlaneConfig: () => ({
+    adminToken: "secret-token",
+    allowedOrigins: ["http://localhost:5173"],
+    databaseUrl: "postgres://local:test@localhost:5432/shorts",
+    encryptionKey: Buffer.alloc(32),
+    encryptionKeyVersion: "v1",
+  }),
+}));
+
 vi.mock("../../src/core/channel-bundle-repository.js", () => ({
   ChannelBundleRepository: class {
     async listBundles() { return [repositoryState.bundle]; }
