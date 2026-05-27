@@ -63,7 +63,8 @@ All config is environment-driven via `src/core/config.ts`. Copy `.env.example` t
 | `YOUTUBE_CHANNELS` | — | Comma-separated channel IDs/handles |
 | `VIDEO_URLS` | — | Direct video URLs to process |
 | `OLLAMA_MODEL` | `gemma3:1b` | LLM for transcript analysis |
-| `WHISPER_MODEL` | `tiny` | Whisper model size |
+| `WHISPER_BASE_URL` | — | Cluster faster-whisper ASR service URL |
+| `WHISPER_CHUNK_DURATION_SEC` | `120` | Sequential audio chunk size sent to faster-whisper |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | — | Telegram delivery |
 | `MAX_VIDEO_SIZE_MB` | `500` | Skip videos larger than this |
 | `VIDEO_ENCODER` | `libx264` | FFmpeg codec |

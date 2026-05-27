@@ -15,8 +15,8 @@ spec:
         env:
         - name: YOUTUBE_CHANNELS
           value: "@FreiGilsonSomdoMonteOFICIAL"
-        - name: WHISPER_MODEL
-          value: "tiny"
+        - name: WHISPER_CHUNK_DURATION_SEC
+          value: "120"
         - name: AI_PROVIDER
           value: "openrouter"
         - name: AI_MODEL
