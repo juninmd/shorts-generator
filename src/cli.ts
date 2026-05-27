@@ -16,6 +16,7 @@ import { createSecretStore } from "./core/secret-store.js";
 import { startServer } from "./server/index.js";
 import { runInteractive } from "./cli-interactive.js";
 import { runControlPlaneMigrations } from "./core/control-plane-migrations.js";
+import { PipelineProgress } from "./types.js";
 
 // Filter out '--' separator that pnpm/npm passes through
 const args = process.argv.slice(2).filter((a) => a !== "--");
@@ -292,7 +293,7 @@ async function runManagedChannel(channelId: string, baseConfig = loadConfig()): 
 
   try {
     const results = await runPipeline(config, (progress) => {
-      void runRepository.updateProgress(runId, progress);
+      void runRepository.updateProgress(runId, progress as PipelineProgress);
       logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Pipeline status");
     });
     await runRepository.completeRun(runId, results);
@@ -328,7 +329,7 @@ async function runQuizManagedChannel(channelId: string, quizTopic?: string, base
 
   try {
     const result = await runQuizPipeline(config, (progress) => {
-      void runRepository.updateProgress(runId, progress);
+      void runRepository.updateProgress(runId, progress as PipelineProgress);
       logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Quiz Pipeline status");
     }, quizTopic);
     await runRepository.completeRun(runId, []);
