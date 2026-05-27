@@ -49,6 +49,13 @@ describe("config", () => {
       expect(config.videoQuery).toBe("evangelho");
     });
 
+    it("should prefer MAX_VIDEO_DURATION_MINUTES when set", () => {
+      process.env.MAX_VIDEO_DURATION_HOURS = "2";
+      process.env.MAX_VIDEO_DURATION_MINUTES = "50";
+      const config = loadConfig();
+      expect(config.maxVideoDurationSec).toBe(3000);
+    });
+
     it("should set videoQuery to undefined when empty", () => {
       process.env.VIDEO_QUERY = "";
       const config = loadConfig();

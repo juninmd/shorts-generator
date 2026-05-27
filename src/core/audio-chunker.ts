@@ -6,7 +6,14 @@ import path from "node:path";
 
 const execFileAsync = promisify(execFile);
 
-export const AUDIO_CHUNK_DURATION_SEC = 5 * 60; // 5 minutes per chunk
+export const AUDIO_CHUNK_DURATION_SEC = 2 * 60;
+const MIN_AUDIO_CHUNK_DURATION_SEC = 30;
+
+export function getAudioChunkDurationSec(): number {
+  const raw = Number(process.env.WHISPER_CHUNK_DURATION_SEC ?? AUDIO_CHUNK_DURATION_SEC);
+  if (!Number.isFinite(raw) || raw < MIN_AUDIO_CHUNK_DURATION_SEC) return AUDIO_CHUNK_DURATION_SEC;
+  return Math.floor(raw);
+}
 
 interface WhisperWord { word: string; start: number; end: number; probability?: number }
 interface WhisperSegment { start: number; end: number; text: string; words?: WhisperWord[] }

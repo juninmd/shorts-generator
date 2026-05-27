@@ -111,7 +111,7 @@ function makeConfig(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
     maxVideoDurationSec: 3600,
     outputDir: "/tmp/output",
     tempDir: "/tmp/temp",
-    whisperModel: "tiny",
+    whisperBaseUrl: "http://whisper.ai.svc.cluster.local:9000",
     aiProvider: "ollama",
     aiModel: "gemma3:1b",
     aiTimeoutMs: 30000,
