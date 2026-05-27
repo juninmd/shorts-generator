@@ -16,7 +16,7 @@ function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): str
   const args: string[] = [
     "--no-check-certificates",
     "--extractor-args",
-    `youtube:player_client=${process.env.YOUTUBE_PLAYER_CLIENT || "ios,tv,android"}`,
+    `youtube:player_client=${process.env.YOUTUBE_PLAYER_CLIENT || "default"}`,
     "--js-runtimes",
     "node",
   ];
