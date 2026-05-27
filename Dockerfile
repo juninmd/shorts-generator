@@ -27,7 +27,8 @@ RUN pnpm install --frozen-lockfile
 # Copy Python dependency files and install them using uv
 COPY tests/yt-download/pyproject.toml ./tests/yt-download/
 RUN uv venv tests/yt-download/.venv && \
-    uv pip install -r tests/yt-download/pyproject.toml --python tests/yt-download/.venv
+    uv pip install -r tests/yt-download/pyproject.toml --python tests/yt-download/.venv && \ 
+    uv pip install --upgrade --pre yt-dlp yt-dlp-ejs --python tests/yt-download/.venv
 
 # Add venv bin to path
 ENV PATH="/app/tests/yt-download/.venv/bin:$PATH"
