@@ -40,7 +40,10 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
   const skipVideoSizeCheck = optionalEnv("SKIP_VIDEO_SIZE_CHECK", "false") === "true";
   const keepTempFiles = optionalEnv("KEEP_TEMP_FILES", "false") === "true";
   const dailyUploadLimit = parseInt(optionalEnv("MAX_DAILY_UPLOADS", "70"), 10);
-  const maxVideoDurationSec = parseFloat(optionalEnv("MAX_VIDEO_DURATION_HOURS", "1")) * 3600;
+  const maxVideoDurationMinutes = optionalEnv("MAX_VIDEO_DURATION_MINUTES", "");
+  const maxVideoDurationSec = maxVideoDurationMinutes
+    ? parseFloat(maxVideoDurationMinutes) * 60
+    : parseFloat(optionalEnv("MAX_VIDEO_DURATION_HOURS", "1")) * 3600;
   const videoQuery = optionalEnv("VIDEO_QUERY", "") || undefined;
 
   const config: PipelineConfig = {
@@ -67,7 +70,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     aiTimeoutMs: parseInt(optionalEnv("AI_TIMEOUT_MS", optionalEnv("OLLAMA_TIMEOUT_MS", "600000")), 10),
     openrouterApiKey: optionalEnv("OPENROUTER_API_KEY", ""),
     ollamaBaseUrl: optionalEnv("OLLAMA_BASE_URL", "http://localhost:11434"),
-    whisperModel: optionalEnv("WHISPER_MODEL", "tiny"),
+    openaiBaseUrl: optionalEnv("OPENAI_BASE_URL", ""),
     whisperBaseUrl: optionalEnv("WHISPER_BASE_URL", ""),
     telegramBotToken: optionalEnv("TELEGRAM_BOT_TOKEN", ""),
     telegramChatId: optionalEnv("TELEGRAM_CHAT_ID", ""),

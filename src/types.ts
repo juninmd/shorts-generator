@@ -103,7 +103,7 @@ export interface PipelineConfig {
   outputDir: string;
   tempDir: string;
   /** AI provider: "openrouter" or "ollama" */
-  aiProvider: "openrouter" | "ollama";
+  aiProvider: "openrouter" | "ollama" | "openai";
   /** Model identifier (e.g. "google/gemma-3-4b-it:free" or "gemma3:1b") */
   aiModel: string;
   /** Timeout in milliseconds for AI HTTP requests (default: 300_000 = 5 min) */
@@ -112,7 +112,7 @@ export interface PipelineConfig {
   openrouterApiKey: string;
   /** Ollama base URL (only used when aiProvider is "ollama") */
   ollamaBaseUrl: string;
-  whisperModel: string;
+  openaiBaseUrl?: string;
   whisperBaseUrl?: string;
   telegramBotToken: string;
   telegramChatId: string;

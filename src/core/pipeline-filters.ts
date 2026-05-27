@@ -46,9 +46,8 @@ export async function isVideoWithinLimits(
     return false;
   }
 
-  const MAX_DURATION_SECONDS = 3 * 3600;
-  if (video.duration > 0 && video.duration > MAX_DURATION_SECONDS) {
-    logger.warn({ videoId: video.id }, "Skipping video: too long (>3h)");
+  if (video.duration > 0 && video.duration > config.maxVideoDurationSec) {
+    logger.warn({ videoId: video.id, maxVideoDurationSec: config.maxVideoDurationSec }, "Skipping video: too long");
     return false;
   }
 
