@@ -2,7 +2,7 @@
   "name": "shorts-generator",
   "version": "1.0.136",
   "private": true,
-  "description": "Automated YouTube Shorts generator — downloads videos, transcribes with Whisper, identifies viral moments via LLM, generates vertical shorts with captions, and sends to Telegram.",
+  "description": "Automated YouTube Shorts generator \u2014 downloads videos, transcribes with Whisper, identifies viral moments via LLM, generates vertical shorts with captions, and sends to Telegram.",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
@@ -46,7 +46,8 @@
     "pino": "^10.3.1",
     "pino-pretty": "^13.0.0",
     "sqlite3": "^6.0.1",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "@ai-sdk/openai": "^2.0.37"
   },
   "devDependencies": {
     "@types/fluent-ffmpeg": "^2.1.27",
