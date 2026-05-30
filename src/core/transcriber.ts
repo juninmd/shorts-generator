@@ -87,15 +87,25 @@ async function transcribeRemote(
             res.on("end", () => {
               const text = Buffer.concat(chunks).toString("utf-8");
               if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
-                reject(new Error(`Remote Whisper failed (${res.statusCode}): ${text}`));
+                const errMsg = `[WHISPER HTTP ${res.statusCode}] ${text.slice(0, 200)}`;
+                reject(new Error(errMsg));
               } else {
                 try { resolve(JSON.parse(text)); } catch { reject(new Error(`Invalid JSON from Whisper: ${text.slice(0, 200)}`)); }
               }
             });
           },
         );
-        req.on("timeout", () => { req.destroy(new Error("HeadersTimeoutError: request timed out")); });
-        req.on("error", reject);
+        req.on("timeout", () => { req.destroy(new Error("WHISPER_TIMEOUT: request exceeded " + Math.round(REMOTE_WHISPER_TIMEOUT_MS / 1000) + "s")); });
+        req.on("error", (err) => {
+          const msg = String(err?.message ?? err);
+          if (msg.includes("ECONNREFUSED")) {
+            reject(new Error(`WHISPER_UNREACHABLE: Cannot connect to ${config.whisperBaseUrl} — service not running or wrong address`));
+          } else if (msg.includes("ENOTFOUND") || msg.includes("getaddrinfo")) {
+            reject(new Error(`WHISPER_DNS_ERROR: Cannot resolve hostname in ${config.whisperBaseUrl}`));
+          } else {
+            reject(err);
+          }
+        });
         req.write(bodyBuf);
         req.end();
       });
@@ -105,13 +115,31 @@ async function transcribeRemote(
 
       return raw as WhisperOutput;
     } catch (error) {
-      if (attempt <= REMOTE_WHISPER_RETRIES && shouldRetryRemoteWhisper(error)) {
-        logger.warn({ attempt, error: errorDetails(error) }, "Remote Whisper request failed, retrying");
+      const errMsg = String(error instanceof Error ? error.message : error);
+      const isUnreachable = errMsg.includes("WHISPER_UNREACHABLE") || errMsg.includes("WHISPER_DNS_ERROR");
+      const shouldRetry = attempt <= REMOTE_WHISPER_RETRIES && (shouldRetryRemoteWhisper(error) && !isUnreachable);
+
+      if (shouldRetry) {
+        logger.warn({ attempt, error: errorDetails(error), nextRetryIn: 5_000 * attempt }, "Remote Whisper request failed, retrying");
         await sleep(5_000 * attempt);
         continue;
       }
-      logger.error({ attempt, error: errorDetails(error) }, "Remote Whisper request failed");
-      throw error;
+
+      // Final attempt failed or unreachable
+      const finalError = new Error(
+        isUnreachable
+          ? `[WHISPER UNREACHABLE] ${errMsg}\nCheck that WHISPER_BASE_URL="${config.whisperBaseUrl}" is correct and service is running.`
+          : `[WHISPER FAILED after ${attempt} attempt(s)] ${errMsg}`
+      );
+
+      logger.error({
+        attempt,
+        whisperUrl: config.whisperBaseUrl,
+        error: errorDetails(error),
+        hint: isUnreachable ? "Verify whisper service is running in cluster or locally" : undefined,
+      }, finalError.message);
+
+      throw finalError;
     }
   }
 
