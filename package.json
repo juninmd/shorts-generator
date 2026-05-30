@@ -61,12 +61,5 @@
     "typescript": "^6.0.3",
     "vitest": "^4.0.18"
   },
-  "license": "MIT",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3",
-      "sqlite3",
-      "esbuild"
-    ]
-  }
+  "license": "MIT"
 }
