@@ -13,7 +13,7 @@ services:
       WHISPER_REQUEST_TIMEOUT_MS: "600000"
 
       # ─── YouTube access ───
-      YOUTUBE_PLAYER_CLIENT: web
+      YOUTUBE_PLAYER_CLIENT: default
       YOUTUBE_CHANNELS: "@your_channel_1,@your_channel_2"
       VIDEO_LIMIT: "3"
 
