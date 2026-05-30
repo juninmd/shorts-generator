@@ -18,13 +18,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:youtube-health": "vitest run tests/core/youtube.health.ts",
     "build": "tsc --noEmit",
     "web:dev": "pnpm --dir web run dev",
     "web:build": "pnpm --dir web run build",
     "web:preview": "pnpm --dir web run preview",
     "typecheck": "tsc --noEmit",
     "smoke-test": "tsx scripts/smoke-test.ts",
-    "bootstrap:control-plane": "tsx scripts/bootstrap-control-plane.ts"
+    "bootstrap:control-plane": "tsx scripts/bootstrap-control-plane.ts",
+    "diagnose:cluster": "tsx scripts/diagnose-cluster.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.37",

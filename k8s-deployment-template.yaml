@@ -1,0 +1,338 @@
+# ─────────────────────────────────────────────────────────────────
+# Kubernetes Deployment Template for shorts-generator
+# ─────────────────────────────────────────────────────────────────
+# Instructions:
+# 1. Update YOUTUBE_COOKIES_BASE64 with your actual base64 cookies
+# 2. Update TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID
+# 3. Set YOUTUBE_CHANNELS with your target channels
+# 4. Customize resource limits as needed
+# 5. Deploy: kubectl apply -f k8s-deployment-template.yaml
+# ─────────────────────────────────────────────────────────────────
+
+---
+# ConfigMap for non-secret configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shorts-generator-config
+  namespace: default
+data:
+  # YouTube access configuration
+  YOUTUBE_PLAYER_CLIENT: "web"
+  YOUTUBE_CHANNELS: "@your_channel_1,@your_channel_2"
+  VIDEO_LIMIT: "3"
+
+  # AI Provider (ollama = local inference)
+  AI_PROVIDER: "ollama"
+  AI_MODEL: "gemma4:e4b"
+  OLLAMA_BASE_URL: "http://ollama:11434"
+  AI_TIMEOUT_MS: "600000"
+
+  # Optimization for cluster
+  SKIP_VIDEO_SIZE_CHECK: "true"
+
+  # Output configuration
+  OUTPUT_DIR: "/app/output"
+  MAX_SHORT_DURATION: "59"
+  MIN_SHORT_DURATION: "15"
+
+  # Server port
+  PORT: "3001"
+
+  # Watermark
+  WATERMARK_TEXT: "your_watermark_text"
+
+  # Max uploads per day (rate limiting)
+  MAX_DAILY_UPLOADS: "70"
+
+  # Logging
+  LOG_LEVEL: "info"
+
+---
+# Secret for sensitive credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shorts-generator-secrets
+  namespace: default
+type: Opaque
+stringData:
+  # ⚠️  IMPORTANT: Replace with your actual base64-encoded cookies
+  # Get cookies:
+  #   1. Export from browser using: https://github.com/kairi003/Get-cookies.txt-LOCALLY
+  #   2. Encode: base64 < cookies.txt | tr -d '\n'
+  # OR: kubectl create secret generic shorts-generator-secrets \
+  #     --from-literal=YOUTUBE_COOKIES_BASE64="$(base64 < cookies.txt)"
+  YOUTUBE_COOKIES_BASE64: "YOUR_BASE64_COOKIES_HERE"
+
+  # Telegram credentials
+  TELEGRAM_BOT_TOKEN: "YOUR_TELEGRAM_BOT_TOKEN"
+  TELEGRAM_CHAT_ID: "-1001234567890"
+
+  # Optional: OpenRouter API (if using cloud inference instead of ollama)
+  # OPENROUTER_API_KEY: "sk-or-v1-xxxxx"
+  # AI_PROVIDER: "openrouter"  # In ConfigMap
+  # OPENROUTER_MODEL: "google/gemini-2.0-flash-lite-001"
+
+---
+# PersistentVolumeClaim for output storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shorts-output-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard  # Adjust to your cluster's storage class
+
+---
+# PersistentVolumeClaim for temp/cache
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shorts-temp-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: standard
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shorts-generator
+  namespace: default
+  labels:
+    app: shorts-generator
+    version: "1.0"
+spec:
+  replicas: 1  # Keep at 1 to avoid concurrent video processing conflicts
+  strategy:
+    type: Recreate  # Avoid multiple pods trying to access same volumes
+  selector:
+    matchLabels:
+      app: shorts-generator
+  template:
+    metadata:
+      labels:
+        app: shorts-generator
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      containers:
+      - name: app
+        image: your-registry/shorts-generator:latest  # ⚠️  Update registry
+        imagePullPolicy: IfNotPresent
+
+        # Resource requests and limits
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: shorts-generator-config
+
+        # Environment variables from Secret
+        env:
+        - name: YOUTUBE_COOKIES_BASE64
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secrets
+              key: YOUTUBE_COOKIES_BASE64
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secrets
+              key: TELEGRAM_BOT_TOKEN
+        - name: TELEGRAM_CHAT_ID
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secrets
+              key: TELEGRAM_CHAT_ID
+
+        # Volume mounts
+        volumeMounts:
+        - name: output-storage
+          mountPath: /app/output
+        - name: temp-storage
+          mountPath: /app/temp
+
+        # Liveness probe: verify the app is responsive
+        livenessProbe:
+          exec:
+            command:
+            - npm
+            - run
+            - test:youtube-health
+          initialDelaySeconds: 120
+          periodSeconds: 600  # Check every 10 minutes
+          timeoutSeconds: 60
+          failureThreshold: 2
+
+        # Readiness probe: verify before sending traffic
+        readinessProbe:
+          exec:
+            command:
+            - npm
+            - run
+            - diagnose:cluster
+          initialDelaySeconds: 60
+          periodSeconds: 300  # Check every 5 minutes
+          timeoutSeconds: 30
+          failureThreshold: 1
+
+        # Default command: start server
+        # Override with CronJob for scheduled pipeline runs
+        command: ["npm", "start"]
+
+        # Allow container to be terminated gracefully
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 30"]
+
+      # Volume definitions
+      volumes:
+      - name: output-storage
+        persistentVolumeClaim:
+          claimName: shorts-output-pvc
+      - name: temp-storage
+        persistentVolumeClaim:
+          claimName: shorts-temp-pvc
+
+      # Pod affinity (optional: keep on same node if multiple shorts-generators)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - shorts-generator
+              topologyKey: kubernetes.io/hostname
+
+      # Restart policy
+      restartPolicy: Always
+
+      # Security context
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+
+---
+# CronJob for daily generation (adjust schedule as needed)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: shorts-generator-daily
+  namespace: default
+spec:
+  # Run at 12:00 BRT = 15:00 UTC (adjust for your timezone)
+  schedule: "0 15 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: generate
+            image: your-registry/shorts-generator:latest
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                memory: "2Gi"
+                cpu: "1"
+              limits:
+                memory: "4Gi"
+                cpu: "2"
+            envFrom:
+            - configMapRef:
+                name: shorts-generator-config
+            env:
+            - name: YOUTUBE_COOKIES_BASE64
+              valueFrom:
+                secretKeyRef:
+                  name: shorts-generator-secrets
+                  key: YOUTUBE_COOKIES_BASE64
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: shorts-generator-secrets
+                  key: TELEGRAM_BOT_TOKEN
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: shorts-generator-secrets
+                  key: TELEGRAM_CHAT_ID
+            volumeMounts:
+            - name: output-storage
+              mountPath: /app/output
+            - name: temp-storage
+              mountPath: /app/temp
+            # Run the generation pipeline
+            command: ["npm", "run", "generate"]
+          volumes:
+          - name: output-storage
+            persistentVolumeClaim:
+              claimName: shorts-output-pvc
+          - name: temp-storage
+            persistentVolumeClaim:
+              claimName: shorts-temp-pvc
+          restartPolicy: Never
+
+---
+# Service (optional: if you want to expose the web server)
+apiVersion: v1
+kind: Service
+metadata:
+  name: shorts-generator-api
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+  selector:
+    app: shorts-generator
+
+---
+# HorizontalPodAutoscaler (optional, but set minReplicas/maxReplicas to 1 to prevent conflicts)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: shorts-generator-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: shorts-generator
+  minReplicas: 1
+  maxReplicas: 1  # Keep at 1 to avoid concurrent processing
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
