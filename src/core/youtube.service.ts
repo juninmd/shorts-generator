@@ -10,6 +10,7 @@ interface YouTubeVideoInsertBody {
 import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
 import { withRetry } from "./retry-backoff.js";
+import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
 
 const withOriginalVideoLink = (description: string, originalVideoUrl?: string | null): string => {
   if (!originalVideoUrl || description.includes(originalVideoUrl)) return description;
@@ -156,6 +157,12 @@ async function performUpload(
   logMessage: string,
   isShort?: boolean
 ): Promise<string | null> {
+  const channelId = config.managedRun?.channelId || "global";
+  if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
+    logger.warn({ limit: config.dailyUploadLimit, channelId }, "⚠️ Limite diário de uploads do YouTube atingido — abortando upload");
+    return null;
+  }
+
   const oauth2Client = new google.auth.OAuth2(auth.clientId, auth.clientSecret);
   oauth2Client.setCredentials({ refresh_token: auth.refreshToken });
 
@@ -186,6 +193,10 @@ async function performUpload(
     return url;
   } catch (error: any) {
     const errorMessage = sanitize(error?.message || String(error));
+    if (errorMessage.includes("The user has exceeded the number of videos they may upload.")) {
+      logger.warn({ channelId }, "⚠️ YouTube indicou que o limite diário de uploads foi atingido. Marcando limite atingido no estado.");
+      await setDailyLimitReachedAsync(channelId);
+    }
     logger.error({ error: errorMessage }, "❌ Erro fatal no upload do YouTube após retries");
     return null;
   }
