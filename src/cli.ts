@@ -100,7 +100,7 @@ async function main() {
       const baseConfig = loadConfig(overrides);
 
       if (managedChannelId) {
-        await runManagedChannel(managedChannelId, baseConfig);
+        await runManagedChannel(managedChannelId, baseConfig, overrides);
         break;
       }
 
@@ -267,7 +267,7 @@ Environment Variables:
   }
 }
 
-async function runManagedChannel(channelId: string, baseConfig = loadConfig()): Promise<void> {
+async function runManagedChannel(channelId: string, baseConfig = loadConfig(), overrides?: Partial<PipelineConfig>): Promise<void> {
   const controlPlaneConfig = loadControlPlaneConfig();
   const db = getControlPlanePool(controlPlaneConfig);
   const repository = new ChannelBundleRepository(db);
@@ -277,7 +277,7 @@ async function runManagedChannel(channelId: string, baseConfig = loadConfig()): 
 
   await runControlPlaneMigrations(db);
   const resolved = await resolver.resolveRunConfig(runId, channelId);
-  const config = buildManagedPipelineConfig(baseConfig, runId, resolved);
+  const config = buildManagedPipelineConfig(baseConfig, runId, resolved, overrides);
 
   await runRepository.createRun(runId, channelId, "cli", {
     channel: resolved.channel,
