@@ -11,16 +11,30 @@ import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
 import { withRetry } from "./retry-backoff.js";
 
+const withOriginalVideoLink = (description: string, originalVideoUrl?: string | null): string => {
+  if (!originalVideoUrl || description.includes(originalVideoUrl)) return description;
+  return `${description}\n\nVideo original: ${originalVideoUrl}`;
+};
+
 export const generateYoutubeMetadata = async (
   short: GeneratedShort,
   config: PipelineConfig
-): Promise<{ title: string; description: string }> => {
+): Promise<{ title: string; description: string; tags: string[] }> => {
   const isEnabled = process.env.ENABLE_YOUTUBE === "true";
+  const originalDescription = withOriginalVideoLink(short.clip.description, short.originalVideoUrl);
+  const defaultTags = [
+    "shorts",
+    "curiosidades",
+    "viral",
+    ...(short.clip.hashtags || []),
+    ...(config.managedRun?.focusLabels || [])
+  ];
 
   if (!isEnabled) {
     return {
       title: short.clip.title,
-      description: short.clip.description,
+      description: originalDescription,
+      tags: defaultTags,
     };
   }
 
@@ -28,12 +42,13 @@ export const generateYoutubeMetadata = async (
   if (process.env.SKIP_AI_METADATA === "true") {
     return {
       title: short.clip.title,
-      description: short.clip.description,
+      description: originalDescription,
+      tags: defaultTags,
     };
   }
   /* v8 ignore stop */
 
-  const prompt = `Crie um título e uma descrição OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
+  const prompt = `Crie um título, uma descrição e tags/palavras-chave OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
 Título Sugerido: ${short.clip.title}
 Descrição Sugerida: ${short.clip.description}
 Contexto do Canal: ${short.channelName}
@@ -43,10 +58,14 @@ Focos do canal de destino: ${config.managedRun?.focusLabels.join(", ") || "não 
 
 O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
 A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags?.join(" ")}.
+A descricao DEVE conter o link original: ${short.originalVideoUrl}.
+Gere também o máximo possível de tags/palavras-chave de pesquisa relevantes (termos simples, sem #) para maximizar o alcance e gerar views. Retorne até 30 tags altamente otimizadas.
+
 Responda APENAS com um objeto JSON no formato:
 {
   "title": "...",
-  "description": "..."
+  "description": "...",
+  "tags": ["tag1", "tag2", "tag3"]
 }
 O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de forma alguma.`;
 
@@ -73,13 +92,15 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
     const metadata = JSON.parse(cleanContent);
     return {
       title: metadata.title || short.clip.title,
-      description: metadata.description || short.clip.description,
+      description: withOriginalVideoLink(metadata.description || short.clip.description, short.originalVideoUrl),
+      tags: Array.isArray(metadata.tags) && metadata.tags.length > 0 ? metadata.tags : defaultTags,
     };
   } catch (error) {
     logger.error({ error, clipId: short.id }, "Erro ao gerar metadados para o YouTube");
     return {
       title: short.clip.title,
-      description: short.clip.description,
+      description: originalDescription,
+      tags: defaultTags,
     };
   }
 };
@@ -132,7 +153,8 @@ async function performUpload(
   requestBody: YouTubeVideoInsertBody,
   auth: YouTubeAuthConfig,
   config: PipelineConfig,
-  logMessage: string
+  logMessage: string,
+  isShort?: boolean
 ): Promise<string | null> {
   const oauth2Client = new google.auth.OAuth2(auth.clientId, auth.clientSecret);
   oauth2Client.setCredentials({ refresh_token: auth.refreshToken });
@@ -156,7 +178,7 @@ async function performUpload(
     );
 
     const videoId = res.data?.id;
-    const url = videoId ? (requestBody.snippet.categoryId === "27" ? `https://youtube.com/shorts/${videoId}` : `https://youtube.com/watch?v=${videoId}`) : null;
+    const url = videoId ? (isShort ? `https://youtube.com/shorts/${videoId}` : `https://youtube.com/watch?v=${videoId}`) : null;
 
     if (url) {
       logger.info({ url }, "✅ Vídeo enviado com sucesso para o YouTube!");
@@ -204,11 +226,24 @@ export const addCommentToVideo = async (
   }
 };
 
+const limitTagsLength = (tags: string[], limit: number = 490): string[] => {
+  const result: string[] = [];
+  let currentLength = 0;
+  for (const tag of tags) {
+    const tagLength = tag.length + (result.length > 0 ? 1 : 0);
+    if (currentLength + tagLength > limit) break;
+    result.push(tag);
+    currentLength += tagLength;
+  }
+  return result;
+};
+
 export const uploadToYouTube = async (
   videoPath: string,
   title: string,
   description: string,
-  config: PipelineConfig
+  config: PipelineConfig,
+  tags?: string[]
 ): Promise<string | null> => {
   if (process.env.ENABLE_YOUTUBE !== "true") return null;
 
@@ -218,14 +253,21 @@ export const uploadToYouTube = async (
     return null;
   }
 
+  const uploadTags = limitTagsLength(
+    tags && tags.length > 0
+      ? tags
+      : ["quiz", "shorts", "curiosidades", "viral", ...config.managedRun?.focusLabels ?? []],
+    490
+  );
+
   return performUpload(
     videoPath,
     {
       snippet: {
         title: title.slice(0, 100),
         description,
-        tags: ["quiz", "shorts", "curiosidades", "viral", ...config.managedRun?.focusLabels ?? []],
-        categoryId: "27", // Education
+        tags: uploadTags,
+        categoryId: "22", // People & Blogs
       },
       status: {
         privacyStatus: "public",
@@ -234,7 +276,8 @@ export const uploadToYouTube = async (
     },
     auth,
     config,
-    "🚀 Fazendo upload para o YouTube Shorts..."
+    "🚀 Fazendo upload para o YouTube Shorts...",
+    true
   );
 };
 
@@ -267,6 +310,7 @@ export const uploadFullVideoToYouTube = async (
     },
     auth,
     config,
-    "🚀 Fazendo upload do vídeo COMPLETO para o YouTube..."
+    "🚀 Fazendo upload do vídeo COMPLETO para o YouTube...",
+    false
   );
 };
