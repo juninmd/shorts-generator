@@ -164,6 +164,12 @@ spec:
             secretKeyRef:
               name: shorts-generator-secrets
               key: TELEGRAM_CHAT_ID
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: shorts-generator-secrets
+              key: OPENROUTER_API_KEY
+              optional: true
 
         # Volume mounts
         volumeMounts:
@@ -283,6 +289,12 @@ spec:
                 secretKeyRef:
                   name: shorts-generator-secrets
                   key: TELEGRAM_CHAT_ID
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shorts-generator-secrets
+                  key: OPENROUTER_API_KEY
+                  optional: true
             volumeMounts:
             - name: output-storage
               mountPath: /app/output
