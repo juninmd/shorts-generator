@@ -10,12 +10,12 @@ import {
 import type { Transcript, TranscriptSegment, PipelineConfig } from "../../src/types.js";
 
 describe("analyzer-chunks", () => {
-  it("formatTime formats seconds into MM:SS", () => {
-    expect(formatTime(0)).toBe("00:00");
-    expect(formatTime(59)).toBe("00:59");
-    expect(formatTime(61)).toBe("01:01");
-    expect(formatTime(3600)).toBe("60:00");
-    expect(formatTime(65.5)).toBe("01:05");
+  it("formatTime formats seconds directly as float string", () => {
+    expect(formatTime(0)).toBe("0.00");
+    expect(formatTime(59)).toBe("59.00");
+    expect(formatTime(61)).toBe("61.00");
+    expect(formatTime(3600)).toBe("3600.00");
+    expect(formatTime(65.5)).toBe("65.50");
   });
 
   it("formatTranscriptForLLM formats segments correctly", () => {
@@ -23,7 +23,7 @@ describe("analyzer-chunks", () => {
       { start: 1, end: 5, text: "Hello" },
       { start: 6, end: 10, text: "World" },
     ] as TranscriptSegment[];
-    expect(formatTranscriptForLLM(segments)).toBe("[00:01-00:05] Hello\n[00:06-00:10] World");
+    expect(formatTranscriptForLLM(segments)).toBe("[1.00-5.00] Hello\n[6.00-10.00] World");
   });
 
   it("splitIntoChunks processes empty segments", () => {

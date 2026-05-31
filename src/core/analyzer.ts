@@ -173,6 +173,7 @@ OBRIGATÓRIO:
 - O trecho DEVE terminar com frase completa e conclusão
 - Um espectador sem contexto DEVE entender tudo
 - Duração: entre ${minDuration} e ${maxDuration} segundos
+- Cada linha da transcrição está no formato [inicio_em_segundos - fim_em_segundos] texto. Use estes segundos diretamente para startTime e endTime (ex: se o trecho começa no segmento [45.00-48.00] e termina no segmento [70.00-73.00], configure startTime=45 e endTime=73).
 - Retornar no mínimo ${minClips} e no máximo ${Math.min(20, maxClips)} cortes
 
 PROIBIDO: não selecione trechos que:
@@ -210,6 +211,7 @@ OBRIGATÓRIO:
 - O trecho DEVE terminar com uma frase completa e com sentido de conclusão
 - Um espectador sem contexto DEVE entender a mensagem principal imediatamente
 - Duração: entre ${minDuration} e ${maxDuration} segundos
+- Cada linha da transcrição está no formato [inicio_em_segundos - fim_em_segundos] texto. Use estes segundos diretamente para startTime e endTime (ex: se o trecho começa no segmento [45.00-48.00] e termina no segmento [70.00-73.00], configure startTime=45 e endTime=73).
 - Retornar no mínimo ${minClips} e no máximo ${Math.min(20, maxClips)} cortes
 
 PROIBIDO: não selecione trechos que:
