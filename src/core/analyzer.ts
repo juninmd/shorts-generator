@@ -1,4 +1,4 @@
-﻿import { generateText, generateObject } from "ai";
+import { generateText, generateObject } from "ai";
 import { nanoid } from "nanoid";
 import type { Transcript, ShortClip, TranscriptSegment, TranscriptWord, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -52,6 +52,7 @@ export async function analyzeSinglePass(
   const prompt = buildAnalysisPrompt(
     transcript, videoTitle, channelName, minCuts, maxCuts,
     config.minShortDuration, config.maxShortDuration,
+    config,
   );
 
   const controller = new AbortController();
@@ -103,6 +104,7 @@ async function analyzeSinglePassFallback(
   const prompt = buildAnalysisPrompt(
     transcript, videoTitle, channelName, minCuts, maxCuts,
     config.minShortDuration, config.maxShortDuration,
+    config,
   );
 
   const controller = new AbortController();
@@ -143,8 +145,17 @@ function buildAnalysisPrompt(
   maxClips: number,
   minDuration: number,
   maxDuration: number,
+  config: PipelineConfig,
 ): string {
-  return `Você é um editor especializado em conteúdo espiritual e religioso para YouTube Shorts.
+  const isReligious =
+    config.managedRun?.focusLabels.some((f) => f.toLowerCase().includes("catolico")) ||
+    channelName.toLowerCase().includes("catolic") ||
+    channelName.toLowerCase().includes("gilson") ||
+    channelName.toLowerCase().includes("shankar") ||
+    config.watermarkText?.toLowerCase().includes("catolic");
+
+  if (isReligious) {
+    return `Você é um editor especializado em conteúdo espiritual e religioso para YouTube Shorts.
 Sua missão: encontrar trechos que sejam "pílulas de conteúdo": autocontidos, com sentido completo, sem depender do resto do vídeo.
 
 VÍDEO: "${videoTitle}"
@@ -174,6 +185,43 @@ PONTUAÇÃO viralScore (1-10):
 - 7-8: Ensinamento que conclui um raciocínio sem contexto externo
 - 5-6: Reflexão interessante com contexto leve dispensável
 - 1-4: Fragmento incompleto ou dependente de contexto
+
+Títulos em Português (pt-BR), máx 50 caracteres, sem: "corte", "clipe", "short", "vídeo", "canal", "parte".
+
+TRANSCRIÇÃO:
+${transcript}`;
+  }
+
+  return `Você é um editor de vídeo profissional especializado em cortes virais (YouTube Shorts, TikTok, Reels).
+Sua missão: identificar os trechos mais interessantes, impactantes, engraçados ou informativos da transcrição fornecida. Cada corte deve ser uma "pílula de conteúdo" autocontida, com sentido completo e compreensível sem o resto do vídeo.
+
+VÍDEO: "${videoTitle}"
+CANAL: "${channelName}"
+
+PRIORIDADE: selecione por este tipo de conteúdo (nesta ordem):
+1. Revelações surpreendentes, segredos ou fatos curiosos/inesperados
+2. Histórias ou anedotas com início, meio e clímax/conclusão claros
+3. Debates calorosos, opiniões fortes ou declarações impactantes
+4. Explicações cativantes de tópicos interessantes (ciência, tecnologia, comportamento)
+5. Momentos engraçados, piadas ou reações divertidas
+
+OBRIGATÓRIO:
+- O trecho DEVE começar em uma ideia nova (não no meio de uma frase ou assunto inacabado)
+- O trecho DEVE terminar com uma frase completa e com sentido de conclusão
+- Um espectador sem contexto DEVE entender a mensagem principal imediatamente
+- Duração: entre ${minDuration} e ${maxDuration} segundos
+- Retornar no mínimo ${minClips} e no máximo ${Math.min(20, maxClips)} cortes
+
+PROIBIDO: não selecione trechos que:
+- Comecem com referências ao que foi falado antes ("como eu disse antes", "voltando ao assunto")
+- Dependam de referências visuais que o espectador não conseguirá entender apenas ouvindo
+- Sejam cortados abruptamente no meio de uma frase ou ideia
+
+PONTUAÇÃO viralScore (1-10):
+- 9-10: Declaração bombástica, revelação chocante ou piada extremamente engraçada com excelente gancho (hook) inicial
+- 7-8: História interessante ou explicação clara de um conceito cativante
+- 5-6: Reflexão curiosa ou conversa informal com valor moderado de entretenimento
+- 1-4: Fragmento sem gancho, sem sentido completo ou chato
 
 Títulos em Português (pt-BR), máx 50 caracteres, sem: "corte", "clipe", "short", "vídeo", "canal", "parte".
 
