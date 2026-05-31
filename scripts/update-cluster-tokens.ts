@@ -23,7 +23,7 @@ async function main() {
   const clientId = process.env.YOUTUBE_CLIENT_ID!;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET!;
 
-  async function upsertChannel(id: string, slug: string, name: string, refreshToken: string) {
+  async function upsertChannel(id: string, slug: string, name: string, refreshToken: string, channelType: "cuts" | "quiz" = "cuts") {
     const existing = await repo.getBundle(id);
     const now = new Date().toISOString();
 
@@ -39,6 +39,7 @@ async function main() {
         status: "active" as const,
         logoPath: null,
         watermarkText: name,
+        channelType,
         createdAt: existing?.channel.createdAt || now,
         updatedAt: now,
       },
@@ -73,11 +74,11 @@ async function main() {
     };
 
     await repo.saveBundle(bundle);
-    logger.info({ id, name }, "Channel upserted with YouTube credentials");
+    logger.info({ id, name, channelType }, "Channel upserted with YouTube credentials");
   }
 
-  await upsertChannel(santidadeId, "santidade-catolica", "Santidade CatÃ³lica", santidadeRefreshToken);
-  await upsertChannel(quizId, "quiz-channel", "Quiz Channel", quizRefreshToken);
+  await upsertChannel(santidadeId, "santidade-catolica", "Santidade CatÃ³lica", santidadeRefreshToken, "cuts");
+  await upsertChannel(quizId, "quiz-channel", "Quiz Channel", quizRefreshToken, "quiz");
 
   await db.end();
 }
