@@ -20,7 +20,7 @@ describe("ChannelConfigResolver", () => {
   it("throws when no YouTube publishing account", async () => {
     const repository = {
       getBundle: vi.fn().mockResolvedValue({
-        channel: { id: "ch-1", status: "active", slug: "ch-1", name: "Ch", description: "d", logoPath: null, watermarkText: "wm", createdAt: "", updatedAt: "" },
+        channel: { id: "ch-1", status: "active", slug: "ch-1", name: "Ch", description: "d", logoPath: null, watermarkText: "wm", channelType: "cuts" as const, createdAt: "", updatedAt: "" },
         sources: [{ id: "s1", kind: "youtube_channel", value: "UC1", label: "S", createdAt: "" }],
         publishingAccounts: [], // no youtube account
         focuses: [],
@@ -43,6 +43,7 @@ describe("ChannelConfigResolver", () => {
           status: "active",
           logoPath: null,
           watermarkText: "Canal 1",
+          channelType: "cuts" as const,
           createdAt: "2024-01-01T00:00:00.000Z",
           updatedAt: "2024-01-01T00:00:00.000Z",
         },
@@ -92,7 +93,7 @@ describe("ChannelConfigResolver", () => {
   it("fails when the channel has no source targets", async () => {
     const repository = {
       getBundle: vi.fn().mockResolvedValue({
-        channel: { id: "canal-1", slug: "slug", name: "Canal", description: "desc", status: "active", logoPath: null, watermarkText: "wm", createdAt: "now", updatedAt: "now" },
+        channel: { id: "canal-1", slug: "slug", name: "Canal", description: "desc", status: "active", logoPath: null, watermarkText: "wm", channelType: "cuts" as const, createdAt: "now", updatedAt: "now" },
         profile: { channelId: "canal-1", videoLimit: 1, minShortDuration: 15, maxShortDuration: 59, targetShorts: null, videoQuery: null, sortByViews: false, aiProvider: "ollama", aiModel: "gemma3:1b" },
         focuses: [],
         sources: [],

@@ -74,7 +74,7 @@ export class ChannelBundleRepository {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, name = EXCLUDED.name, description = EXCLUDED.description,
          status = EXCLUDED.status, logo_path = EXCLUDED.logo_path, watermark_text = EXCLUDED.watermark_text, channel_type = EXCLUDED.channel_type, updated_at = EXCLUDED.updated_at`,
-        [bundle.channel.id, bundle.channel.slug, bundle.channel.name, bundle.channel.description, bundle.channel.status, bundle.channel.logoPath, bundle.channel.watermarkText, bundle.channel.channelType, bundle.channel.createdAt, bundle.channel.updatedAt],
+        [bundle.channel.id, bundle.channel.slug, bundle.channel.name, bundle.channel.description, bundle.channel.status, bundle.channel.logoPath, bundle.channel.watermarkText, bundle.channel.channelType || "cuts", bundle.channel.createdAt, bundle.channel.updatedAt],
       );
       await client.query(
         `INSERT INTO channel_profiles (channel_id, video_limit, min_short_duration, max_short_duration, target_shorts, video_query, sort_by_views, ai_provider, ai_model)
