@@ -101,7 +101,7 @@ export async function processVideo(
           if (await isDailyLimitReachedAsync(config.dailyUploadLimit)) {
             logger.warn({ limit: config.dailyUploadLimit }, "⚠️ Limite diário de uploads do YouTube atingido — enviando apenas ao Telegram");
           } else {
-            youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config) ?? undefined;
+            youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags) ?? undefined;
             if (!youtubeUrl) {
               logger.warn({ clipId: short.id }, "YouTube upload failed, skipping URL but continuing to Telegram");
             } else {

@@ -16,7 +16,7 @@ import { createSecretStore } from "./core/secret-store.js";
 import { startServer } from "./server/index.js";
 import { runInteractive } from "./cli-interactive.js";
 import { runControlPlaneMigrations } from "./core/control-plane-migrations.js";
-import { PipelineProgress } from "./types.js";
+import type { PipelineConfig, PipelineProgress } from "./types.js";
 
 // Filter out '--' separator that pnpm/npm passes through
 const args = process.argv.slice(2).filter((a) => a !== "--");
