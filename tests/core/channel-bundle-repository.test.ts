@@ -97,7 +97,7 @@ describe("ChannelBundleRepository", () => {
     const repo = new ChannelBundleRepository(pool as any);
 
     const bundle = {
-      channel: { id: "ch-1", slug: "ch-1", name: "C", description: "d", status: "active" as const, logoPath: null, watermarkText: "wm", createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z" },
+      channel: { id: "ch-1", slug: "ch-1", name: "C", description: "d", status: "active" as const, logoPath: null, watermarkText: "wm", channelType: "cuts" as const, createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z" },
       profile: { channelId: "ch-1", videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, targetShorts: null, videoQuery: null, sortByViews: false, aiProvider: "ollama" as const, aiModel: "gemma3:1b" },
       focuses: [],
       sources: [],

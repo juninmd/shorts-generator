@@ -28,6 +28,7 @@ async function main() {
       status: "active",
       logoPath: null,
       watermarkText: "Canal Demo",
+      channelType: "cuts",
       createdAt: now,
       updatedAt: now,
     },
