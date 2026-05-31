@@ -138,3 +138,29 @@ export async function incrementDailyUploadCountAsync(channelId = "global"): Prom
   /* v8 ignore stop */
 }
 
+export async function setDailyLimitReachedAsync(channelId = "global"): Promise<void> {
+  const db = getOptionalPool();
+  if (db) {
+    await db.query(
+      `INSERT INTO daily_channel_quotas (quota_day, channel_id, publish_count)
+       VALUES (CURRENT_DATE, $1, 9999)
+       ON CONFLICT (quota_day, channel_id)
+       DO UPDATE SET publish_count = 9999`,
+      [channelId],
+    );
+    logger.info({ channelId }, "Durable state daily limit reached set");
+    return;
+  }
+  /* v8 ignore start */
+  try {
+    const state = readDailyState();
+    state.count = 9999;
+    fs.writeFileSync(DAILY_UPLOADS_PATH, JSON.stringify(state, null, 2));
+    logger.debug({ date: state.date, count: state.count }, "Daily YouTube upload count set to maximum");
+  } catch (error) {
+    logger.error({ error }, "Failed to set daily upload count to maximum");
+  }
+  /* v8 ignore stop */
+}
+
+
