@@ -91,6 +91,7 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Original Title",
         description: "Original Description",
+        tags: ["shorts", "curiosidades", "viral", "#dummy"],
       });
     });
 
@@ -104,15 +105,21 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Viral Title",
         description: "Viral Description",
+        tags: ["shorts", "curiosidades", "viral", "#dummy"],
       });
     });
 
+    it("should not duplicate original video link when AI includes it", async () => {
+      setupMock('{"title": "Viral Title", "description": "Viral Description https://youtube.com/watch?v=original"}');
+      const result = await generateYoutubeMetadata(mockShort, mockConfig);
+      expect(result.description).toBe("Viral Description https://youtube.com/watch?v=original");
+    });
 
 
     it.each([
-      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description" } },
-      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description" } },
-      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description" } }
+      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } },
+      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } },
+      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } }
     ])("should fallback properly when JSON parsing fails or misses fields: $content", async ({ content, expected }) => {
       setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
@@ -126,6 +133,7 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Original Title",
         description: "Original Description",
+        tags: ["shorts", "curiosidades", "viral", "#dummy"],
       });
     });
   });
@@ -184,6 +192,21 @@ describe("youtube.service", () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+  });
+
+  describe("uploadToYouTube - specific tests", () => {
+    it("should limit tags characters combined length to 490", async () => {
+      mockCredsSetup();
+      insertMock.mockResolvedValueOnce({ data: { id: "yt123" } });
+
+      const longTags = Array.from({ length: 50 }, (_, i) => `tag${i}longextraseokeyword`);
+      await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig, longTags);
+
+      const sentTags = insertMock.mock.calls[0][0].requestBody.snippet.tags;
+      const combinedLength = sentTags.join(",").length;
+      expect(combinedLength).toBeLessThanOrEqual(490);
+      expect(sentTags.length).toBeLessThan(50);
     });
   });
 
