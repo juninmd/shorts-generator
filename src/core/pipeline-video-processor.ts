@@ -98,14 +98,15 @@ export async function processVideo(
         const youtubeMeta = await generateYoutubeMetadata(short, config);
         let youtubeUrl: string | undefined;
         if (youtubeEnabled) {
-          if (await isDailyLimitReachedAsync(config.dailyUploadLimit)) {
-            logger.warn({ limit: config.dailyUploadLimit }, "⚠️ Limite diário de uploads do YouTube atingido — enviando apenas ao Telegram");
+          const channelId = config.managedRun?.channelId || "global";
+          if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
+            logger.warn({ limit: config.dailyUploadLimit, channelId }, "⚠️ Limite diário de uploads do YouTube atingido — enviando apenas ao Telegram");
           } else {
             youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags) ?? undefined;
             if (!youtubeUrl) {
               logger.warn({ clipId: short.id }, "YouTube upload failed, skipping URL but continuing to Telegram");
             } else {
-              await incrementDailyUploadCountAsync();
+              await incrementDailyUploadCountAsync(channelId);
               
               // Post original video link in comments
               const videoId = youtubeUrl.split("/").pop();
