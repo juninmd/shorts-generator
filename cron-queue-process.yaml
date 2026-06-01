@@ -21,6 +21,12 @@ spec:
             env:
             - name: REDIS_URL
               value: "redis://redis.databases.svc.cluster.local:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: REDIS_PASSWORD
+                  name: redis-secret
+                  optional: false
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
