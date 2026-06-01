@@ -20,7 +20,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:youtube-health": "vitest run tests/core/youtube.health.ts",
-    "build": "tsc --noEmit",
+    "build": "node scripts/typecheck.cjs",
     "web:dev": "pnpm --dir web run dev",
     "web:build": "pnpm --dir web run build",
     "web:preview": "pnpm --dir web run preview",
