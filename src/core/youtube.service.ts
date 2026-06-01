@@ -17,6 +17,14 @@ const withOriginalVideoLink = (description: string, originalVideoUrl?: string | 
   return `${description}\n\nVideo original: ${originalVideoUrl}`;
 };
 
+const extractJsonObject = (content: string): string => {
+  const clean = content.trim();
+  const firstBrace = clean.indexOf("{");
+  const lastBrace = clean.lastIndexOf("}");
+  if (firstBrace === -1 || lastBrace < firstBrace) return clean;
+  return clean.slice(firstBrace, lastBrace + 1);
+};
+
 export const generateYoutubeMetadata = async (
   short: GeneratedShort,
   config: PipelineConfig
@@ -79,18 +87,7 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
       maxRetries: 5,
     });
 
-    let cleanContent = text.trim();
-    if (cleanContent.startsWith("```json")) {
-      cleanContent = cleanContent
-        .substring(7, cleanContent.lastIndexOf("```"))
-        .trim();
-    } else if (cleanContent.startsWith("```")) {
-      cleanContent = cleanContent
-        .substring(3, cleanContent.lastIndexOf("```"))
-        .trim();
-    }
-
-    const metadata = JSON.parse(cleanContent);
+    const metadata = JSON.parse(extractJsonObject(text));
     return {
       title: metadata.title || short.clip.title,
       description: withOriginalVideoLink(metadata.description || short.clip.description, short.originalVideoUrl),

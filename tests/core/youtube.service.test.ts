@@ -107,7 +107,8 @@ describe("youtube.service", () => {
     it.each([
       ['{"title": "Viral Title", "description": "Viral Description"}'],
       ['```json\n{"title": "Viral Title", "description": "Viral Description"}\n```'],
-      ['```\n{"title": "Viral Title", "description": "Viral Description"}\n```']
+      ['```\n{"title": "Viral Title", "description": "Viral Description"}\n```'],
+      ['```json\n{"title": "Viral Title", "description": "Viral Description"}']
     ])("should parse metadata from AI successfully: %s", async (content) => {
       setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
