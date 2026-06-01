@@ -96,6 +96,12 @@ vi.mock("../../src/core/pipeline-filters.js", () => ({
   matchesVideoQuery: vi.fn().mockReturnValue(true),
 }));
 
+vi.mock("../../src/core/queue.js", () => ({
+  enqueueYoutubeUpload: vi.fn().mockResolvedValue(undefined),
+  processQueueUntilEmpty: vi.fn().mockResolvedValue(undefined),
+  closeQueueConnections: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 import { runPipeline } from "../../src/core/pipeline.js";

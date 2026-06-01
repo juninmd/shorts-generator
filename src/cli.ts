@@ -225,6 +225,18 @@ async function main() {
       break;
     }
 
+    case "queue:process": {
+      try {
+        const { processQueueUntilEmpty, closeQueueConnections } = await import("./core/queue.js");
+        await processQueueUntilEmpty();
+        await closeQueueConnections();
+      } catch (err: any) {
+        logger.error({ error: err.message }, "❌ Falha ao processar fila");
+        process.exit(1);
+      }
+      break;
+    }
+
     default: {
       console.log(`
 ╔══════════════════════════════════════════════╗
@@ -240,6 +252,7 @@ Commands:
   generate:top  Generate shorts from a top video (random from top 20 non-music)
   generate:quiz Generate a new educational quiz short
   server        Start the API server
+  queue:process Process the deferred YouTube upload queue
 
 Options (generate):
   --url            Comma-separated YouTube URLs (ex: "url1,url2")

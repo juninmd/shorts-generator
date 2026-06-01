@@ -8,6 +8,7 @@ import { sendToTelegram, sendSummary } from "./telegram.js";
 import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo } from "./youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
+import { enqueueYoutubeUpload } from "./queue.js";
 import pLimit from "p-limit";
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
@@ -99,13 +100,15 @@ export async function processVideo(
         let youtubeUrl: string | undefined;
         if (youtubeEnabled) {
           const channelId = config.managedRun?.channelId || "global";
+          let uploaded = false;
           if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
-            logger.warn({ limit: config.dailyUploadLimit, channelId }, "⚠️ Limite diário de uploads do YouTube atingido — enviando apenas ao Telegram");
+            logger.warn({ limit: config.dailyUploadLimit, channelId }, "⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila");
           } else {
             youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags) ?? undefined;
             if (!youtubeUrl) {
-              logger.warn({ clipId: short.id }, "YouTube upload failed, skipping URL but continuing to Telegram");
+              logger.warn({ clipId: short.id }, "YouTube upload failed, queueing for retry");
             } else {
+              uploaded = true;
               await incrementDailyUploadCountAsync(channelId);
               
               // Post original video link in comments
@@ -115,6 +118,9 @@ export async function processVideo(
                 await addCommentToVideo(videoId, commentText, config);
               }
             }
+          }
+          if (!uploaded) {
+            await enqueueYoutubeUpload(short, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags);
           }
         }
         const msgId = await sendToTelegram(short, config, youtubeUrl);
