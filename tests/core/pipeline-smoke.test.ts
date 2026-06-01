@@ -191,4 +191,42 @@ describe("Pipeline smoke test", () => {
     expect(result.shorts).toHaveLength(0);
     expect(result.errors).toHaveLength(0);
   });
+
+  it("processVideo skips YouTube upload when daily limit is reached", async () => {
+    const { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } = await import("../../src/core/state.js");
+    const { uploadToYouTube } = await import("../../src/core/youtube.service.js");
+    
+    vi.mocked(isDailyLimitReachedAsync).mockResolvedValueOnce(true);
+
+    const video = {
+      id: "smoke-video-id", title: "Smoke Test Video", url: "https://youtube.com/watch?v=smoke",
+      channelName: "Smoke Channel", channelUrl: "", duration: 600,
+      publishedAt: "20240101", thumbnailUrl: null, liveStatus: "not_live" as const,
+    };
+
+    const config = {
+      ...makeConfig(),
+      managedRun: {
+        channelId: "channel-456",
+        channelName: "Test Channel",
+        focusLabels: [],
+      },
+    };
+
+    const originalEnableYoutube = process.env.ENABLE_YOUTUBE;
+    process.env.ENABLE_YOUTUBE = "true";
+
+    try {
+      const result = await processVideo(video, config);
+
+      expect(result.videoId).toBe("smoke-video-id");
+      expect(isDailyLimitReachedAsync).toHaveBeenCalledWith(config.dailyUploadLimit, "channel-456");
+      expect(uploadToYouTube).not.toHaveBeenCalled();
+      expect(incrementDailyUploadCountAsync).not.toHaveBeenCalled();
+      expect(sendToTelegram).toHaveBeenCalledTimes(1);
+      expect(sendSummary).toHaveBeenCalledTimes(1);
+    } finally {
+      process.env.ENABLE_YOUTUBE = originalEnableYoutube;
+    }
+  });
 });
