@@ -21,10 +21,11 @@ let redisClient: Redis | null = null;
 export function getRedisClient(): Redis {
   if (!redisClient) {
     const url = process.env.REDIS_URL;
-    redisClient = url ? new Redis(url, { maxRetriesPerRequest: null }) : new Redis({
+    const password = process.env.REDIS_PASSWORD || undefined;
+    redisClient = url ? new Redis(url, { password, maxRetriesPerRequest: null }) : new Redis({
       host: process.env.REDIS_HOST || "localhost",
       port: parseInt(process.env.REDIS_PORT || "6379", 10),
-      password: process.env.REDIS_PASSWORD || undefined,
+      password,
       maxRetriesPerRequest: null,
     });
   }

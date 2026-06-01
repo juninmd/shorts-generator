@@ -108,6 +108,7 @@ import { runPipeline } from "../../src/core/pipeline.js";
 import { processVideo } from "../../src/core/pipeline-video-processor.js";
 import { sendToTelegram, sendSummary } from "../../src/core/telegram.js";
 import { analyzeTranscript } from "../../src/core/analyzer.js";
+import { enqueueYoutubeUpload } from "../../src/core/queue.js";
 
 function makeConfig(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
   return {
@@ -198,7 +199,7 @@ describe("Pipeline smoke test", () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it("processVideo skips YouTube upload when daily limit is reached", async () => {
+  it("processVideo queues YouTube upload when daily limit is reached", async () => {
     const { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } = await import("../../src/core/state.js");
     const { uploadToYouTube } = await import("../../src/core/youtube.service.js");
     
@@ -228,6 +229,14 @@ describe("Pipeline smoke test", () => {
       expect(result.videoId).toBe("smoke-video-id");
       expect(isDailyLimitReachedAsync).toHaveBeenCalledWith(config.dailyUploadLimit, "channel-456");
       expect(uploadToYouTube).not.toHaveBeenCalled();
+      expect(enqueueYoutubeUpload).toHaveBeenCalledTimes(1);
+      expect(enqueueYoutubeUpload).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "clip-1", outputPath: "/tmp/clip-1.mp4" }),
+        "Clip de Teste",
+        "Desc",
+        config,
+        undefined,
+      );
       expect(incrementDailyUploadCountAsync).not.toHaveBeenCalled();
       expect(sendToTelegram).toHaveBeenCalledTimes(1);
       expect(sendSummary).toHaveBeenCalledTimes(1);
