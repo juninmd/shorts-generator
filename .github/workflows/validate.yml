@@ -11,4 +11,4 @@ concurrency:
 
 jobs:
   check:
-    uses: juninmd/base-actions/.github/workflows/reusable-validate.yml@main
+    uses: juninmd/base-actions/.github/workflows/reusable-validate.yml@2d78bb7febae720e8ab8075ec6ae6e9785c0f6d2
