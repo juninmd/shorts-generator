@@ -102,17 +102,14 @@ export interface PipelineConfig {
   maxClipsOverride?: number;
   outputDir: string;
   tempDir: string;
-  /** AI provider: "openrouter" or "ollama" */
-  aiProvider: "openrouter" | "ollama" | "openai";
-  /** Model identifier (e.g. "google/gemma-3-4b-it:free" or "gemma3:1b") */
+  /** Model identifier served by LiteLLM (e.g. "cloud/gemma3") */
   aiModel: string;
   /** Timeout in milliseconds for AI HTTP requests (default: 300_000 = 5 min) */
   aiTimeoutMs: number;
-  /** OpenRouter API key (required when aiProvider is "openrouter") */
-  openrouterApiKey: string;
-  /** Ollama base URL (only used when aiProvider is "ollama") */
-  ollamaBaseUrl: string;
-  openaiBaseUrl?: string;
+  /** LiteLLM gateway API key */
+  litellmApiKey: string;
+  /** LiteLLM OpenAI-compatible base URL (e.g. http://litellm:4000/v1) */
+  litellmBaseUrl: string;
   whisperBaseUrl?: string;
   telegramBotToken: string;
   telegramChatId: string;

@@ -77,7 +77,6 @@ export function buildManagedPipelineConfig(
     targetShorts: overrides?.targetShorts ?? (resolvedRun.profile.targetShorts ?? undefined),
     sortByViews: overrides?.sortByViews ?? resolvedRun.profile.sortByViews,
     videoQuery: overrides?.videoQuery ?? ((resolvedRun.profile.videoQuery ?? focusQuery) || undefined),
-    aiProvider: resolvedRun.profile.aiProvider,
     aiModel: resolvedRun.profile.aiModel,
     watermarkText: resolvedRun.channel.watermarkText,
     youtubeAuth: {
@@ -87,7 +86,7 @@ export function buildManagedPipelineConfig(
     },
     telegramBotToken: resolvedRun.telegramAccount?.token ?? baseConfig.telegramBotToken,
     telegramChatId: resolvedRun.telegramAccount?.accountIdentifier ?? baseConfig.telegramChatId,
-    openrouterApiKey: resolvedRun.openrouterAccount?.token ?? baseConfig.openrouterApiKey,
+    litellmApiKey: resolvedRun.openrouterAccount?.token ?? baseConfig.litellmApiKey,
     managedRun: {
       runId,
       channelId: resolvedRun.channel.id,
