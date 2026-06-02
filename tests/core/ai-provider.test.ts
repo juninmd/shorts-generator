@@ -1,43 +1,30 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { PipelineConfig } from "../../src/types.js";
 
-let throwOnInit = false;
-
-vi.mock("@openrouter/ai-sdk-provider", () => ({
-  createOpenRouter: vi.fn(() => {
-    if (throwOnInit) throw new Error("OpenRouter init failed");
-    return (model: string) => ({ modelId: model, provider: "openrouter" });
-  }),
-}));
-vi.mock("../../src/core/logger.js", () => ({
-  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
+vi.mock("@ai-sdk/openai", () => ({
+  createOpenAI: vi.fn((opts: { apiKey: string; baseURL: string }) =>
+    (model: string) => ({ modelId: model, provider: "litellm", apiKey: opts.apiKey, baseURL: opts.baseURL }),
+  ),
 }));
 
 import { createModel } from "../../src/core/ai-provider.js";
 
 describe("ai-provider", () => {
-  beforeEach(() => { throwOnInit = false; });
-
-  it("should create OpenRouter model when config.aiProvider is openrouter", () => {
-    const config = { aiProvider: "openrouter", openrouterApiKey: "12345", aiModel: "model-abc" } as PipelineConfig;
-    const model = createModel(config);
-    expect(model).toBeDefined();
-    expect(model.modelId).toBe("model-abc");
-    expect(model.provider).toBe("openrouter");
+  it("creates a LiteLLM model with configured key and base URL", () => {
+    const config = {
+      litellmApiKey: "litellm-key",
+      litellmBaseUrl: "http://litellm:4000/v1",
+      aiModel: "cloud/gemma3",
+    } as PipelineConfig;
+    const model = createModel(config) as unknown as { modelId: string; apiKey: string; baseURL: string };
+    expect(model.modelId).toBe("cloud/gemma3");
+    expect(model.apiKey).toBe("litellm-key");
+    expect(model.baseURL).toBe("http://litellm:4000/v1");
   });
 
-  it("should create Ollama model otherwise", () => {
-    const config = { aiProvider: "ollama", aiModel: "model-abc" } as PipelineConfig;
-    const model = createModel(config);
-    expect(model).toBeDefined();
-    expect(model.modelId).toBe("model-abc");
-    expect(model.provider).toBe("ollama");
-  });
-
-  it("falls back to Ollama when createOpenRouter throws", () => {
-    throwOnInit = true;
-    const config = { aiProvider: "openrouter", openrouterApiKey: "key", aiModel: "model-abc" } as PipelineConfig;
-    const model = createModel(config);
-    expect(model.provider).toBe("ollama");
+  it("falls back to a dummy key when none is configured", () => {
+    const config = { litellmApiKey: "", litellmBaseUrl: "http://litellm:4000/v1", aiModel: "cloud/gemma3" } as PipelineConfig;
+    const model = createModel(config) as unknown as { apiKey: string };
+    expect(model.apiKey).toBe("sk-dummy");
   });
 });
