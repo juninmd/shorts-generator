@@ -147,11 +147,12 @@ function buildAnalysisPrompt(
   maxDuration: number,
   config: PipelineConfig,
 ): string {
+  const lowerChannel = (channelName ?? "").toLowerCase();
   const isReligious =
     config.managedRun?.focusLabels.some((f) => f.toLowerCase().includes("catolico")) ||
-    channelName.toLowerCase().includes("catolic") ||
-    channelName.toLowerCase().includes("gilson") ||
-    channelName.toLowerCase().includes("shankar") ||
+    lowerChannel.includes("catolic") ||
+    lowerChannel.includes("gilson") ||
+    lowerChannel.includes("shankar") ||
     config.watermarkText?.toLowerCase().includes("catolic");
 
   if (isReligious) {
