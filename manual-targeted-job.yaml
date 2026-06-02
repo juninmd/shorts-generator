@@ -26,13 +26,9 @@ spec:
           value: "true"
         - name: MAX_VIDEO_DURATION_MINUTES
           value: "50"
-        - name: OLLAMA_BASE_URL
-          value: http://litellm.ai.svc.cluster.local:4000
-        - name: AI_PROVIDER
-          value: openai
         - name: AI_MODEL
           value: cloud/gemma3
-        - name: OPENAI_BASE_URL
+        - name: LITELLM_BASE_URL
           value: http://litellm.ai.svc.cluster.local:4000/v1
         - name: WHISPER_BASE_URL
           value: http://whisper.ai.svc.cluster.local:9000
@@ -40,12 +36,7 @@ spec:
           value: "600000"
         - name: WHISPER_REQUEST_RETRIES
           value: "2"
-        - name: OLLAMA_API_KEY
-          valueFrom:
-            secretKeyRef:
-              key: LITELLM_KEY
-              name: shorts-generator-secret
-        - name: OPENAI_API_KEY
+        - name: LITELLM_KEY
           valueFrom:
             secretKeyRef:
               key: LITELLM_KEY
