@@ -63,7 +63,7 @@ Descrição Sugerida: ${short.clip.description}
 Contexto do Canal: ${short.channelName}
 Motivo da Viralização: ${short.clip.reason}
 Hashtags Sugeridas: ${short.clip.hashtags?.join(", ")}
-Focos do canal de destino: ${config.managedRun?.focusLabels.join(", ") || "não informado"}
+Focos do canal de destino: ${config.managedRun?.focusLabels?.join(", ") || "não informado"}
 
 O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
 A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags?.join(" ")}.
@@ -234,13 +234,16 @@ export const addCommentToVideo = async (
   }
 };
 
-const limitTagsLength = (tags: string[], limit: number = 490): string[] => {
+const limitTagsLength = (tags: unknown[], limit: number = 490): string[] => {
   const result: string[] = [];
   let currentLength = 0;
   for (const tag of tags) {
-    const tagLength = tag.length + (result.length > 0 ? 1 : 0);
+    if (typeof tag !== "string") continue;
+    const cleanTag = tag.trim();
+    if (!cleanTag) continue;
+    const tagLength = cleanTag.length + (result.length > 0 ? 1 : 0);
     if (currentLength + tagLength > limit) break;
-    result.push(tag);
+    result.push(cleanTag);
     currentLength += tagLength;
   }
   return result;
