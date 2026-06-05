@@ -95,10 +95,13 @@ export async function processVideo(
     const youtubeEnabled = process.env.ENABLE_YOUTUBE === "true";
 
     for (const short of shorts) {
+      let sendStage = "metadata";
       try {
+        sendStage = "metadata";
         const youtubeMeta = await generateYoutubeMetadata(short, config);
         let youtubeUrl: string | undefined;
         if (youtubeEnabled) {
+          sendStage = "youtube_upload_or_queue";
           const channelId = config.managedRun?.channelId || "global";
           let uploaded = false;
           if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
@@ -123,9 +126,20 @@ export async function processVideo(
             await enqueueYoutubeUpload(short, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags);
           }
         }
+        sendStage = "telegram";
         const msgId = await sendToTelegram(short, config, youtubeUrl);
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
+        logger.error(
+          {
+            error: err,
+            clipId: short.id,
+            stage: sendStage,
+            runId: config.managedRun?.runId,
+            channelId: config.managedRun?.channelId,
+          },
+          "Failed to send generated short",
+        );
         errors.push(`Erro no envio de ${short.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }

@@ -125,6 +125,16 @@ describe("youtube.service", () => {
       expect(result.description).toBe("Viral Description https://youtube.com/watch?v=original");
     });
 
+    it("should handle managed runs without focus labels", async () => {
+      setupMock('{"title": "Viral Title", "description": "Viral Description", "tags": ["shorts"]}');
+      const config = { ...mockConfig, managedRun: { runId: "run-1", channelId: "channel-1", channelName: "Channel" } };
+
+      const result = await generateYoutubeMetadata(mockShort, config);
+
+      expect(result.title).toBe("Viral Title");
+      expect(result.tags).toEqual(["shorts"]);
+    });
+
 
     it.each([
       { content: 'invalid json', expected: { title: "Original Title", description: "Original Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } },
@@ -217,6 +227,15 @@ describe("youtube.service", () => {
       const combinedLength = sentTags.join(",").length;
       expect(combinedLength).toBeLessThanOrEqual(490);
       expect(sentTags.length).toBeLessThan(50);
+    });
+
+    it("should ignore invalid tags instead of failing before upload", async () => {
+      mockCredsSetup();
+      insertMock.mockResolvedValueOnce({ data: { id: "yt123" } });
+
+      await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig, ["tag1", undefined, "", "  tag2  "] as any);
+
+      expect(insertMock.mock.calls[0][0].requestBody.snippet.tags).toEqual(["tag1", "tag2"]);
     });
   });
 
