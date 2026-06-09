@@ -325,4 +325,101 @@ describe("analyzer", () => {
     expect(clips[0].words).toHaveLength(2);
     expect(clips[0].words[0].start).toBe(0);
   });
+
+  it("should extract clips from text using regex if toolCalls fails or is missing", async () => {
+    const mockResponseText = `
+      Some intro text that we don't care about.
+      {
+        "clips": [
+          {
+            "title": "Regex Clip",
+            "description": "Desc",
+            "startTime": 10,
+            "endTime": 40,
+            "viralScore": 9,
+            "reason": "Reason",
+            "hashtags": ["#test"]
+          }
+        ]
+      }
+      Some outro text.
+    `;
+
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: mockResponseText,
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("Regex Clip");
+  });
+
+  it("should handle regex extraction error gracefully", async () => {
+    const mockResponseText = `
+      {
+        "clips": [
+          invalid json
+        ]
+      }
+    `;
+
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: mockResponseText,
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1); // Should fallback to determinist clip
+    expect(clips[0].title).toBe("Uma mensagem de fé para hoje");
+  });
+
+  it("should extract clips from array using regex if toolCalls fails", async () => {
+    const mockResponseText = `
+      [
+        {
+          "title": "Regex Array Clip",
+          "description": "Desc",
+          "startTime": 10,
+          "endTime": 40,
+          "viralScore": 9,
+          "reason": "Reason",
+          "hashtags": ["#test"]
+        }
+      ]
+    `;
+
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: mockResponseText,
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("Regex Array Clip");
+  });
+
+  it("should handle regex extraction where no match is found", async () => {
+    const mockResponseText = `
+      Some random text with no JSON array or object structure.
+    `;
+
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: mockResponseText,
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1); // Should fallback to determinist clip
+    expect(clips[0].title).toBe("Uma mensagem de fé para hoje");
+  });
+
+  it("should handle regex extraction where object exists but no clips key and not array", async () => {
+    const mockResponseText = `
+      {
+        "otherKey": "otherValue"
+      }
+    `;
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: mockResponseText,
+    } as any);
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1); // falls back because neither .clips nor array is true
+  });
 });
