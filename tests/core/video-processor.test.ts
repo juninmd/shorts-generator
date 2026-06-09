@@ -124,9 +124,8 @@ describe("video-processor", () => {
       const args = execFileCalls[0][1] as string[];
       const filterArgIndex = args.indexOf("-filter_complex");
       expect(filterArgIndex).toBeGreaterThan(-1);
-      expect(args[filterArgIndex + 1]).toContain("split=2");
       expect(args[filterArgIndex + 1]).toContain("force_original_aspect_ratio=decrease");
-      expect(args[filterArgIndex + 1]).toContain("overlay=(W-w)/2:(H-h)/2");
+      expect(args[filterArgIndex + 1]).toContain("pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black");
       expect(args[filterArgIndex + 1]).toContain("ass=");
       expect(args).toContain("[v]");
       expect(args[filterArgIndex + 1]).not.toContain("drawtext");
