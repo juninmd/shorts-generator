@@ -1,115 +1,143 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ChannelBundleRepository } from "../../src/core/channel-bundle-repository.js";
+import { withTransaction, queryRows } from "../../src/core/control-plane-db.js";
 
-const baseChannel = {
-  id: "ch-1", slug: "ch-1", name: "Canal", description: "desc",
-  status: "active", logo_path: null, watermark_text: "wm",
-  created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-01T00:00:00Z",
-};
-const baseProfile = {
-  channel_id: "ch-1", video_limit: 3, min_short_duration: 15, max_short_duration: 59,
-  target_shorts: null, video_query: null, sort_by_views: false,
-  ai_provider: "ollama", ai_model: "gemma3:1b",
-};
-const baseAccount = {
-  id: "acc-1", channel_id: "ch-1", provider: "youtube", label: "YT",
-  status: "active", account_identifier: "ch@example.com",
-  client_id: "cid", client_secret: "csec",
-  token_key_version: "v1", token_iv: "iv", token_auth_tag: "tag", token_ciphertext: "cipher",
-  created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-01T00:00:00Z",
-};
+vi.mock("../../src/core/control-plane-db.js", () => ({
+  withTransaction: vi.fn(async (pool, cb) => cb(pool)),
+  queryRows: vi.fn(),
+}));
 
-function makePool(queryResults: unknown[][]) {
-  let callIndex = 0;
+function makePool(queries: Record<string, unknown[]>) {
   return {
-    query: vi.fn(async () => ({ rows: queryResults[callIndex++] ?? [] })),
-    connect: vi.fn(async () => {
-      const client = {
-        query: vi.fn(async () => ({ rows: [] })),
-        release: vi.fn(),
-      };
-      return client;
+    query: vi.fn(async (sql: string) => {
+      const matchedKey = Object.keys(queries).find((k) => sql.includes(k));
+      return { rows: matchedKey ? queries[matchedKey] : [] };
     }),
   };
 }
 
 describe("ChannelBundleRepository", () => {
-  it("listBundles returns mapped bundles with publishingAccounts array", async () => {
-    const pool = makePool([[baseChannel], [baseProfile], [], [], [baseAccount]]);
+  const dummyChannel = { id: "ch-1", name: "Channel", channel_type: "cuts", created_at: "2024", updated_at: "2024" };
+  const dummyProfile = { channel_id: "ch-1", video_limit: 3 };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("listBundles loads and builds bundles correctly", async () => {
+    const pool = makePool({});
+    vi.mocked(queryRows).mockImplementation(async (_pool, sql) => {
+      if (sql.includes("managed_channels")) return [dummyChannel];
+      if (sql.includes("channel_profiles")) return [dummyProfile];
+      if (sql.includes("source_targets")) return [{id: "1", channel_id: "ch-1"}];
+      if (sql.includes("channel_focuses")) return [{id: "1", channel_id: "ch-1"}];
+      if (sql.includes("publishing_accounts")) return [{id: "1", channel_id: "ch-1"}];
+      return [];
+    });
+
     const repo = new ChannelBundleRepository(pool as any);
     const bundles = await repo.listBundles();
-
     expect(bundles).toHaveLength(1);
     expect(bundles[0].channel.id).toBe("ch-1");
-    expect(bundles[0].publishingAccounts).toHaveLength(1);
-    expect(bundles[0].publishingAccounts[0].provider).toBe("youtube");
-  });
-
-  it("getBundle returns null when channel not found", async () => {
-    const pool = makePool([[]]);
-    const repo = new ChannelBundleRepository(pool as any);
-    const result = await repo.getBundle("missing");
-    expect(result).toBeNull();
-  });
-
-  it("getBundle returns bundle when found", async () => {
-    const pool = makePool([[baseChannel], [baseProfile], [], [], []]);
-    const repo = new ChannelBundleRepository(pool as any);
-    const bundle = await repo.getBundle("ch-1");
-
-    expect(bundle).not.toBeNull();
-    expect(bundle?.channel.slug).toBe("ch-1");
-    expect(bundle?.publishingAccounts).toHaveLength(0);
-  });
-
-  it("deleteBundle executes DELETE", async () => {
-    const pool = makePool([[]]);
-    const repo = new ChannelBundleRepository(pool as any);
-    await repo.deleteBundle("ch-1");
-
-    expect(pool.query).toHaveBeenCalledOnce();
-    const [sql, params] = pool.query.mock.calls[0];
-    expect(sql).toContain("DELETE FROM managed_channels");
-    expect(params[0]).toBe("ch-1");
-  });
-
-  it("listBundles with focuses and sources maps them correctly", async () => {
-    const focus = { channel_id: "ch-1", id: "f1", key: "cat", label: "Cat" };
-    const source = { channel_id: "ch-1", id: "s1", kind: "youtube_channel" as const, value: "UC123", label: "Src", createdAt: "2024-01-01T00:00:00Z" };
-    const pool = makePool([[baseChannel], [baseProfile], [focus], [source], []]);
-    const repo = new ChannelBundleRepository(pool as any);
-    const bundles = await repo.listBundles();
-    expect(bundles[0].focuses).toHaveLength(1);
-    expect(bundles[0].focuses[0].key).toBe("cat");
+    expect(bundles[0].channel.channelType).toBe("cuts");
     expect(bundles[0].sources).toHaveLength(1);
-    expect(bundles[0].sources[0].kind).toBe("youtube_channel");
+    expect(bundles[0].focuses).toHaveLength(1);
+    expect(bundles[0].publishingAccounts).toHaveLength(1);
   });
 
-  it("buildBundle throws when profile is missing", async () => {
-    const pool = makePool([[baseChannel], [], [], [], []]);
+  it("getBundle returns null if not found", async () => {
+    const pool = makePool({});
+    vi.mocked(queryRows).mockImplementation(async () => []);
+
     const repo = new ChannelBundleRepository(pool as any);
-    await expect(repo.listBundles()).rejects.toThrow("Missing profile");
+    const bundle = await repo.getBundle("missing");
+    expect(bundle).toBeNull();
   });
 
-  it("saveBundle upserts channel, profile, focuses, sources and accounts in transaction", async () => {
-    const client = { query: vi.fn(async () => ({ rows: [] })), release: vi.fn() };
-    const pool = { query: vi.fn(), connect: vi.fn(async () => client) };
+  it("getBundle throws if profile is missing", async () => {
+    const pool = makePool({});
+    vi.mocked(queryRows).mockImplementation(async (_pool, sql) => {
+      if (sql.includes("managed_channels")) return [dummyChannel];
+      return []; // no profiles
+    });
+
+    const repo = new ChannelBundleRepository(pool as any);
+    await expect(repo.getBundle("ch-1")).rejects.toThrow(/Missing profile/);
+  });
+
+  it("saveBundle inserts/updates data correctly", async () => {
+    const pool = makePool({});
     const repo = new ChannelBundleRepository(pool as any);
 
     const bundle = {
-      channel: { id: "ch-1", slug: "ch-1", name: "C", description: "d", status: "active" as const, logoPath: null, watermarkText: "wm", createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z" },
-      profile: { channelId: "ch-1", videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, targetShorts: null, videoQuery: null, sortByViews: false, aiProvider: "ollama" as const, aiModel: "gemma3:1b" },
-      focuses: [],
-      sources: [],
-      publishingAccounts: [],
+      channel: { id: "ch-1", slug: "ch-1", name: "Chan", description: "", status: "active", logoPath: null, watermarkText: "", channelType: "cuts", createdAt: "now", updatedAt: "now" },
+      profile: { channelId: "ch-1", videoLimit: 1, minShortDuration: 10, maxShortDuration: 60, targetShorts: null, videoQuery: null, sortByViews: false, aiProvider: "ollama", aiModel: "m1" },
+      focuses: [{ id: "f1", key: "k", label: "L" }],
+      sources: [{ id: "s1", kind: "youtube_channel", value: "v", label: "L", createdAt: "now" }],
+      publishingAccounts: [
+        { id: "acc-1", channelId: "ch-1", provider: "youtube", label: "L", status: "active", accountIdentifier: "a", clientId: null, clientSecret: null, encryptedToken: { keyVersion: "1", iv: "i", authTag: "t", ciphertext: "c" }, createdAt: "now", updatedAt: "now" }
+      ]
     };
 
-    await repo.saveBundle(bundle);
+    await repo.saveBundle(bundle as any);
 
-    const sqlCalls = client.query.mock.calls.map(([sql]: [string]) => sql as string);
-    expect(sqlCalls.some((s) => s.includes("BEGIN"))).toBe(true);
-    expect(sqlCalls.some((s) => s.includes("INSERT INTO managed_channels"))).toBe(true);
-    expect(sqlCalls.some((s) => s.includes("INSERT INTO channel_profiles"))).toBe(true);
-    expect(sqlCalls.some((s) => s.includes("COMMIT"))).toBe(true);
+    expect(withTransaction).toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO managed_channels"), expect.any(Array));
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO channel_profiles"), expect.any(Array));
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO channel_focuses"), expect.any(Array));
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO source_targets"), expect.any(Array));
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO publishing_accounts"), expect.any(Array));
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("DELETE FROM publishing_accounts WHERE channel_id = $1 AND provider != ALL"), expect.any(Array));
+  });
+
+  it("saveBundle deletes all publishing accounts if array is empty", async () => {
+    const pool = makePool({});
+    const repo = new ChannelBundleRepository(pool as any);
+
+    const bundle = {
+      channel: { id: "ch-1", slug: "ch-1", name: "Chan", description: "", status: "active", logoPath: null, watermarkText: "", channelType: "cuts", createdAt: "now", updatedAt: "now" },
+      profile: { channelId: "ch-1", videoLimit: 1, minShortDuration: 10, maxShortDuration: 60, targetShorts: null, videoQuery: null, sortByViews: false, aiProvider: "ollama", aiModel: "m1" },
+      focuses: [],
+      sources: [],
+      publishingAccounts: [] // Empty
+    };
+
+    await repo.saveBundle(bundle as any);
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("DELETE FROM publishing_accounts WHERE channel_id = $1"), ["ch-1"]);
+  });
+
+  it("deleteBundle executes delete on managed_channels", async () => {
+    const pool = makePool({});
+    const repo = new ChannelBundleRepository(pool as any);
+    await repo.deleteBundle("ch-1");
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("DELETE FROM managed_channels"), ["ch-1"]);
+  });
+
+  it("loadBundles returns empty array if channelIds is empty", async () => {
+    const pool = makePool({});
+    vi.mocked(queryRows).mockImplementation(async (_pool, sql) => {
+        if (sql.includes("managed_channels")) return [];
+        return [];
+    });
+
+    const repo = new ChannelBundleRepository(pool as any);
+    const bundles = await repo.listBundles();
+    expect(bundles).toEqual([]);
+
+    // verify lookupByChannel early exit
+    expect(queryRows).toHaveBeenCalledTimes(1); // Only for managed_channels, not for related tables
+  });
+
+  it("buildBundle defaults channelType to 'cuts' if null", async () => {
+    const pool = makePool({});
+    vi.mocked(queryRows).mockImplementation(async (_pool, sql) => {
+      if (sql.includes("managed_channels")) return [{...dummyChannel, channel_type: null}];
+      if (sql.includes("channel_profiles")) return [dummyProfile];
+      return [];
+    });
+
+    const repo = new ChannelBundleRepository(pool as any);
+    const bundles = await repo.listBundles();
+    expect(bundles[0].channel.channelType).toBe("cuts");
   });
 });

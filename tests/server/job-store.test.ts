@@ -226,15 +226,36 @@ describe("Job Store", () => {
     it("listJobs with DB returns mapped rows", async () => {
       const { queryRows } = await import("../../src/core/control-plane-db.js");
       vi.mocked(queryRows).mockResolvedValue([{
-        id: "r1", status: "processing", progress: null, results: [], created_at: "2024-01-01T00:00:00Z",
+        id: "r1", status: "processing", progress: null, results: [{ shorts: [{}] }], created_at: "2024-01-01T00:00:00Z",
       }] as any);
       const list = await listJobs();
       expect(Array.isArray(list)).toBe(true);
+      expect(list[0].shortsCount).toBe(1); // Test line 105 sum
     });
 
     it("deleteJob with DB calls db.query", async () => {
       await deleteJob("db-job-1");
       expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining("DELETE"), expect.any(Array));
+    });
+
+    it("updateJobProgress with DB calls db.query", async () => {
+       await updateJobProgress("db-job-1", {
+            stage: "downloading",
+            videoId: "vid",
+            videoTitle: "Title",
+            progress: 0,
+        });
+        expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining("UPDATE pipeline_runs SET progress"), expect.any(Array));
+    });
+
+    it("completeJob with DB calls db.query", async () => {
+       await completeJob("db-job-1", []);
+       expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining("UPDATE pipeline_runs SET status"), expect.any(Array));
+    });
+
+    it("failJob with DB calls db.query", async () => {
+       await failJob("db-job-1", "Error");
+       expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining("UPDATE pipeline_runs SET status = $2, progress = $3::jsonb, error_message = $4"), expect.any(Array));
     });
 
     it("cleanupOldJobs returns 0 when DB pool exists", async () => {

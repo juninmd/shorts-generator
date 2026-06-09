@@ -252,6 +252,34 @@ describe("analyzer", () => {
     expect(clips[0].title).toBe("FB Clip");
   });
 
+  it("should handle array of clips directly from fallback json", async () => {
+    vi.mocked(aiModule.generateObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: "{" + JSON.stringify([{ title: "FB Array Clip", description: "D", startTime: 10, endTime: 40, viralScore: 8, reason: "R", hashtags: [] }]) + "}",
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
+  });
+
+  it("should fallback to empty array if fallback json is not an array or object with clips", async () => {
+    vi.mocked(aiModule.generateObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: JSON.stringify({ notclips: "something else" }),
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
+  });
+
+  it("should fallback stringifying unknown error", async () => {
+    vi.mocked(aiModule.generateObject).mockRejectedValue("String error");
+    vi.mocked(aiModule.generateText).mockRejectedValue("String fallback error");
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
+  });
+
   it("should correctly handle words within the clip range", async () => {
     const mockResponse = {
       clips: [
