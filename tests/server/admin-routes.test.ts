@@ -67,32 +67,36 @@ vi.mock("../../src/core/secret-store.js", () => ({
   }),
 }));
 
+const mockGetAccessToken = vi.fn();
+vi.mock("googleapis", () => ({
+  google: {
+    auth: {
+      OAuth2: class {
+        setCredentials() {}
+        async getAccessToken() { return mockGetAccessToken(); }
+      }
+    }
+  }
+}));
+
+const mockResolveRunConfig = vi.fn();
 vi.mock("../../src/core/channel-config-resolver.js", () => ({
   ChannelConfigResolver: class {
     async resolveRunConfig() {
-      return {
-        channel: repositoryState.bundle.channel,
-        profile: repositoryState.bundle.profile,
-        focuses: repositoryState.bundle.focuses,
-        sources: repositoryState.bundle.sources,
-        publishingAccount: {
-          provider: "youtube",
-          accountId: "acc1",
-          channelId: repositoryState.bundle.channel.id,
-          accountIdentifier: "channel@example.com",
-          token: "refresh-token",
-          clientId: "client-id",
-          clientSecret: "client-secret",
-        },
-        snapshotCreatedAt: "2024-01-01T00:00:00.000Z",
-      };
+      return mockResolveRunConfig();
     }
   },
   buildManagedPipelineConfig: vi.fn(() => ({ channels: [], specificUrls: [] })),
 }));
 
+const mockRunPipeline = vi.fn(async () => []);
 vi.mock("../../src/core/pipeline.js", () => ({
-  runPipeline: vi.fn(async () => []),
+  runPipeline: vi.fn(async (...args) => mockRunPipeline(...args)),
+}));
+
+const mockRunQuizPipeline = vi.fn();
+vi.mock("../../src/core/quiz/quiz-pipeline.js", () => ({
+  runQuizPipeline: vi.fn(async (...args) => mockRunQuizPipeline(...args)),
 }));
 
 describe("admin routes", () => {
@@ -101,7 +105,28 @@ describe("admin routes", () => {
   const initialBundle = JSON.parse(JSON.stringify(repositoryState.bundle));
   beforeEach(() => {
     repositoryState.bundle = JSON.parse(JSON.stringify(initialBundle));
-    vi.resetModules();
+    vi.clearAllMocks();
+    mockGetAccessToken.mockResolvedValue({});
+    mockResolveRunConfig.mockResolvedValue({
+      channel: repositoryState.bundle.channel,
+      profile: repositoryState.bundle.profile,
+      focuses: repositoryState.bundle.focuses,
+      sources: repositoryState.bundle.sources,
+      publishingAccount: {
+        provider: "youtube",
+        accountId: "acc1",
+        channelId: repositoryState.bundle.channel.id,
+        accountIdentifier: "channel@example.com",
+        token: "refresh-token",
+        clientId: "client-id",
+        clientSecret: "client-secret",
+      },
+      snapshotCreatedAt: "2024-01-01T00:00:00.000Z",
+    });
+    mockRunPipeline.mockImplementation(async (config, progressCb) => {
+      progressCb({ stage: "starting", progress: 0, message: "start" });
+      return [];
+    });
     process.env = {
       ...originalEnv,
       ADMIN_API_TOKEN: "secret-token",
@@ -145,6 +170,12 @@ describe("admin routes", () => {
   async function makeAuthedRequest(path: string, method = "GET", body?: unknown) {
     const { registerAdminRoutes } = await import("../../src/server/admin-routes.js");
     const app = new Hono();
+
+    // Add custom error handler to catch errors from the route itself for test validation
+    app.onError((err, c) => {
+        return c.json({ error: err.message }, 500);
+    });
+
     registerAdminRoutes(app);
     return app.request(path, {
       method,
@@ -168,16 +199,64 @@ describe("admin routes", () => {
   it("PUT /channels/:channelId updates a channel", async () => {
     const payload = {
       slug: "canal-1", name: "Canal 1 Updated", description: "desc", status: "active",
-      watermarkText: "Canal", logoPath: null,
+      watermarkText: "Canal", logoPath: null, channelType: "quiz",
       profile: { videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, aiProvider: "ollama", aiModel: "gemma3:1b", sortByViews: false },
       focuses: [{ key: "catolicos", label: "Católicos" }],
       sources: [{ kind: "youtube_channel", value: "UC123", label: "Fonte" }],
-      publishingAccounts: [],
+      publishingAccounts: [
+        { provider: "youtube", label: "YT", status: "active", accountIdentifier: "test", refreshToken: "refresh" }
+      ],
     };
     const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", payload);
     expect(res.status).toBe(200);
     const body = await res.json() as any;
     expect(body.status).toBe("ok");
+    expect(repositoryState.bundle.channel.channelType).toBe("quiz");
+    expect(repositoryState.bundle.publishingAccounts).toHaveLength(1);
+  });
+
+  it("PUT /channels/:channelId throws if account payload requires new token but has none", async () => {
+    const payload = {
+      slug: "canal-1", name: "Canal 1 Updated", description: "desc", status: "active",
+      watermarkText: "Canal", logoPath: null, channelType: "quiz",
+      profile: { videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, aiProvider: "ollama", aiModel: "gemma3:1b", sortByViews: false },
+      focuses: [{ key: "catolicos", label: "Católicos" }],
+      sources: [{ kind: "youtube_channel", value: "UC123", label: "Fonte" }],
+      publishingAccounts: [
+        { provider: "youtube", label: "YT", status: "active", accountIdentifier: "test" } // missing refreshToken
+      ],
+    };
+
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", payload);
+    expect(res.status).toBe(500);
+    const body = await res.json() as any;
+    expect(body.error).toBe("Publishing account token is required for provider: youtube");
+  });
+
+  it("PUT /channels/:channelId uses existing token if no new token provided", async () => {
+    repositoryState.bundle.publishingAccounts = [{
+      id: "acc-1", channelId: "canal-1", provider: "youtube", label: "YT",
+      status: "active", accountIdentifier: "test", clientId: "cid", clientSecret: "cs",
+      encryptedToken: { keyVersion: "v1", iv: "iv", authTag: "t", ciphertext: "c" },
+      createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z",
+    }] as any;
+
+    const payload = {
+      slug: "canal-1", name: "Canal 1 Updated", description: "desc", status: "active",
+      watermarkText: "Canal", logoPath: null, channelType: "quiz",
+      profile: { videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, aiProvider: "ollama", aiModel: "gemma3:1b", sortByViews: false },
+      focuses: [{ key: "catolicos", label: "Católicos" }],
+      sources: [{ kind: "youtube_channel", value: "UC123", label: "Fonte" }],
+      publishingAccounts: [
+        { provider: "youtube", label: "YT", status: "active", accountIdentifier: "test" } // missing refreshToken
+      ],
+    };
+
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", payload);
+    expect(res.status).toBe(200);
+    const body = await res.json() as any;
+    expect(body.status).toBe("ok");
+    expect(repositoryState.bundle.publishingAccounts[0].encryptedToken).toBeDefined();
   });
 
   it("PUT /channels/:channelId returns 400 for invalid payload", async () => {
@@ -192,8 +271,26 @@ describe("admin routes", () => {
     expect(body.status).toBe("deleted");
   });
 
+  it("POST /channels/:channelId/test-connection works", async () => {
+     const res = await makeAuthedRequest("/api/admin/channels/canal-1/test-connection", "POST");
+     expect(res.status).toBe(200);
+     const body = await res.json() as any;
+     expect(body.status).toBe("ok");
+  });
+
+  it("POST /channels/:channelId/test-connection handles failure", async () => {
+     mockGetAccessToken.mockRejectedValue(new Error("Token Failed"));
+     const res = await makeAuthedRequest("/api/admin/channels/canal-1/test-connection", "POST");
+     expect(res.status).toBe(400);
+  });
+
   it("GET /runs returns run list", async () => {
     const res = await makeAuthedRequest("/api/admin/runs");
+    expect(res.status).toBe(200);
+  });
+
+  it("GET /runs with query params passes limits and offsets", async () => {
+    const res = await makeAuthedRequest("/api/admin/runs?channelId=c1&limit=10&offset=5");
     expect(res.status).toBe(200);
   });
 
@@ -223,11 +320,80 @@ describe("admin routes", () => {
     expect(body.publishingAccounts[0].hasStoredToken).toBe(true);
   });
 
-  it("POST /channels/:channelId/runs creates a run and returns 202", async () => {
+  it("POST /channels/:channelId/runs creates a run and returns 202 (cuts)", async () => {
     const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
     expect(res.status).toBe(202);
     const body = await res.json() as any;
     expect(body.status).toBe("processing");
     expect(typeof body.runId).toBe("string");
+    await new Promise(r => setTimeout(r, 50));
+    expect(mockRunPipeline).toHaveBeenCalled();
+  });
+
+  it("POST /channels/:channelId/runs fails the run on pipeline error (cuts)", async () => {
+    mockRunPipeline.mockRejectedValue(new Error("Pipeline failed"));
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
+    expect(res.status).toBe(202);
+    await new Promise(r => setTimeout(r, 50));
+    expect(mockRunPipeline).toHaveBeenCalled();
+  });
+
+  it("POST /channels/:channelId/runs creates a run for quiz channel", async () => {
+    mockResolveRunConfig.mockResolvedValue({
+      channel: { ...repositoryState.bundle.channel, channelType: "quiz" },
+      profile: repositoryState.bundle.profile,
+      focuses: repositoryState.bundle.focuses,
+      sources: repositoryState.bundle.sources,
+      publishingAccount: {
+        provider: "youtube",
+        accountId: "acc1",
+        channelId: repositoryState.bundle.channel.id,
+        accountIdentifier: "channel@example.com",
+        token: "refresh-token",
+        clientId: "client-id",
+        clientSecret: "client-secret",
+      },
+      snapshotCreatedAt: "2024-01-01T00:00:00.000Z",
+    });
+
+    mockRunQuizPipeline.mockImplementation(async (config, progressCb) => {
+        progressCb({ stage: "generating_quiz", progress: 50, message: "halfway" });
+        return {
+            outputPath: "/out/quiz.mp4",
+            quiz: { tema: "Math", fato_curioso: "1+1=2" }
+        };
+    });
+
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
+    expect(res.status).toBe(202);
+
+    // allow async pipeline to resolve
+    await new Promise(r => setTimeout(r, 50));
+    expect(mockRunQuizPipeline).toHaveBeenCalled();
+  });
+
+  it("POST /channels/:channelId/runs fails the run on pipeline error (quiz)", async () => {
+    mockResolveRunConfig.mockResolvedValue({
+      channel: { ...repositoryState.bundle.channel, channelType: "quiz" },
+      profile: repositoryState.bundle.profile,
+      focuses: repositoryState.bundle.focuses,
+      sources: repositoryState.bundle.sources,
+      publishingAccount: {
+        provider: "youtube",
+        accountId: "acc1",
+        channelId: repositoryState.bundle.channel.id,
+        accountIdentifier: "channel@example.com",
+        token: "refresh-token",
+        clientId: "client-id",
+        clientSecret: "client-secret",
+      },
+      snapshotCreatedAt: "2024-01-01T00:00:00.000Z",
+    });
+
+    mockRunQuizPipeline.mockRejectedValue(new Error("Quiz Pipeline failed"));
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
+    expect(res.status).toBe(202);
+    await new Promise(r => setTimeout(r, 50));
+    expect(mockRunQuizPipeline).toHaveBeenCalled();
   });
 });
