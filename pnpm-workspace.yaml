@@ -3,3 +3,12 @@ packages:
 
 onlyBuiltDependencies:
   - esbuild
+  - better-sqlite3
+  - msgpackr-extract
+  - sqlite3
+
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+  msgpackr-extract: true
+  sqlite3: true

@@ -30,6 +30,15 @@ describe("withRetry", () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
+  it("handles Error instances with missing message", async () => {
+    const error = new Error("temporary");
+    Object.defineProperty(error, "message", { value: undefined });
+    const fn = vi.fn().mockRejectedValue(error);
+
+    await expect(withRetry(fn, { maxAttempts: 2, baseDelayMs: 1 })).rejects.toBe(error);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
   it("does not retry when shouldRetry returns false", async () => {
     const fn = vi.fn().mockRejectedValue(new Error("skip me"));
     await expect(

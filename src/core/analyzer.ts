@@ -1,4 +1,4 @@
-﻿import { generateText, generateObject } from "ai";
+import { generateText, generateObject } from "ai";
 import { nanoid } from "nanoid";
 import type { Transcript, ShortClip, TranscriptSegment, TranscriptWord, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -144,13 +144,20 @@ function buildAnalysisPrompt(
   minDuration: number,
   maxDuration: number,
 ): string {
-  return `Você é um editor especializado em conteúdo espiritual e religioso para YouTube Shorts.
-Sua missão: encontrar trechos que sejam "pílulas de conteúdo": autocontidos, com sentido completo, sem depender do resto do vídeo.
+  return `Você é um editor de vídeo profissional especializado em cortes virais (YouTube Shorts, TikTok, Reels).
+Sua missão: identificar os trechos mais interessantes, impactantes, engraçados ou informativos da transcrição fornecida. Cada corte deve ser uma "pílula de conteúdo" autocontida, com sentido completo e compreensível sem o resto do vídeo.
 
 VÍDEO: "${videoTitle}"
 CANAL: "${channelName}"
 
 PRIORIDADE: selecione por este tipo de conteúdo (nesta ordem):
+1. Revelações surpreendentes, segredos ou fatos curiosos/inesperados
+2. Histórias ou anedotas com início, meio e clímax/conclusão claros
+3. Debates calorosos, opiniões fortes ou declarações impactantes
+4. Explicações cativantes de tópicos interessantes (ciência, tecnologia, comportamento)
+5. Momentos engraçados, piadas ou reações divertidas
+
+SE o conteúdo for católico/espiritual/religioso (pregações, homilias, orações, estudos bíblicos), MUDE a prioridade para:
 1. Passagens bíblicas citadas E comentadas (inclua início e fim da citação)
 2. Histórias ou parábolas com início, meio e fim claros
 3. Ensinamentos morais que concluam um raciocínio completo
@@ -158,22 +165,23 @@ PRIORIDADE: selecione por este tipo de conteúdo (nesta ordem):
 5. Exemplos de vida de santos ou fatos históricos religiosos
 
 OBRIGATÓRIO:
-- O trecho DEVE começar em uma ideia nova (não no meio de uma frase)
-- O trecho DEVE terminar com frase completa e conclusão
-- Um espectador sem contexto DEVE entender tudo
+- O trecho DEVE começar em uma ideia nova (não no meio de uma frase ou assunto inacabado)
+- O trecho DEVE terminar com uma frase completa e com sentido de conclusão
+- Um espectador sem contexto DEVE entender a mensagem principal imediatamente
 - Duração: entre ${minDuration} e ${maxDuration} segundos
+- Cada linha da transcrição está no formato [inicio_em_segundos - fim_em_segundos] texto. Use estes segundos diretamente para startTime e endTime (ex: se o trecho começa no segmento [45.00-48.00] e termina no segmento [70.00-73.00], configure startTime=45 e endTime=73).
 - Retornar no mínimo ${minClips} e no máximo ${Math.min(20, maxClips)} cortes
 
 PROIBIDO: não selecione trechos que:
-- Comecem com referências ao que foi dito antes ("como vimos", "voltando", "como mencionei")
-- Referenciem gestos, slides ou "o que está na tela"
-- Sejam interrompidos no meio de uma história ou argumento
+- Comecem com referências ao que foi falado antes ("como eu disse antes", "voltando ao assunto")
+- Dependam de referências visuais que o espectador não conseguirá entender apenas ouvindo
+- Sejam cortados abruptamente no meio de uma frase ou ideia
 
 PONTUAÇÃO viralScore (1-10):
-- 9-10: Passagem bíblica delimitada OU história completa com moral clara
-- 7-8: Ensinamento que conclui um raciocínio sem contexto externo
-- 5-6: Reflexão interessante com contexto leve dispensável
-- 1-4: Fragmento incompleto ou dependente de contexto
+- 9-10: Declaração bombástica, revelação chocante ou piada extremamente engraçada com excelente gancho (hook) inicial
+- 7-8: História interessante ou explicação clara de um conceito cativante
+- 5-6: Reflexão curiosa ou conversa informal com valor moderado de entretenimento
+- 1-4: Fragmento sem gancho, sem sentido completo ou chato
 
 Títulos em Português (pt-BR), máx 50 caracteres, sem: "corte", "clipe", "short", "vídeo", "canal", "parte".
 

@@ -5,9 +5,10 @@ import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
 import { sendToTelegram, sendSummary } from "./telegram.js";
-import { generateYoutubeMetadata, uploadToYouTube } from "./youtube.service.js";
+import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo } from "./youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
+import { enqueueYoutubeUpload } from "./queue.js";
 import pLimit from "p-limit";
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
@@ -94,24 +95,51 @@ export async function processVideo(
     const youtubeEnabled = process.env.ENABLE_YOUTUBE === "true";
 
     for (const short of shorts) {
+      let sendStage = "metadata";
       try {
+        sendStage = "metadata";
         const youtubeMeta = await generateYoutubeMetadata(short, config);
         let youtubeUrl: string | undefined;
         if (youtubeEnabled) {
-          if (await isDailyLimitReachedAsync(config.dailyUploadLimit)) {
-            logger.warn({ limit: config.dailyUploadLimit }, "⚠️ Limite diário de uploads do YouTube atingido — enviando apenas ao Telegram");
+          sendStage = "youtube_upload_or_queue";
+          const channelId = config.managedRun?.channelId || "global";
+          let uploaded = false;
+          if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
+            logger.warn({ limit: config.dailyUploadLimit, channelId }, "⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila");
           } else {
-            youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config) ?? undefined;
+            youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags) ?? undefined;
             if (!youtubeUrl) {
-              logger.warn({ clipId: short.id }, "YouTube upload failed, skipping URL but continuing to Telegram");
+              logger.warn({ clipId: short.id }, "YouTube upload failed, queueing for retry");
             } else {
-              await incrementDailyUploadCountAsync();
+              uploaded = true;
+              await incrementDailyUploadCountAsync(channelId);
+              
+              // Post original video link in comments
+              const videoId = youtubeUrl.split("/").pop();
+              if (videoId) {
+                const commentText = `Vídeo original: ${video.url}`;
+                await addCommentToVideo(videoId, commentText, config);
+              }
             }
           }
+          if (!uploaded) {
+            await enqueueYoutubeUpload(short, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags);
+          }
         }
+        sendStage = "telegram";
         const msgId = await sendToTelegram(short, config, youtubeUrl);
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
+        logger.error(
+          {
+            error: err,
+            clipId: short.id,
+            stage: sendStage,
+            runId: config.managedRun?.runId,
+            channelId: config.managedRun?.channelId,
+          },
+          "Failed to send generated short",
+        );
         errors.push(`Erro no envio de ${short.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }

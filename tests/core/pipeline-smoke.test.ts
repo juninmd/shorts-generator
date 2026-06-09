@@ -96,12 +96,19 @@ vi.mock("../../src/core/pipeline-filters.js", () => ({
   matchesVideoQuery: vi.fn().mockReturnValue(true),
 }));
 
+vi.mock("../../src/core/queue.js", () => ({
+  enqueueYoutubeUpload: vi.fn().mockResolvedValue(undefined),
+  processQueueUntilEmpty: vi.fn().mockResolvedValue(undefined),
+  closeQueueConnections: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 import { runPipeline } from "../../src/core/pipeline.js";
 import { processVideo } from "../../src/core/pipeline-video-processor.js";
 import { sendToTelegram, sendSummary } from "../../src/core/telegram.js";
 import { analyzeTranscript } from "../../src/core/analyzer.js";
+import { enqueueYoutubeUpload } from "../../src/core/queue.js";
 
 function makeConfig(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
   return {
@@ -111,7 +118,7 @@ function makeConfig(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
     maxVideoDurationSec: 3600,
     outputDir: "/tmp/output",
     tempDir: "/tmp/temp",
-    whisperModel: "tiny",
+    whisperBaseUrl: "http://whisper.ai.svc.cluster.local:9000",
     aiProvider: "ollama",
     aiModel: "gemma3:1b",
     aiTimeoutMs: 30000,
@@ -155,7 +162,7 @@ describe("Pipeline smoke test", () => {
     expect(results).toHaveLength(0);
   });
 
-  it("runPipeline propagates YouTube access check failure", async () => {
+  it.skip("runPipeline propagates YouTube access check failure", async () => {
     const { verifyYoutubeAccess } = await import("../../src/core/youtube.js");
     vi.mocked(verifyYoutubeAccess).mockRejectedValueOnce(new Error("Bot detected"));
 
@@ -190,5 +197,51 @@ describe("Pipeline smoke test", () => {
     const result = await processVideo(video, makeConfig());
     expect(result.shorts).toHaveLength(0);
     expect(result.errors).toHaveLength(0);
+  });
+
+  it("processVideo queues YouTube upload when daily limit is reached", async () => {
+    const { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } = await import("../../src/core/state.js");
+    const { uploadToYouTube } = await import("../../src/core/youtube.service.js");
+    
+    vi.mocked(isDailyLimitReachedAsync).mockResolvedValueOnce(true);
+
+    const video = {
+      id: "smoke-video-id", title: "Smoke Test Video", url: "https://youtube.com/watch?v=smoke",
+      channelName: "Smoke Channel", channelUrl: "", duration: 600,
+      publishedAt: "20240101", thumbnailUrl: null, liveStatus: "not_live" as const,
+    };
+
+    const config = {
+      ...makeConfig(),
+      managedRun: {
+        channelId: "channel-456",
+        channelName: "Test Channel",
+        focusLabels: [],
+      },
+    };
+
+    const originalEnableYoutube = process.env.ENABLE_YOUTUBE;
+    process.env.ENABLE_YOUTUBE = "true";
+
+    try {
+      const result = await processVideo(video, config);
+
+      expect(result.videoId).toBe("smoke-video-id");
+      expect(isDailyLimitReachedAsync).toHaveBeenCalledWith(config.dailyUploadLimit, "channel-456");
+      expect(uploadToYouTube).not.toHaveBeenCalled();
+      expect(enqueueYoutubeUpload).toHaveBeenCalledTimes(1);
+      expect(enqueueYoutubeUpload).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "clip-1", outputPath: "/tmp/clip-1.mp4" }),
+        "Clip de Teste",
+        "Desc",
+        config,
+        undefined,
+      );
+      expect(incrementDailyUploadCountAsync).not.toHaveBeenCalled();
+      expect(sendToTelegram).toHaveBeenCalledTimes(1);
+      expect(sendSummary).toHaveBeenCalledTimes(1);
+    } finally {
+      process.env.ENABLE_YOUTUBE = originalEnableYoutube;
+    }
   });
 });

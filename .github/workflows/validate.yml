@@ -11,4 +11,41 @@ concurrency:
 
 jobs:
   check:
-    uses: juninmd/base-actions/.github/workflows/reusable-validate.yml@main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check tracked secret files
+        shell: bash
+        run: |
+          forbidden=$(git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.(local|production|prod|staging|dev)$|(^|/)id_rsa$|(^|/).+\.pem$|(^|/).+\.key$' || true)
+          if [ -n "$forbidden" ]; then
+            echo "::error::Secret files tracked: $forbidden"
+            exit 1
+          fi
+          echo "No committed secrets found."
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.5.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build

@@ -41,6 +41,15 @@ vi.mock("../../src/core/ai-provider.js", () => ({
   createModel: vi.fn().mockReturnValue({ id: "mock-model" }),
 }));
 
+const mockIsDailyLimitReachedAsync = vi.fn().mockResolvedValue(false);
+const mockSetDailyLimitReachedAsync = vi.fn().mockResolvedValue(undefined);
+
+vi.mock("../../src/core/state.js", () => ({
+  isDailyLimitReachedAsync: (...args: any[]) => mockIsDailyLimitReachedAsync(...args),
+  setDailyLimitReachedAsync: (...args: any[]) => mockSetDailyLimitReachedAsync(...args),
+  incrementDailyUploadCountAsync: vi.fn(),
+}));
+
 // Mock logger
 vi.mock("../../src/core/logger", () => ({
   logger: {
@@ -91,28 +100,46 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Original Title",
         description: "Original Description",
+        tags: ["shorts", "curiosidades", "viral", "#dummy"],
       });
     });
 
     it.each([
       ['{"title": "Viral Title", "description": "Viral Description"}'],
       ['```json\n{"title": "Viral Title", "description": "Viral Description"}\n```'],
-      ['```\n{"title": "Viral Title", "description": "Viral Description"}\n```']
+      ['```\n{"title": "Viral Title", "description": "Viral Description"}\n```'],
+      ['```json\n{"title": "Viral Title", "description": "Viral Description"}']
     ])("should parse metadata from AI successfully: %s", async (content) => {
       setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
       expect(result).toEqual({
         title: "Viral Title",
         description: "Viral Description",
+        tags: ["shorts", "curiosidades", "viral", "#dummy"],
       });
     });
 
+    it("should not duplicate original video link when AI includes it", async () => {
+      setupMock('{"title": "Viral Title", "description": "Viral Description https://youtube.com/watch?v=original"}');
+      const result = await generateYoutubeMetadata(mockShort, mockConfig);
+      expect(result.description).toBe("Viral Description https://youtube.com/watch?v=original");
+    });
+
+    it("should handle managed runs without focus labels", async () => {
+      setupMock('{"title": "Viral Title", "description": "Viral Description", "tags": ["shorts"]}');
+      const config = { ...mockConfig, managedRun: { runId: "run-1", channelId: "channel-1", channelName: "Channel" } };
+
+      const result = await generateYoutubeMetadata(mockShort, config);
+
+      expect(result.title).toBe("Viral Title");
+      expect(result.tags).toEqual(["shorts"]);
+    });
 
 
     it.each([
-      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description" } },
-      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description" } },
-      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description" } }
+      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } },
+      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } },
+      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } }
     ])("should fallback properly when JSON parsing fails or misses fields: $content", async ({ content, expected }) => {
       setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
@@ -126,6 +153,7 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Original Title",
         description: "Original Description",
+        tags: ["shorts", "curiosidades", "viral", "#dummy"],
       });
     });
   });
@@ -187,6 +215,30 @@ describe("youtube.service", () => {
     });
   });
 
+  describe("uploadToYouTube - specific tests", () => {
+    it("should limit tags characters combined length to 490", async () => {
+      mockCredsSetup();
+      insertMock.mockResolvedValueOnce({ data: { id: "yt123" } });
+
+      const longTags = Array.from({ length: 50 }, (_, i) => `tag${i}longextraseokeyword`);
+      await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig, longTags);
+
+      const sentTags = insertMock.mock.calls[0][0].requestBody.snippet.tags;
+      const combinedLength = sentTags.join(",").length;
+      expect(combinedLength).toBeLessThanOrEqual(490);
+      expect(sentTags.length).toBeLessThan(50);
+    });
+
+    it("should ignore invalid tags instead of failing before upload", async () => {
+      mockCredsSetup();
+      insertMock.mockResolvedValueOnce({ data: { id: "yt123" } });
+
+      await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig, ["tag1", undefined, "", "  tag2  "] as any);
+
+      expect(insertMock.mock.calls[0][0].requestBody.snippet.tags).toEqual(["tag1", "tag2"]);
+    });
+  });
+
   describe("uploadFullVideoToYouTube - specific tests", () => {
     it("should trim title to 100 chars", async () => {
       mockCredsSetup();
@@ -196,6 +248,58 @@ describe("youtube.service", () => {
       await uploadFullVideoToYouTube("video.mp4", longTitle, "Desc", mockConfig);
 
       expect(insertMock.mock.calls[0][0].requestBody.snippet.title).toBe(longTitle.slice(0, 100));
+    });
+  });
+
+  describe("Daily limit validation", () => {
+    beforeEach(() => {
+      mockIsDailyLimitReachedAsync.mockReset().mockResolvedValue(false);
+      mockSetDailyLimitReachedAsync.mockReset().mockResolvedValue(undefined);
+    });
+
+    it("should abort upload and return null when daily limit is reached", async () => {
+      mockCredsSetup();
+      mockIsDailyLimitReachedAsync.mockResolvedValueOnce(true);
+
+      const result = await uploadToYouTube("video.mp4", "Title", "Desc", mockConfig);
+      expect(result).toBeNull();
+      expect(insertMock).not.toHaveBeenCalled();
+      expect(mockIsDailyLimitReachedAsync).toHaveBeenCalledWith(mockConfig.dailyUploadLimit, "global");
+    });
+
+    it("should mark limit as reached when insert fails with quota exceeded error", async () => {
+      vi.useFakeTimers();
+      try {
+        mockCredsSetup();
+        const quotaError = new Error("The user has exceeded the number of videos they may upload.");
+        insertMock.mockRejectedValue(quotaError);
+
+        const resultPromise = uploadToYouTube("video.mp4", "Title", "Desc", mockConfig);
+        await vi.runAllTimersAsync();
+        const result = await resultPromise;
+
+        expect(result).toBeNull();
+        expect(mockSetDailyLimitReachedAsync).toHaveBeenCalledWith("global");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("should use managedRun.channelId if present", async () => {
+      mockCredsSetup();
+      mockIsDailyLimitReachedAsync.mockResolvedValueOnce(true);
+      const customConfig = {
+        ...mockConfig,
+        managedRun: {
+          channelId: "channel-123",
+          channelName: "Custom Channel",
+          focusLabels: [],
+        },
+      };
+
+      const result = await uploadToYouTube("video.mp4", "Title", "Desc", customConfig);
+      expect(result).toBeNull();
+      expect(mockIsDailyLimitReachedAsync).toHaveBeenCalledWith(customConfig.dailyUploadLimit, "channel-123");
     });
   });
 });

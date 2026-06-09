@@ -23,6 +23,7 @@
 2. **Clean Logic**: Separation of concerns enforced across all layers.
 3. **Validation**: All changes require successful tests (`npm test`), linting, and smoke tests (`npm run smoke-test`).
 4. **Security**: Sensitive data must be excluded from context.
+5. **Source Attribution**: Every video generated from another video MUST include the original link in the YouTube description.
 
 ## 🤝 Interaction Protocol
 - Follow the **Plan -> Act -> Validate** cycle for every task.

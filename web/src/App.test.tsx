@@ -22,10 +22,13 @@ vi.mock("./hooks/useAdminConsole", () => ({
 }));
 
 describe("App", () => {
-  it("renders the admin console headline and error state", () => {
+  it("renders the admin console empty-token state", () => {
     render(<App />);
 
-    expect(screen.getByText("Gerenciamento de shorts por canal")).toBeInTheDocument();
-    expect(screen.getByText("Falha ao carregar")).toBeInTheDocument();
+    expect(screen.getByText("Painel de controle")).toBeInTheDocument();
+    expect(screen.getByText("Configure o token para ver os canais")).toBeInTheDocument();
+    expect(screen.getByText("Tipo de fluxo")).toBeInTheDocument();
+    expect(screen.getByText("Cortes")).toBeInTheDocument();
+    expect(screen.getByText("Quiz")).toBeInTheDocument();
   });
 });

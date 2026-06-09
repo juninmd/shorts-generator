@@ -138,7 +138,7 @@ function timeAgo(iso: string) {
 function SetupChecklist({ hasToken, hasChannel }: { hasToken: boolean; hasChannel: boolean }) {
   const items = [
     { done: hasToken, current: !hasToken, label: "Configure o token de admin", desc: "Insira o Bearer token na barra lateral para autenticar." },
-    { done: hasChannel, current: hasToken && !hasChannel, label: "Crie seu primeiro canal", desc: "Clique em '+ Novo canal' e siga o wizard de 4 passos." },
+    { done: hasChannel, current: hasToken && !hasChannel, label: "Crie seu primeiro canal", desc: "Clique em '+ Novo canal' e siga o wizard de cortes." },
     { done: false, current: hasToken && hasChannel, label: "Rode o pipeline", desc: "Clique em '▶ Rodar' no canal configurado e acompanhe a execução." },
   ];
   return (
@@ -262,14 +262,17 @@ function Toast({ msg, type }: { msg: string; type: "ok" | "err" }) {
 }
 
 // ─── Wizard steps ─────────────────────────────────────────────────────────────
-const WIZARD_LABELS = ["Tipo de fluxo", "Identidade", "Pipeline", "Publicação"];
+const IS_CUTS_ONLY_MODE = import.meta.env.VITE_CHANNEL_FLOW_MODE === "cuts";
+const WIZARD_LABELS = IS_CUTS_ONLY_MODE ? ["Identidade", "Pipeline", "Publicação"] : ["Tipo de fluxo", "Identidade", "Pipeline", "Publicação"];
+const EDITOR_TABS = ["identity", "pipeline", "publishing"] as const;
+const STEP_OFFSET = IS_CUTS_ONLY_MODE ? 0 : 1;
 
 function Step0FlowType({ draft, setDraft }: { draft: AdminChannelBundle; setDraft: (d: AdminChannelBundle) => void }) {
   const isQuiz = draft.channel.channelType === "quiz";
   return (
     <div>
       <p className="section-title">Qual tipo de conteúdo este canal vai gerar?</p>
-      <p className="section-sub">Você pode mudar isso depois. Cada tipo tem um pipeline diferente.</p>
+      <p className="section-sub">No cluster de produção use Cortes; Quiz segue disponível fora do modo cluster.</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
         <button className={`flow-card ${!isQuiz ? "active-cuts" : ""}`} onClick={() => setDraft(ch(draft, { channelType: "cuts" }))}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -492,6 +495,7 @@ export default function App() {
 
   const hasToken = !!adminToken;
   const hasChannel = channels.length > 0;
+  const editorStep = isNew ? wizardStep : wizardStep + STEP_OFFSET;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#050914" }}>
@@ -513,7 +517,7 @@ export default function App() {
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
             <Label>Token admin</Label>
-            <Tooltip tip="Bearer token definido em CONTROL_PLANE_ADMIN_TOKEN no .env do servidor."><span style={{ color: "#334155", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>
+            <Tooltip tip="Bearer token definido em ADMIN_API_TOKEN no .env do servidor."><span style={{ color: "#334155", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>
           </div>
           <div style={{ position: "relative" }}>
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#334155" }}><Ico.Key /></span>
@@ -582,7 +586,7 @@ export default function App() {
           {isNew && (
             <div style={{ display: "flex", gap: 8 }}>
               {wizardStep > 0 && <button className="btn btn-ghost" onClick={() => setWizardStep(s => s - 1)}>← Anterior</button>}
-              {wizardStep < 3
+              {wizardStep < WIZARD_LABELS.length - 1
                 ? <button className="btn btn-brand" onClick={() => setWizardStep(s => s + 1)}>Próximo →</button>
                 : <button className="btn btn-green" disabled={isPending} onClick={() => void handleSave()}><Ico.Save /> Salvar canal</button>
               }
@@ -595,22 +599,21 @@ export default function App() {
           <div>
             {error && <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", color: "#fca5a5", fontSize: ".8125rem" }}>⚠ {error}</div>}
 
-            {isNew && <WizardBar step={wizardStep} total={4} labels={WIZARD_LABELS} />}
+            {isNew && <WizardBar step={wizardStep} total={WIZARD_LABELS.length} labels={WIZARD_LABELS} />}
 
             {!isNew && (
               <div style={{ display: "flex", gap: 4, marginBottom: 24, background: "rgba(255,255,255,.04)", borderRadius: 10, padding: 4, width: "fit-content" }}>
-                {[["identity", "Identidade"], ["pipeline", "Pipeline"], ["publishing", "Publicação"]].map(([k, label]) => (
-                  <button key={k} className={`tab ${wizardStep === ["identity","pipeline","publishing"].indexOf(k) + 1 ? "active" : ""}`}
-                    onClick={() => setWizardStep(["identity","pipeline","publishing"].indexOf(k) + 1)}>{label}</button>
+                {EDITOR_TABS.map((k, index) => (
+                  <button key={k} className={`tab ${wizardStep === index ? "active" : ""}`}
+                    onClick={() => setWizardStep(index)}>{WIZARD_LABELS[index + STEP_OFFSET]}</button>
                 ))}
               </div>
             )}
 
-            {(isNew ? wizardStep === 0 : false) && <Step0FlowType draft={draft} setDraft={setDraft} />}
-            {(isNew ? wizardStep === 1 : wizardStep === 1 || wizardStep === 0) && wizardStep !== 0 && <Step1Identity draft={draft} setDraft={setDraft} />}
-            {(isNew ? wizardStep === 2 : wizardStep === 2) && <Step2Pipeline draft={draft} setDraft={setDraft} />}
-            {(isNew ? wizardStep === 3 : wizardStep === 3) && <Step3Publishing draft={draft} setDraft={setDraft} />}
-            {!isNew && wizardStep === 0 && <Step1Identity draft={draft} setDraft={setDraft} />}
+            {!IS_CUTS_ONLY_MODE && isNew && editorStep === 0 && <Step0FlowType draft={draft} setDraft={setDraft} />}
+            {editorStep === STEP_OFFSET && <Step1Identity draft={draft} setDraft={setDraft} />}
+            {editorStep === STEP_OFFSET + 1 && <Step2Pipeline draft={draft} setDraft={setDraft} />}
+            {editorStep === STEP_OFFSET + 2 && <Step3Publishing draft={draft} setDraft={setDraft} />}
           </div>
 
           {/* ── Right panel ── */}
@@ -619,10 +622,7 @@ export default function App() {
             {(!hasToken || !hasChannel) && <SetupChecklist hasToken={hasToken} hasChannel={hasChannel} />}
 
             {/* How-to for the current channel type */}
-            {isNew && wizardStep === 0 && null}
-            {(!isNew || wizardStep > 0) && (
-              <HowToGuide flowType={draft.channel.channelType} />
-            )}
+            {(!isNew || IS_CUTS_ONLY_MODE || wizardStep > 0) && <HowToGuide flowType={draft.channel.channelType} />}
 
             {/* Runs */}
             <div className="glass" style={{ padding: 20 }}>

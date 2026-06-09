@@ -40,7 +40,7 @@ All processing routes through `src/core/pipeline.ts`:
 YouTube Channel/URL
   → youtube.ts       — fetch metadata, download via yt-dlp
   → transcriber.ts   — audio transcription via OpenAI Whisper (Python subprocess)
-  → analyzer.ts      — Ollama LLM identifies viral moments, returns ShortClip[]
+  → analyzer.ts      — LiteLLM (OpenAI-compatible) identifies viral moments, returns ShortClip[]
   → clip-boundary.ts — aligns cut points to sentence/word boundaries
   → video-processor.ts — FFmpeg cuts vertical clips, adds watermark
   → subtitle.ts      — generates ASS captions synced to clip timing
@@ -62,8 +62,11 @@ All config is environment-driven via `src/core/config.ts`. Copy `.env.example` t
 |---|---|---|
 | `YOUTUBE_CHANNELS` | — | Comma-separated channel IDs/handles |
 | `VIDEO_URLS` | — | Direct video URLs to process |
-| `OLLAMA_MODEL` | `gemma3:1b` | LLM for transcript analysis |
-| `WHISPER_MODEL` | `tiny` | Whisper model size |
+| `AI_MODEL` | `cloud/gemma3` | LiteLLM model for transcript analysis |
+| `LITELLM_BASE_URL` | `http://localhost:4000/v1` | LiteLLM OpenAI-compatible gateway URL |
+| `LITELLM_KEY` | — | LiteLLM gateway API key |
+| `WHISPER_BASE_URL` | — | Cluster faster-whisper ASR service URL |
+| `WHISPER_CHUNK_DURATION_SEC` | `120` | Sequential audio chunk size sent to faster-whisper |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | — | Telegram delivery |
 | `MAX_VIDEO_SIZE_MB` | `500` | Skip videos larger than this |
 | `VIDEO_ENCODER` | `libx264` | FFmpeg codec |
@@ -74,7 +77,7 @@ The pipeline requires these system tools at runtime:
 - **FFmpeg** — video cutting and composition
 - **yt-dlp** — YouTube video download
 - **OpenAI Whisper** (Python) — audio transcription
-- **Ollama** — local LLM inference (must be running at `OLLAMA_BASE_URL`)
+- **LiteLLM** — OpenAI-compatible LLM gateway (must be reachable at `LITELLM_BASE_URL`)
 
 ### Code Constraints (Antigravity Protocol)
 

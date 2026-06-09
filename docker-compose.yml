@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # Main application
+  shorts-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shorts-generator
+    environment:
+      # ─── CRITICAL: Whisper service for audio transcription ───
+      WHISPER_BASE_URL: http://whisper:8000
+      WHISPER_REQUEST_TIMEOUT_MS: "600000"
+
+      # ─── YouTube access ───
+      YOUTUBE_PLAYER_CLIENT: default
+      YOUTUBE_CHANNELS: "@your_channel_1,@your_channel_2"
+      VIDEO_LIMIT: "3"
+
+      # ─── YouTube authentication (uncomment one) ───
+      # YOUTUBE_COOKIES_FILE: /app/cookies.txt
+      # YOUTUBE_COOKIES_BROWSER: chrome
+      # YOUTUBE_COOKIES_BASE64: <base64-encoded>
+
+      # ─── AI Provider (local inference) ───
+      AI_PROVIDER: ollama
+      AI_MODEL: gemma4:e4b
+      AI_TIMEOUT_MS: "600000"
+      OLLAMA_BASE_URL: http://ollama:11434
+
+      # ─── Telegram delivery ───
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-123456:ABC-demo}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:--1001234567890}
+
+      # ─── Output configuration ───
+      OUTPUT_DIR: /app/output
+      TEMP_DIR: /app/temp
+      MAX_VIDEO_SIZE_MB: "500"
+      SKIP_VIDEO_SIZE_CHECK: "true"
+
+      # ─── Server ───
+      PORT: "3001"
+
+      # ─── Watermark ───
+      WATERMARK_TEXT: "santidade católica"
+
+      # ─── Rate limiting ───
+      MAX_DAILY_UPLOADS: "70"
+
+      # ─── Logging ───
+      LOG_LEVEL: info
+
+    ports:
+      - "3001:3001"
+
+    volumes:
+      # Mount cookies if using YOUTUBE_COOKIES_FILE
+      # - ./cookies.txt:/app/cookies.txt:ro
+
+      # Output directory (where generated shorts are saved)
+      - shorts-output:/app/output
+
+      # Temp directory (audio, video sections)
+      - shorts-temp:/app/temp
+
+    depends_on:
+      whisper:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+    restart: unless-stopped
+    networks:
+      - shorts-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "npm", "run", "diagnose:cluster"]
+      interval: 60s
+      timeout: 30s
+      retries: 2
+      start_period: 120s
+
+  # ─────────────────────────────────────────────────────────────
+  # Whisper ASR Service (Audio Transcription)
+  # ─────────────────────────────────────────────────────────────
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: whisper-service
+    ports:
+      - "8000:8000"
+    environment:
+      # Model size: tiny, base, small, medium, large
+      # tiny = fast but less accurate (4 threads)
+      # base = balanced (6 threads) ← recommended
+      # small = slower, more accurate (8 threads)
+      ASR_MODEL: base
+
+      # CPU threads (auto-detect if not set)
+      ASR_THREADING: "true"
+
+      # Uvicorn server settings
+      WORKERS: "2"
+
+    restart: unless-stopped
+    networks:
+      - shorts-network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/asr"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    # Optional: GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ─────────────────────────────────────────────────────────────
+  # Ollama (Local LLM for video analysis)
+  # ─────────────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-service
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - shorts-network
+
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    # Optional: GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  shorts-output:
+    driver: local
+  shorts-temp:
+    driver: local
+  ollama-data:
+    driver: local
+
+networks:
+  shorts-network:
+    driver: bridge

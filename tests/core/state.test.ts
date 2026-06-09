@@ -8,6 +8,7 @@ import {
   getDailyUploadCountAsync,
   isDailyLimitReachedAsync,
   incrementDailyUploadCountAsync,
+  setDailyLimitReachedAsync,
   markVideoAsPostedAsync,
   getPostedTopVideosAsync,
 } from "../../src/core/state.js";
@@ -117,6 +118,11 @@ describe("State management", () => {
     it("incrementDailyUploadCountAsync calls db.query", async () => {
       await incrementDailyUploadCountAsync("canal-1");
       expect(mockPool.query).toHaveBeenCalled();
+    });
+
+    it("setDailyLimitReachedAsync calls db.query", async () => {
+      await setDailyLimitReachedAsync("canal-1");
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining("daily_channel_quotas"), ["canal-1"]);
     });
 
     it("markVideoAsPostedAsync calls db.query", async () => {

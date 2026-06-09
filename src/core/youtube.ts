@@ -16,7 +16,7 @@ function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): str
   const args: string[] = [
     "--no-check-certificates",
     "--extractor-args",
-    "youtube:player_client=tv,android,web",
+    `youtube:player_client=${process.env.YOUTUBE_PLAYER_CLIENT || "default"}`,
     "--js-runtimes",
     "node",
   ];
@@ -71,7 +71,7 @@ async function withCookies<T>(
 }
 
 /**
- * Execute yt-dlp with better error reporting.
+ * Execute yt-dlp with comprehensive error diagnostics.
  */
 async function execYtDlp(args: string[], options: ExecFileOptions = {}): Promise<{ stdout: string; stderr: string }> {
   try {
@@ -80,26 +80,26 @@ async function execYtDlp(args: string[], options: ExecFileOptions = {}): Promise
       ...(options as { env?: NodeJS.ProcessEnv }).env,
       YTDLP_JS_EXECUTABLE: "node",
     };
-    return (await execFileAsync("yt-dlp", args, { ...options, env: spawnEnv, encoding: "utf8" })) as unknown as {
+    return (await execFileAsync("yt-dlp", args, { ...options, env: spawnEnv, encoding: "utf8", maxBuffer: 10 * 1024 * 1024 })) as unknown as {
       stdout: string;
       stderr: string;
     };
   } catch (error: unknown) {
     const stderr = error instanceof Error && "stderr" in error ? String((error as NodeJS.ErrnoException & { stderr?: string }).stderr) : "";
+    const stdout = error instanceof Error && "stdout" in error ? String((error as NodeJS.ErrnoException & { stdout?: string }).stdout) : "";
+
     // Redact cookie path from args if present for extra safety
     const safeArgs = args.map((arg, i) => {
       if (i > 0 && args[i - 1] === "--cookies") return "[REDACTED_COOKIE_PATH]";
       return arg;
     });
 
+    const safeStderr = stderr.replace(/cookies-[a-f0-9]+\.txt/g, "[REDACTED_COOKIE_FILE]");
     const safeMessage = (error instanceof Error ? error.message : String(error)).replace(/cookies-[a-f0-9]+\.txt/g, "[REDACTED_COOKIE_FILE]");
 
     logger.error({
       args: safeArgs,
-      stderr: stderr.split("\n").filter((l: string) => {
-        const lower = l.toLowerCase();
-        return lower.includes("error") || lower.includes("warning");
-      }).join("\n"),
+      stderr: safeStderr,
       message: safeMessage
     }, "yt-dlp execution failed");
     throw error;
@@ -369,7 +369,7 @@ export async function downloadAudioOnly(
 
   const audioPath = path.join(videoDir, `${video.id}.wav`);
 
-  logger.info({ videoId: video.id, title: video.title }, "Downloading audio only for transcription");
+  logger.info({ videoId: video.id, title: video.title, outputPath: audioPath }, "Downloading audio only for transcription");
 
   return withCookies(config, async (tempCookiePath) => {
     const args = [
@@ -386,10 +386,51 @@ export async function downloadAudioOnly(
     ];
 
     try {
-      await execYtDlp(args, { timeout: 300_000 });
+      const { stderr } = await execYtDlp(args, { timeout: 300_000 });
+
+      // Check if file was actually created
+      if (!fs.existsSync(audioPath)) {
+        const partialFile = audioPath.replace(/\.wav$/, ".*");
+        const tempFiles = fs.readdirSync(videoDir).filter(f => f.includes(video.id));
+
+        const diagnostics = {
+          videoId: video.id,
+          expectedPath: audioPath,
+          tempDirContents: tempFiles,
+          stderrSample: stderr.slice(-500), // Last 500 chars
+        };
+
+        // Detect specific failure stage
+        let stage = "unknown";
+        if (stderr.includes("ERROR") && !stderr.includes("ffmpeg")) stage = "download_video_stream";
+        else if (stderr.includes("ffmpeg") || stderr.includes("Post-processor")) stage = "ffmpeg_audio_extraction";
+        else if (stderr.includes("WARNING")) stage = "with_warnings";
+
+        logger.error({
+          ...diagnostics,
+          stage,
+          message: `Audio file not created at ${audioPath}. Failed at: ${stage}`,
+        }, "Audio download completed but file missing");
+
+        throw new Error(
+          `[AUDIO EXTRACTION FAILED] Stage: ${stage}\n` +
+          `Expected: ${audioPath}\n` +
+          `Stderr: ${stderr.split("\n").slice(-3).join("\n")}`
+        );
+      }
 
       const stats = fs.statSync(audioPath);
-      logger.info({ videoId: video.id, sizeKB: (stats.size / 1024).toFixed(0) }, "Audio downloaded and converted");
+      if (stats.size < 1000) {
+        logger.warn(
+          { videoId: video.id, sizeBytes: stats.size },
+          "Audio file suspiciously small (< 1KB) — may be corrupted"
+        );
+      }
+
+      logger.info(
+        { videoId: video.id, sizeKB: (stats.size / 1024).toFixed(0) },
+        "✓ Audio downloaded and converted successfully"
+      );
 
       return {
         ...video,
@@ -398,10 +439,55 @@ export async function downloadAudioOnly(
         fileSize: stats.size,
       };
     } catch (err: any) {
-      logger.error({ videoId: video.id, error: err.message }, "Failed to download audio");
-      throw err;
+      const errMsg = String(err?.stderr ?? err?.message ?? err);
+      const stage = diagnoseAudioDownloadFailure(errMsg);
+
+      logger.error({
+        videoId: video.id,
+        failureStage: stage,
+        errorSample: errMsg.split("\n").slice(-5).join("\n"),
+        url: video.url,
+        outputPath: audioPath,
+      }, `[${stage}] Audio download failed`);
+
+      throw new Error(`[AUDIO DOWNLOAD FAILED - ${stage}]\n${errMsg.split("\n").slice(-3).join("\n")}`);
     }
   });
+}
+
+/**
+ * Diagnose which stage of audio download failed.
+ */
+function diagnoseAudioDownloadFailure(stderr: string): string {
+  const lower = stderr.toLowerCase();
+
+  if (lower.includes("403") || lower.includes("bot") || lower.includes("blocked")) {
+    return "YOUTUBE_BLOCKED";
+  }
+  if (lower.includes("sign in") || lower.includes("age")) {
+    return "YOUTUBE_AUTH_REQUIRED";
+  }
+  if (lower.includes("no formats found") || lower.includes("no video formats")) {
+    return "NO_VIDEO_FORMATS";
+  }
+  if (lower.includes("unable to download") && lower.includes("http")) {
+    return "NETWORK_ERROR_DOWNLOAD";
+  }
+  if (lower.includes("ffmpeg") || lower.includes("post-processor")) {
+    if (lower.includes("not found")) return "FFMPEG_NOT_INSTALLED";
+    return "FFMPEG_CONVERSION_FAILED";
+  }
+  if (lower.includes("no space") || lower.includes("disk full")) {
+    return "DISK_SPACE_FULL";
+  }
+  if (lower.includes("permission denied") || lower.includes("access denied")) {
+    return "PERMISSION_ERROR";
+  }
+  if (lower.includes("timeout") || lower.includes("timed out")) {
+    return "TIMEOUT";
+  }
+
+  return "UNKNOWN_ERROR";
 }
 
 /**

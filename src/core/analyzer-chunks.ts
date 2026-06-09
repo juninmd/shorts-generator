@@ -8,9 +8,7 @@ import { ClipSchema, type ClipItem } from "./analyzer-schema.js";
 export const CHUNK_THRESHOLD_CHARS = 32_000;
 
 export function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  return seconds.toFixed(2);
 }
 
 export function formatTranscriptForLLM(segments: TranscriptSegment[]): string {

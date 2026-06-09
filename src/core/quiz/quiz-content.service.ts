@@ -4,9 +4,9 @@ import { createModel } from "../ai-provider.js";
 import type { PipelineConfig } from "../../types.js";
 import { logger } from "../logger.js";
 
-export const generateQuiz = async (config: PipelineConfig): Promise<Quiz> => {
+export const generateQuiz = async (config: PipelineConfig, customTopic?: string): Promise<Quiz> => {
   const topics = ["jogos", "filmes", "séries", "animes", "curiosidades gerais", "bíblia", "história", "ciência"];
-  const topic = topics[Math.floor(Math.random() * topics.length)] || "geral";
+  const topic = customTopic || topics[Math.floor(Math.random() * topics.length)] || "geral";
 
   const systemPrompt = `Você é um gerador de quizzes educativos extremamente rigoroso e preciso.
     O tema selecionado é: ${topic}.
@@ -23,7 +23,7 @@ export const generateQuiz = async (config: PipelineConfig): Promise<Quiz> => {
     const { object } = await generateObject({
       model,
       schema: quizSchema,
-      prompt: `Gere um quiz sobre ${topic}.`,
+      prompt: customTopic ? `Gere um quiz exatamente sobre: ${customTopic}` : `Gere um quiz sobre ${topic}.`,
       system: systemPrompt,
     });
 
