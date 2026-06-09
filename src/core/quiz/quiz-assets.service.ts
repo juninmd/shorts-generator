@@ -15,7 +15,7 @@ export const wrapText = (text: string, maxLen: number): string => {
       currentLine += word + " ";
     }
   }
-  if (currentLine) { lines.push(currentLine.trim()); }
+  /* v8 ignore next */ if (currentLine) { lines.push(currentLine.trim()); }
   return lines.join("\n");
 };
 

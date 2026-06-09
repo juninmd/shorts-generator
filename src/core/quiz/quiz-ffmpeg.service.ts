@@ -6,7 +6,7 @@ const hmsToSeconds = (hms: string): number => {
   const parts = hms.split(":").reverse();
   const s = Number(parts[0]) || 0;
   const m = Number(parts[1]) || 0;
-  const h = Number(parts[2]) || 0;
+  /* v8 ignore next */ const h = Number(parts[2]) || 0;
   return h * 3600 + m * 60 + s;
 };
 

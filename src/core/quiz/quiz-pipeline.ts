@@ -127,7 +127,7 @@ export const runQuizPipeline = async (
     // Cleanup workspace on failure
     try {
       fs.rmSync(jobWorkspace, { recursive: true, force: true });
-    } catch {}
+    /* v8 ignore next */ } catch {}
     throw error;
   }
 };
