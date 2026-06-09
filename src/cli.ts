@@ -15,6 +15,8 @@ import { logger } from "./core/logger.js";
 import { createSecretStore } from "./core/secret-store.js";
 import { startServer } from "./server/index.js";
 import { runInteractive } from "./cli-interactive.js";
+import { runControlPlaneMigrations } from "./core/control-plane-migrations.js";
+import type { PipelineConfig, PipelineProgress } from "./types.js";
 
 // Filter out '--' separator that pnpm/npm passes through
 const args = process.argv.slice(2).filter((a) => a !== "--");
@@ -98,7 +100,7 @@ async function main() {
       const baseConfig = loadConfig(overrides);
 
       if (managedChannelId) {
-        await runManagedChannel(managedChannelId, baseConfig);
+        await runManagedChannel(managedChannelId, baseConfig, overrides);
         break;
       }
 
@@ -170,6 +172,16 @@ async function main() {
     }
 
     case "generate:quiz": {
+      const promptIndex = args.indexOf("--prompt");
+      const quizTopic = promptIndex !== -1 ? args[promptIndex + 1] : undefined;
+      const managedChannelIndex = args.indexOf("--managed-channel");
+
+      const managedChannelId = managedChannelIndex !== -1 ? args[managedChannelIndex + 1]?.trim() : undefined;
+      if (managedChannelId) {
+        await runQuizManagedChannel(managedChannelId, quizTopic);
+        break;
+      }
+
       const overrides: Record<string, any> = {};
       const config = loadConfig(overrides);
 
@@ -185,7 +197,7 @@ async function main() {
       };
 
       try {
-        const result = await runQuizPipeline(config, progressLogger);
+        const result = await runQuizPipeline(config, progressLogger, quizTopic);
         logger.info(
           {
             success: result.success,
@@ -213,6 +225,18 @@ async function main() {
       break;
     }
 
+    case "queue:process": {
+      try {
+        const { processQueueUntilEmpty, closeQueueConnections } = await import("./core/queue.js");
+        await processQueueUntilEmpty();
+        await closeQueueConnections();
+      } catch (err: any) {
+        logger.error({ error: err.message }, "❌ Falha ao processar fila");
+        process.exit(1);
+      }
+      break;
+    }
+
     default: {
       console.log(`
 ╔══════════════════════════════════════════════╗
@@ -228,6 +252,7 @@ Commands:
   generate:top  Generate shorts from a top video (random from top 20 non-music)
   generate:quiz Generate a new educational quiz short
   server        Start the API server
+  queue:process Process the deferred YouTube upload queue
 
 Options (generate):
   --url            Comma-separated YouTube URLs (ex: "url1,url2")
@@ -238,10 +263,14 @@ Options (generate):
   --query          Filter videos by title (case-insensitive substring match)
   --full           For generate:top, number of full videos to post (ex: 5)
 
+Options (generate:quiz):
+  --prompt         The topic or specific question for the quiz (ex: "História do Brasil")
+
 Examples:
   pnpm generate --url "https://youtube.com/watch?v=abc,https://youtube.com/watch?v=def"
   pnpm generate --channel "@Handle1,@Handle2" --limit 1 --clips 1
   pnpm generate:top --clips 3
+  pnpm generate:quiz --prompt "Curiosidades sobre o Espaço"
 
 Environment Variables:
   See .env.example for all configuration options.
@@ -251,13 +280,51 @@ Environment Variables:
   }
 }
 
-async function runManagedChannel(channelId: string, baseConfig = loadConfig()): Promise<void> {
+async function runManagedChannel(channelId: string, baseConfig = loadConfig(), overrides?: Partial<PipelineConfig>): Promise<void> {
   const controlPlaneConfig = loadControlPlaneConfig();
   const db = getControlPlanePool(controlPlaneConfig);
   const repository = new ChannelBundleRepository(db);
   const runRepository = new ManagedRunRepository(db);
   const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
   const runId = randomUUID();
+
+  await runControlPlaneMigrations(db);
+  const resolved = await resolver.resolveRunConfig(runId, channelId);
+  const config = buildManagedPipelineConfig(baseConfig, runId, resolved, overrides);
+
+  await runRepository.createRun(runId, channelId, "cli", {
+    channel: resolved.channel,
+    profile: resolved.profile,
+    focuses: resolved.focuses,
+    sources: resolved.sources,
+    youtubeAccount: {
+      provider: resolved.publishingAccount.provider,
+      accountId: resolved.publishingAccount.accountId,
+      accountIdentifier: resolved.publishingAccount.accountIdentifier,
+    },
+  });
+
+  try {
+    const results = await runPipeline(config, (progress) => {
+      void runRepository.updateProgress(runId, progress as PipelineProgress);
+      logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Pipeline status");
+    });
+    await runRepository.completeRun(runId, results);
+  } catch (error) {
+    await runRepository.failRun(runId, error);
+    throw error;
+  }
+}
+
+async function runQuizManagedChannel(channelId: string, quizTopic?: string, baseConfig = loadConfig()): Promise<void> {
+  const controlPlaneConfig = loadControlPlaneConfig();
+  const db = getControlPlanePool(controlPlaneConfig);
+  const repository = new ChannelBundleRepository(db);
+  const runRepository = new ManagedRunRepository(db);
+  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
+  const runId = randomUUID();
+
+  await runControlPlaneMigrations(db);
   const resolved = await resolver.resolveRunConfig(runId, channelId);
   const config = buildManagedPipelineConfig(baseConfig, runId, resolved);
 
@@ -274,11 +341,12 @@ async function runManagedChannel(channelId: string, baseConfig = loadConfig()): 
   });
 
   try {
-    const results = await runPipeline(config, (progress) => {
-      void runRepository.updateProgress(runId, progress);
-      logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Pipeline status");
-    });
-    await runRepository.completeRun(runId, results);
+    const result = await runQuizPipeline(config, (progress) => {
+      void runRepository.updateProgress(runId, progress as PipelineProgress);
+      logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Quiz Pipeline status");
+    }, quizTopic);
+    await runRepository.completeRun(runId, []);
+    logger.info({ runId, channelId, success: result.success, youtubeUrl: result.youtubeUrl }, "✅ Quiz pipeline completed");
   } catch (error) {
     await runRepository.failRun(runId, error);
     throw error;

@@ -15,17 +15,19 @@ spec:
         env:
         - name: YOUTUBE_CHANNELS
           value: "@FreiGilsonSomdoMonteOFICIAL"
-        - name: WHISPER_MODEL
-          value: "tiny"
-        - name: AI_PROVIDER
-          value: "openrouter"
+        - name: WHISPER_CHUNK_DURATION_SEC
+          value: "120"
+        - name: WHISPER_BASE_URL
+          value: http://whisper.ai.svc.cluster.local:9000
         - name: AI_MODEL
-          value: "google/gemini-2.0-flash-lite-001"
-        - name: OPENROUTER_API_KEY
+          value: "cloud/gemma3"
+        - name: LITELLM_BASE_URL
+          value: http://litellm.ai.svc.cluster.local:4000/v1
+        - name: LITELLM_KEY
           valueFrom:
             secretKeyRef:
               name: shorts-generator-secret
-              key: OPENROUTER_API_KEY
+              key: LITELLM_KEY
         - name: YOUTUBE_REFRESH_TOKEN
           valueFrom:
             secretKeyRef:

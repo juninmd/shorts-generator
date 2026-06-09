@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   splitAudioIntoChunks,
   mergeWhisperOutputs,
   cleanupChunkFiles,
+  getAudioChunkDurationSec,
   type WhisperOutput
 } from "../../src/core/audio-chunker.js";
 import fs from "node:fs";
@@ -12,6 +13,31 @@ vi.mock("node:child_process", () => ({
 }));
 
 describe("audio-chunker", () => {
+  const previousChunkDuration = process.env.WHISPER_CHUNK_DURATION_SEC;
+
+  afterEach(() => {
+    if (previousChunkDuration === undefined) delete process.env.WHISPER_CHUNK_DURATION_SEC;
+    else process.env.WHISPER_CHUNK_DURATION_SEC = previousChunkDuration;
+  });
+
+  it("uses smaller default chunks for remote whisper", () => {
+    delete process.env.WHISPER_CHUNK_DURATION_SEC;
+
+    expect(getAudioChunkDurationSec()).toBe(120);
+  });
+
+  it("accepts safe explicit chunk duration", () => {
+    process.env.WHISPER_CHUNK_DURATION_SEC = "90";
+
+    expect(getAudioChunkDurationSec()).toBe(90);
+  });
+
+  it("falls back when explicit chunk duration is too small", () => {
+    process.env.WHISPER_CHUNK_DURATION_SEC = "10";
+
+    expect(getAudioChunkDurationSec()).toBe(120);
+  });
+
   it("splitAudioIntoChunks splits audio file properly using ffmpeg", async () => {
     const result = await splitAudioIntoChunks("test.wav", 10 * 60, 5 * 60, "outDir");
     expect(result).toHaveLength(2);
@@ -55,11 +81,7 @@ describe("audio-chunker", () => {
 
   it("mergeWhisperOutputs handles missing words array", () => {
     const chunks = [{
-      data: {
-        text: "Test",
-        language: "pt",
-        segments: [{ start: 5, end: 10, text: "Test" }]
-      } as WhisperOutput,
+      data: { text: "Test", language: "pt", segments: [{ start: 5, end: 10, text: "Test" }] } as WhisperOutput,
       offsetSec: 100
     }];
 
@@ -70,12 +92,7 @@ describe("audio-chunker", () => {
   });
 
   it("mergeWhisperOutputs handles missing data language and missing segments", () => {
-    const chunks = [{
-      data: {
-        text: "Test"
-      } as WhisperOutput,
-      offsetSec: 100
-    }];
+    const chunks = [{ data: { text: "Test" } as WhisperOutput, offsetSec: 100 }];
 
     const merged = mergeWhisperOutputs(chunks);
     expect(merged.language).toBe("pt");

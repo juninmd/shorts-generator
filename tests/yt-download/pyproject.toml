@@ -9,4 +9,5 @@ dependencies = [
     "yt-dlp>=2026.3.17",
     "yt-dlp-ejs>=0.5.0",
     "faster-whisper>=1.2.1",
+    "edge-tts>=6.1.3",
 ]
