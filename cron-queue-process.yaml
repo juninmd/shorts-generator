@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: queue-process-job
+  namespace: shorts-generator
+spec:
+  schedule: "*/30 * * * *"  # A cada 30 minutos
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          containers:
+          - name: queue-processor
+            image: ghcr.io/juninmd/shorts-generator:latest
+            imagePullPolicy: Always
+            command: ["pnpm", "run", "queue:process"]
+            env:
+            - name: REDIS_URL
+              value: "redis://redis.databases.svc.cluster.local:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: REDIS_PASSWORD
+                  name: redis-secret
+                  optional: false
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_URL
+                  name: shorts-generator-secret
+            - name: CONTROL_PLANE_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: CONTROL_PLANE_ENCRYPTION_KEY
+                  name: shorts-generator-secret
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: TELEGRAM_BOT_TOKEN
+                  name: shorts-generator-secret
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: TELEGRAM_CHAT_ID
+                  name: shorts-generator-secret
+            - name: ADMIN_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: ADMIN_API_TOKEN
+                  name: shorts-generator-secret
+            resources:
+              limits:
+                cpu: "500m"
+                memory: 1Gi
+              requests:
+                cpu: 10m
+                memory: 256Mi
+          restartPolicy: Never
+          imagePullSecrets:
+          - name: ghcr-pull-secret

@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: manual-akitemquiz-targeted
+  namespace: shorts-generator
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: shorts-generator
+        image: ghcr.io/juninmd/shorts-generator:latest
+        imagePullPolicy: Always
+        command: ["pnpm", "run", "generate"]
+        args: ["--", "--managed-channel", "akitemquiz", "--channel", "@AchismosTV,@cortesdointeligencia"]
+        env:
+        - name: YOUTUBE_PLAYER_CLIENT
+          value: default
+        - name: WHISPER_MODEL
+          value: tiny
+        - name: WHISPER_USE_GPU
+          value: "false"
+        - name: SKIP_VIDEO_SIZE_CHECK
+          value: "true"
+        - name: ENABLE_YOUTUBE
+          value: "true"
+        - name: MAX_VIDEO_DURATION_MINUTES
+          value: "50"
+        - name: AI_MODEL
+          value: cloud/gemma3
+        - name: LITELLM_BASE_URL
+          value: http://litellm.ai.svc.cluster.local:4000/v1
+        - name: WHISPER_BASE_URL
+          value: http://whisper.ai.svc.cluster.local:9000
+        - name: WHISPER_REQUEST_TIMEOUT_MS
+          value: "600000"
+        - name: WHISPER_REQUEST_RETRIES
+          value: "2"
+        - name: LITELLM_KEY
+          valueFrom:
+            secretKeyRef:
+              key: LITELLM_KEY
+              name: shorts-generator-secret
+        - name: CONTROL_PLANE_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              key: CONTROL_PLANE_ENCRYPTION_KEY
+              name: shorts-generator-secret
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: TELEGRAM_BOT_TOKEN
+              name: shorts-generator-secret
+        - name: TELEGRAM_CHAT_ID
+          valueFrom:
+            secretKeyRef:
+              key: TELEGRAM_CHAT_ID
+              name: shorts-generator-secret
+        - name: ADMIN_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: ADMIN_API_TOKEN
+              name: shorts-generator-secret
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: shorts-generator-secret
+        resources:
+          limits:
+            cpu: "1"
+            memory: 3Gi
+          requests:
+            cpu: 10m
+            memory: 1Gi
+      restartPolicy: Never
+      imagePullSecrets:
+      - name: ghcr-pull-secret

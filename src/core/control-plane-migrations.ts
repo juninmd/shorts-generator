@@ -6,7 +6,7 @@ import { logger } from "./logger.js";
 
 const MIGRATIONS_DIR = path.resolve("db/migrations");
 
-export async function runControlPlaneMigrations(db: Pool): Promise<void> {
+export async function runControlPlaneMigrations(db: any): Promise<void> {
   await db.query(`
     CREATE TABLE IF NOT EXISTS control_plane_migrations (
       name TEXT PRIMARY KEY,

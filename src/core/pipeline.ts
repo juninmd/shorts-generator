@@ -1,6 +1,6 @@
 /* v8 ignore start */
 import type { PipelineConfig, PipelineResult, VideoInfo } from "../types.js";
-import { getChannelVideos, getTopChannelVideos, getVideoInfo, downloadAudioOnly, downloadVideoSection, cleanupVideo, verifyYoutubeAccess } from "./youtube.js";
+import { getChannelVideos, getTopChannelVideos, getVideoInfo, downloadAudioOnly, downloadVideoSection, cleanupVideo } from "./youtube.js";
 import { getPostedTopVideosAsync, markVideoAsPostedAsync } from "./state.js";
 import { sendFullVideoToTelegram, sendErrorAlert } from "./telegram.js";
 import { uploadFullVideoToYouTube } from "./youtube.service.js";
@@ -15,15 +15,6 @@ export async function runTopVideoPipeline(
   config: PipelineConfig,
   onProgress?: (progress: import("../types.js").PipelineProgress) => void,
 ): Promise<PipelineResult[]> {
-  try {
-    await verifyYoutubeAccess(config);
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error);
-    logger.fatal({ error: msg }, "Top Pipeline aborted: YouTube access check failed");
-    await sendErrorAlert("Verificação de acesso ao YouTube (generate:top)", error, config);
-    throw error;
-  }
-
   if (config.channels.length === 0) {
     logger.warn("No channels configured for top video pipeline");
     return [];
@@ -82,15 +73,6 @@ export async function runPipeline(
   config: PipelineConfig,
   onProgress?: (progress: import("../types.js").PipelineProgress) => void,
 ): Promise<PipelineResult[]> {
-  try {
-    await verifyYoutubeAccess(config);
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error);
-    logger.fatal({ error: msg }, "Pipeline aborted: YouTube access check failed");
-    await sendErrorAlert("Verificação de acesso ao YouTube (generate)", error, config);
-    throw error;
-  }
-
   logger.info({ runId: config.managedRun?.runId, channelId: config.managedRun?.channelId, channels: config.channels, urls: config.specificUrls, videoQuery: config.videoQuery || "none" }, "Pipeline starting");
 
   const videos: VideoInfo[] = [];

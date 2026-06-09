@@ -189,7 +189,7 @@ describe("pipeline", () => {
   });
 
   it("runPipeline filters videos exceeding max duration hours", async () => {
-    const longVideo = { ...mockVideoInfo, duration: 4 * 3600 + 1 }; // 4 hours
+    const longVideo = { ...mockVideoInfo, duration: mockConfig.maxVideoDurationSec + 1 };
     vi.mocked(youtube.getVideoInfo).mockResolvedValue(longVideo);
     vi.mocked(youtube.getChannelVideos).mockResolvedValue([]);
 

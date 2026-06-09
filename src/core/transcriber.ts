@@ -1,21 +1,17 @@
 /* v8 ignore start */
-import { execFile, spawn } from "node:child_process";
-import { promisify } from "node:util";
 import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
 import path from "node:path";
 import type { Transcript, TranscriptSegment, TranscriptWord, DownloadedVideo, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 import {
-  AUDIO_CHUNK_DURATION_SEC,
+  getAudioChunkDurationSec,
   splitAudioIntoChunks,
   mergeWhisperOutputs,
   cleanupChunkFiles,
   type WhisperOutput,
 } from "./audio-chunker.js";
 
-const execFileAsync = promisify(execFile);
 const REMOTE_WHISPER_TIMEOUT_MS = Number(process.env.WHISPER_REQUEST_TIMEOUT_MS ?? 600_000);
 const REMOTE_WHISPER_RETRIES = Number(process.env.WHISPER_REQUEST_RETRIES ?? 2);
 
@@ -41,90 +37,6 @@ function shouldRetryRemoteWhisper(error: unknown): boolean {
   const cause = (error as any).cause;
   if (cause instanceof Error && (cause.name === "HeadersTimeoutError" || cause.name === "BodyTimeoutError")) return true;
   return /fetch failed|ECONNRESET|ECONNREFUSED|UND_ERR|socket|terminated/i.test(error.message);
-}
-
-async function findUvBinary(): Promise<string> {
-  const isWindows = process.platform === "win32";
-  const home = os.homedir();
-  const candidates = [
-    "uv",
-    path.join(home, ".local", "bin", isWindows ? "uv.exe" : "uv"),
-    path.join(home, ".cargo", "bin", isWindows ? "uv.exe" : "uv"),
-    path.join(home, "bin", isWindows ? "uv.exe" : "uv"),
-    ...(isWindows
-      ? [path.join(home, ".local", "bin", "uv.exe"), path.join(process.env.LOCALAPPDATA ?? "", "uv", "bin", "uv.exe")]
-      : []),
-  ];
-  for (const candidate of candidates) {
-    try {
-      const { stdout } = await execFileAsync(candidate, ["--version"], { timeout: 5_000 });
-      const match = stdout.trim().match(/uv (\d+)\.(\d+)/);
-      if (match) {
-        const major = parseInt(match[1]!, 10);
-        const minor = parseInt(match[2]!, 10);
-        if (major > 0 || minor >= 2) return candidate;
-      }
-    } catch { /* try next */ }
-  }
-  throw new Error("No compatible uv installation found (requires uv >= 0.2.0).");
-}
-
-async function runWhisperOnFile(
-  audioPath: string,
-  outputDir: string,
-  whisperModel: string,
-  uvBin: string,
-  useGpu: boolean,
-  onProgress?: (pct: number) => void,
-): Promise<void> {
-  const scriptPath = path.join(process.cwd(), "scripts", "transcribe_faster.py");
-  const pyProjectDir = path.join(process.cwd(), "tests", "yt-download");
-  const env = { ...process.env, WHISPER_USE_GPU: useGpu ? "true" : "false" };
-
-  return new Promise<void>((resolve, reject) => {
-    const child = spawn(
-      uvBin,
-      ["run", "--project", pyProjectDir, "python", scriptPath, audioPath, "--model", whisperModel, "--output_dir", outputDir],
-      { env, stdio: ["ignore", "pipe", "pipe"] },
-    );
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (data: string) => {
-      for (const line of data.split("\n")) {
-        const m = line.match(/PROGRESS: (\d+(?:\.\d+)?)/);
-        if (m && onProgress) onProgress(parseFloat(m[1]!));
-      }
-    });
-    let stderr = "";
-    child.stderr.on("data", (d: string) => { stderr += d; });
-    child.on("error", reject);
-    child.on("close", (code: number) => {
-      code === 0 ? resolve() : reject(new Error(stderr || `Transcription failed with code ${code}`));
-    });
-  });
-}
-
-async function transcribeAudioFile(
-  audioPath: string,
-  outputDir: string,
-  whisperModel: string,
-  uvBin: string,
-  onProgress?: (pct: number) => void,
-): Promise<WhisperOutput> {
-  const useGpu = process.env.WHISPER_USE_GPU?.toLowerCase() === "true";
-  try {
-    await runWhisperOnFile(audioPath, outputDir, whisperModel, uvBin, useGpu, onProgress);
-  } catch (err) {
-    if (useGpu) {
-      logger.warn({ err }, "GPU transcription failed, retrying with CPU");
-      await runWhisperOnFile(audioPath, outputDir, whisperModel, uvBin, false, onProgress);
-    } else throw err;
-  }
-  const baseName = path.basename(audioPath, path.extname(audioPath));
-  const jsonPath = path.join(outputDir, `${baseName}.json`);
-  if (!fs.existsSync(jsonPath)) throw new Error(`Whisper output not found at ${jsonPath}`);
-  const raw = JSON.parse(fs.readFileSync(jsonPath, "utf-8")) as WhisperOutput;
-  fs.unlinkSync(jsonPath);
-  return raw;
 }
 
 async function transcribeRemote(
@@ -175,15 +87,25 @@ async function transcribeRemote(
             res.on("end", () => {
               const text = Buffer.concat(chunks).toString("utf-8");
               if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
-                reject(new Error(`Remote Whisper failed (${res.statusCode}): ${text}`));
+                const errMsg = `[WHISPER HTTP ${res.statusCode}] ${text.slice(0, 200)}`;
+                reject(new Error(errMsg));
               } else {
                 try { resolve(JSON.parse(text)); } catch { reject(new Error(`Invalid JSON from Whisper: ${text.slice(0, 200)}`)); }
               }
             });
           },
         );
-        req.on("timeout", () => { req.destroy(new Error("HeadersTimeoutError: request timed out")); });
-        req.on("error", reject);
+        req.on("timeout", () => { req.destroy(new Error("WHISPER_TIMEOUT: request exceeded " + Math.round(REMOTE_WHISPER_TIMEOUT_MS / 1000) + "s")); });
+        req.on("error", (err) => {
+          const msg = String(err?.message ?? err);
+          if (msg.includes("ECONNREFUSED")) {
+            reject(new Error(`WHISPER_UNREACHABLE: Cannot connect to ${config.whisperBaseUrl} — service not running or wrong address`));
+          } else if (msg.includes("ENOTFOUND") || msg.includes("getaddrinfo")) {
+            reject(new Error(`WHISPER_DNS_ERROR: Cannot resolve hostname in ${config.whisperBaseUrl}`));
+          } else {
+            reject(err);
+          }
+        });
         req.write(bodyBuf);
         req.end();
       });
@@ -193,13 +115,31 @@ async function transcribeRemote(
 
       return raw as WhisperOutput;
     } catch (error) {
-      if (attempt <= REMOTE_WHISPER_RETRIES && shouldRetryRemoteWhisper(error)) {
-        logger.warn({ attempt, error: errorDetails(error) }, "Remote Whisper request failed, retrying");
+      const errMsg = String(error instanceof Error ? error.message : error);
+      const isUnreachable = errMsg.includes("WHISPER_UNREACHABLE") || errMsg.includes("WHISPER_DNS_ERROR");
+      const shouldRetry = attempt <= REMOTE_WHISPER_RETRIES && (shouldRetryRemoteWhisper(error) && !isUnreachable);
+
+      if (shouldRetry) {
+        logger.warn({ attempt, error: errorDetails(error), nextRetryIn: 5_000 * attempt }, "Remote Whisper request failed, retrying");
         await sleep(5_000 * attempt);
         continue;
       }
-      logger.error({ attempt, error: errorDetails(error) }, "Remote Whisper request failed");
-      throw error;
+
+      // Final attempt failed or unreachable
+      const finalError = new Error(
+        isUnreachable
+          ? `[WHISPER UNREACHABLE] ${errMsg}\nCheck that WHISPER_BASE_URL="${config.whisperBaseUrl}" is correct and service is running.`
+          : `[WHISPER FAILED after ${attempt} attempt(s)] ${errMsg}`
+      );
+
+      logger.error({
+        attempt,
+        whisperUrl: config.whisperBaseUrl,
+        error: errorDetails(error),
+        hint: isUnreachable ? "Verify whisper service is running in cluster or locally" : undefined,
+      }, finalError.message);
+
+      throw finalError;
     }
   }
 
@@ -208,25 +148,22 @@ async function transcribeRemote(
 
  /* v8 ignore start */
 export async function transcribeVideo(video: DownloadedVideo, config: PipelineConfig): Promise<Transcript> {
-  const isRemote = !!config.whisperBaseUrl;
-  
-  if (isRemote) {
-    logger.info({ videoId: video.id, title: video.title, baseUrl: config.whisperBaseUrl }, "Starting remote Whisper transcription");
-  } else {
-    logger.info({ videoId: video.id, title: video.title, model: config.whisperModel }, "Starting local Whisper transcription");
-  }
+  if (!config.whisperBaseUrl) throw new Error("WHISPER_BASE_URL is required; cluster faster-whisper is the only supported transcriber");
+
+  logger.info({ videoId: video.id, title: video.title, baseUrl: config.whisperBaseUrl }, "Starting faster-whisper transcription");
 
   const outputDir = path.join(config.tempDir, video.id, "whisper_out");
   fs.mkdirSync(outputDir, { recursive: true });
-  const uvBin = isRemote ? "" : await findUvBinary();
   const onProgress = (config as any).onProgress as ((pct: number) => void) | undefined;
 
   let raw: WhisperOutput;
 
-  if (video.duration > AUDIO_CHUNK_DURATION_SEC) {
-    const chunkCount = Math.ceil(video.duration / AUDIO_CHUNK_DURATION_SEC);
-    logger.info({ videoId: video.id, durationSec: video.duration, chunkCount }, "Audio too long — splitting into chunks");
-    const chunks = await splitAudioIntoChunks(video.audioPath, video.duration, AUDIO_CHUNK_DURATION_SEC, outputDir);
+  const chunkDurationSec = getAudioChunkDurationSec();
+
+  if (video.duration > chunkDurationSec) {
+    const chunkCount = Math.ceil(video.duration / chunkDurationSec);
+    logger.info({ videoId: video.id, durationSec: video.duration, chunkDurationSec, chunkCount }, "Audio too long — splitting into chunks");
+    const chunks = await splitAudioIntoChunks(video.audioPath, video.duration, chunkDurationSec, outputDir);
     const chunkOutputs: { data: WhisperOutput; offsetSec: number }[] = [];
     for (let i = 0; i < chunks.length; i++) {
       const { path: chunkPath, offsetSec } = chunks[i]!;
@@ -235,18 +172,13 @@ export async function transcribeVideo(video: DownloadedVideo, config: PipelineCo
         ? (pct: number) => onProgress(((i + pct / 100) / chunks.length) * 100)
         : undefined;
       
-      const data = isRemote 
-        ? await transcribeRemote(chunkPath, config, chunkOnProgress)
-        : await transcribeAudioFile(chunkPath, outputDir, config.whisperModel, uvBin, chunkOnProgress);
-      
+      const data = await transcribeRemote(chunkPath, config, chunkOnProgress);
       chunkOutputs.push({ data, offsetSec });
     }
     cleanupChunkFiles(chunks);
     raw = mergeWhisperOutputs(chunkOutputs);
   } else {
-    raw = isRemote 
-      ? await transcribeRemote(video.audioPath, config, onProgress)
-      : await transcribeAudioFile(video.audioPath, outputDir, config.whisperModel, uvBin, onProgress);
+    raw = await transcribeRemote(video.audioPath, config, onProgress);
   }
 
   fs.rmSync(outputDir, { recursive: true, force: true });
@@ -266,7 +198,7 @@ export async function transcribeVideo(video: DownloadedVideo, config: PipelineCo
 
   logger.info(
     { videoId: video.id, segmentCount: allSegments.length, wordCount: allWords.length, language: raw.language },
-    "Local Whisper transcription complete",
+    "Faster-whisper transcription complete",
   );
 
   return {

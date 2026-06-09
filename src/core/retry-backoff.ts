@@ -10,7 +10,7 @@ export interface RetryOptions {
 
 function isQuotaOrAuthError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const msg = error.message.toLowerCase();
+  const msg = String(error.message ?? "").toLowerCase();
   return msg.includes("quotaexceeded") || msg.includes("quota") || msg.includes("unauthorized") || msg.includes("403");
 }
 

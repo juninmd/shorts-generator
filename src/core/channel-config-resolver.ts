@@ -64,19 +64,19 @@ export function buildManagedPipelineConfig(
   baseConfig: PipelineConfig,
   runId: string,
   resolvedRun: ResolvedChannelRun,
+  overrides?: Partial<PipelineConfig>,
 ): PipelineConfig {
   const focusQuery = resolvedRun.focuses.map((focus) => focus.label).join(" ").trim();
   return loadConfig({
     ...baseConfig,
-    channels: resolvedRun.sources.map((source) => source.value),
-    specificUrls: [],
-    videoLimit: resolvedRun.profile.videoLimit,
+    channels: overrides?.channels ?? resolvedRun.sources.map((source) => source.value),
+    specificUrls: overrides?.specificUrls ?? [],
+    videoLimit: overrides?.videoLimit ?? resolvedRun.profile.videoLimit,
     minShortDuration: resolvedRun.profile.minShortDuration,
     maxShortDuration: resolvedRun.profile.maxShortDuration,
-    targetShorts: resolvedRun.profile.targetShorts ?? undefined,
-    sortByViews: resolvedRun.profile.sortByViews,
-    videoQuery: (resolvedRun.profile.videoQuery ?? focusQuery) || undefined,
-    aiProvider: resolvedRun.profile.aiProvider,
+    targetShorts: overrides?.targetShorts ?? (resolvedRun.profile.targetShorts ?? undefined),
+    sortByViews: overrides?.sortByViews ?? resolvedRun.profile.sortByViews,
+    videoQuery: overrides?.videoQuery ?? ((resolvedRun.profile.videoQuery ?? focusQuery) || undefined),
     aiModel: resolvedRun.profile.aiModel,
     watermarkText: resolvedRun.channel.watermarkText,
     youtubeAuth: {
@@ -86,7 +86,7 @@ export function buildManagedPipelineConfig(
     },
     telegramBotToken: resolvedRun.telegramAccount?.token ?? baseConfig.telegramBotToken,
     telegramChatId: resolvedRun.telegramAccount?.accountIdentifier ?? baseConfig.telegramChatId,
-    openrouterApiKey: resolvedRun.openrouterAccount?.token ?? baseConfig.openrouterApiKey,
+    litellmApiKey: resolvedRun.openrouterAccount?.token ?? baseConfig.litellmApiKey,
     managedRun: {
       runId,
       channelId: resolvedRun.channel.id,
