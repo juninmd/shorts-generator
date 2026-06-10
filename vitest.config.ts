@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     pool: 'forks',
     fileParallelism: false,
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.health.ts'],
     exclude: ['web/**'],
     coverage: {
       provider: 'v8',
