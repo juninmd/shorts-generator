@@ -1,6 +1,6 @@
 /* v8 ignore start */
 import { google } from "googleapis";
-import { Bot } from "grammy";
+import { Bot, InlineKeyboard } from "grammy";
 import type { PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 
@@ -45,16 +45,18 @@ export async function sendReauthAlert(
     `──────────────────────`,
     `📺 <b>Canal:</b> ${name}`,
     ``,
-    `Clique para renovar o acesso:`,
-    `<a href="${authUrl}">🔗 Autorizar YouTube</a>`,
+    `Clique no botão abaixo para renovar o acesso:`,
     `──────────────────────`,
     `<i>${new Date().toLocaleString("pt-BR")}</i>`,
   ].join("\n");
+
+  const keyboard = new InlineKeyboard().url("🔗 Autorizar YouTube", authUrl);
 
   try {
     await bot.api.sendMessage(config.telegramChatId, message, {
       parse_mode: "HTML",
       link_preview_options: { is_disabled: true },
+      reply_markup: keyboard,
     });
     logger.info({ channelId }, "Reauth alert sent to Telegram");
   } catch (e) {
