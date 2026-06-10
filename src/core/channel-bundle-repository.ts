@@ -115,6 +115,33 @@ export class ChannelBundleRepository {
     await this.db.query("DELETE FROM managed_channels WHERE id = $1", [channelId]);
   }
 
+  async updatePublishingAccount(
+    accountId: string,
+    updates: { encryptedToken?: { keyVersion: string; iv: string; authTag: string; ciphertext: string }; clientId?: string | null; clientSecret?: string | null; updatedAt: string }
+  ): Promise<void> {
+    const setParts: string[] = ["updated_at = $2"];
+    const params: unknown[] = [accountId, updates.updatedAt];
+    let paramIndex = 3;
+
+    if (updates.encryptedToken) {
+      setParts.push(`token_key_version = $${paramIndex++}`, `token_iv = $${paramIndex++}`, `token_auth_tag = $${paramIndex++}`, `token_ciphertext = $${paramIndex++}`);
+      params.push(updates.encryptedToken.keyVersion, updates.encryptedToken.iv, updates.encryptedToken.authTag, updates.encryptedToken.ciphertext);
+    }
+    if (updates.clientId !== undefined) {
+      setParts.push(`client_id = $${paramIndex++}`);
+      params.push(updates.clientId);
+    }
+    if (updates.clientSecret !== undefined) {
+      setParts.push(`client_secret = $${paramIndex++}`);
+      params.push(updates.clientSecret);
+    }
+
+    await this.db.query(
+      `UPDATE publishing_accounts SET ${setParts.join(", ")} WHERE id = $1`,
+      params,
+    );
+  }
+
   private async loadBundles(
     channelIds: readonly string[],
     channels: readonly ChannelRow[],
