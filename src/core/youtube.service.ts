@@ -2,20 +2,80 @@ import { google } from "googleapis";
 import fs from "node:fs";
 import { generateText } from "ai";
 import type { GeneratedShort, PipelineConfig, YouTubeAuthConfig } from "../types.js";
+import { logger } from "./logger.js";
+import { createModel } from "./ai-provider.js";
+import { withRetry } from "./retry-backoff.js";
+import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
+import { sendErrorAlert } from "./telegram.js";
 
 interface YouTubeVideoInsertBody {
   snippet: { title: string; description: string; tags?: string[]; categoryId?: string };
   status: { privacyStatus: string; selfDeclaredMadeForKids?: boolean };
 }
-import { logger } from "./logger.js";
-import { createModel } from "./ai-provider.js";
-import { withRetry } from "./retry-backoff.js";
-import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
 
 const withOriginalVideoLink = (description: string, originalVideoUrl?: string | null): string => {
   if (!originalVideoUrl || description.includes(originalVideoUrl)) return description;
   return `${description}\n\nVideo original: ${originalVideoUrl}`;
 };
+
+export async function validateYouTubeToken(config: PipelineConfig): Promise<{ valid: boolean; error?: string }> {
+  const auth = getYouTubeAuth(config);
+  if (!auth) {
+    return { valid: false, error: "YouTube credentials not configured" };
+  }
+
+  try {
+    const oauth2Client = new google.auth.OAuth2(auth.clientId, auth.clientSecret);
+    oauth2Client.setCredentials({ refresh_token: auth.refreshToken });
+    await oauth2Client.getAccessToken();
+    return { valid: true };
+  } catch (error: any) {
+    const errorMessage = error?.message || String(error);
+    logger.warn({ error: errorMessage }, "YouTube token validation failed");
+    
+    const isAuthError = errorMessage.includes("invalid_grant") || 
+                        errorMessage.includes("Token has been expired or revoked") ||
+                        errorMessage.includes("Bad Request") ||
+                        errorMessage.includes("401") ||
+                        errorMessage.includes("403");
+    
+    if (isAuthError && config.telegramBotToken && config.telegramChatId) {
+      try {
+        const { Bot } = await import("grammy");
+        const bot = new Bot(config.telegramBotToken);
+        
+        const channelId = config.managedRun?.channelId || "unknown";
+        const channelName = config.managedRun?.channelName || "Unknown Channel";
+        const baseUrl = process.env.ADMIN_BASE_URL || `https://${process.env.ADMIN_DOMAIN || "localhost"}`;
+        const authUrl = `${baseUrl}/api/admin/channels/${channelId}/youtube/auth-url`;
+        
+        const message = [
+          `🚨 <b>Token do YouTube Inválido/Expirado!</b>`,
+          `──────────────────────`,
+          `📌 <b>Canal:</b> ${channelName}`,
+          `🆔 <b>Channel ID:</b> <code>${channelId}</code>`,
+          ``,
+          `❌ O token de atualização (refresh token) do YouTube expirou ou foi revogado.`,
+          `Isso impede o upload de novos Shorts.`,
+          ``,
+          `🔗 <b>Ação necessária:</b> Clique no link abaixo para reautenticar:`,
+          `<a href="${authUrl}">🔐 Reautenticar no YouTube</a>`,
+          ``,
+          `Após a autenticação, o token será atualizado automaticamente.`,
+          `──────────────────────`,
+          `<i>${new Date().toLocaleString("pt-BR")}</i>`
+        ].join("\n");
+        
+        await bot.api.sendMessage(config.telegramChatId, message, { parse_mode: "HTML" });
+        logger.info({ channelId }, "Sent Telegram notification for invalid YouTube token");
+      } catch (notifyError) {
+        logger.error({ error: notifyError }, "Failed to send Telegram notification for invalid token");
+      }
+    }
+    
+    return { valid: false, error: errorMessage };
+  }
+}
 
 const extractJsonObject = (content: string): string => {
   const clean = content.trim();
@@ -207,6 +267,13 @@ export const addCommentToVideo = async (
   const auth = getYouTubeAuth(config);
   if (!auth) return;
 
+  // Validate token before attempting to add comment
+  const validation = await validateYouTubeToken(config);
+  if (!validation.valid) {
+    logger.warn({ error: validation.error }, "Token do YouTube inválido - pulando comentário");
+    return;
+  }
+
   const oauth2Client = new google.auth.OAuth2(auth.clientId, auth.clientSecret);
   oauth2Client.setCredentials({ refresh_token: auth.refreshToken });
   const youtube = google.youtube({ version: "v3", auth: oauth2Client });
@@ -264,6 +331,13 @@ export const uploadToYouTube = async (
     return null;
   }
 
+  // Validate token before attempting upload
+  const validation = await validateYouTubeToken(config);
+  if (!validation.valid) {
+    logger.error({ error: validation.error }, "❌ Token do YouTube inválido - upload cancelado");
+    return null;
+  }
+
   const uploadTags = limitTagsLength(
     tags && tags.length > 0
       ? tags
@@ -303,6 +377,13 @@ export const uploadFullVideoToYouTube = async (
   const auth = getYouTubeAuth(config);
   if (!auth) {
     logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload do vídeo completo.");
+    return null;
+  }
+
+  // Validate token before attempting upload
+  const validation = await validateYouTubeToken(config);
+  if (!validation.valid) {
+    logger.error({ error: validation.error }, "❌ Token do YouTube inválido - upload cancelado");
     return null;
   }
 
