@@ -42,7 +42,7 @@ export async function validateYouTubeToken(config: PipelineConfig): Promise<{ va
     
     if (isAuthError && config.telegramBotToken && config.telegramChatId) {
       try {
-        const { Bot } = await import("grammy");
+        const { Bot, InlineKeyboard } = await import("grammy");
         const bot = new Bot(config.telegramBotToken);
         
         const channelId = config.managedRun?.channelId || "unknown";
@@ -59,15 +59,19 @@ export async function validateYouTubeToken(config: PipelineConfig): Promise<{ va
           `❌ O token de atualização (refresh token) do YouTube expirou ou foi revogado.`,
           `Isso impede o upload de novos Shorts.`,
           ``,
-          `🔗 <b>Ação necessária:</b> Clique no link abaixo para reautenticar:`,
-          `<a href="${authUrl}">🔐 Reautenticar no YouTube</a>`,
+          `🔗 <b>Ação necessária:</b> Clique no botão abaixo para reautenticar:`,
           ``,
           `Após a autenticação, o token será atualizado automaticamente.`,
           `──────────────────────`,
           `<i>${new Date().toLocaleString("pt-BR")}</i>`
         ].join("\n");
         
-        await bot.api.sendMessage(config.telegramChatId, message, { parse_mode: "HTML" });
+        const keyboard = new InlineKeyboard().url("🔐 Reautenticar no YouTube", authUrl);
+
+        await bot.api.sendMessage(config.telegramChatId, message, {
+          parse_mode: "HTML",
+          reply_markup: keyboard
+        });
         logger.info({ channelId }, "Sent Telegram notification for invalid YouTube token");
       } catch (notifyError) {
         logger.error({ error: notifyError }, "Failed to send Telegram notification for invalid token");
