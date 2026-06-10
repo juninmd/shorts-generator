@@ -7,6 +7,7 @@ import { createModel } from "./ai-provider.js";
 import { withRetry } from "./retry-backoff.js";
 import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
 import { sendErrorAlert } from "./telegram.js";
+import { generateReauthUrl, sendReauthAlert } from "./youtube-reauth.js";
 
 interface YouTubeVideoInsertBody {
   snippet: { title: string; description: string; tags?: string[]; categoryId?: string };
@@ -253,6 +254,11 @@ async function performUpload(
     if (errorMessage.includes("The user has exceeded the number of videos they may upload.")) {
       logger.warn({ channelId }, "⚠️ YouTube indicou que o limite diário de uploads foi atingido. Marcando limite atingido no estado.");
       await setDailyLimitReachedAsync(channelId);
+    }
+    const rawError = String(error?.message || error || "");
+    if (rawError.includes("invalid_grant") && config.serverPublicUrl && config.managedRun?.channelId) {
+      const reAuthUrl = generateReauthUrl(auth.clientId, auth.clientSecret, config.serverPublicUrl, config.managedRun.channelId);
+      await sendReauthAlert(config.managedRun.channelId, config.managedRun.channelName ?? config.managedRun.channelId, reAuthUrl, config);
     }
     logger.error({ error: errorMessage }, "❌ Erro fatal no upload do YouTube após retries");
     return null;

@@ -8,6 +8,7 @@ import { loadConfig } from "../core/config.js";
 import { runPipeline } from "../core/pipeline.js";
 import { logger } from "../core/logger.js";
 import { registerAdminRoutes } from "./admin-routes.js";
+import { registerYoutubeOAuthRoutes } from "./youtube-oauth-routes.js";
 import {
   createJob,
   getJob,
@@ -127,3 +128,4 @@ app.get("/api/shorts", async (c) => {
 });
 
 registerAdminRoutes(app);
+registerYoutubeOAuthRoutes(app);

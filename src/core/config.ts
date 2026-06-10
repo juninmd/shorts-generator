@@ -79,6 +79,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     youtubeCookiesBase64: optionalEnv("YOUTUBE_COOKIES_BASE64", ""),
     watermarkText: optionalEnv("WATERMARK_TEXT", "santidade católica"),
     videoEncoder: optionalEnv("VIDEO_ENCODER", "libx264"),
+    serverPublicUrl: optionalEnv("SERVER_PUBLIC_URL", "") || undefined,
     ...overrides,
   };
 
