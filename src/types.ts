@@ -138,6 +138,8 @@ export interface PipelineConfig {
   videoQuery?: string;
   youtubeAuth?: YouTubeAuthConfig;
   managedRun?: ManagedRunContext;
+  /** Public base URL of this server — used to build the YouTube OAuth callback URL */
+  serverPublicUrl?: string;
   /** Optional progress callback (used by transcriber) */
   onProgress?: (percent: number) => void;
 }

@@ -103,11 +103,12 @@ export const generateFilters = (
   let lastAudioLabel = "[qp]";
 
   if (hasBeep && beepIdx !== -1) {
+    audioFilters.push(`[${beepIdx}:a]asplit=5[beep0][beep1][beep2][beep3][beep4]`);
     for (let i = 0; i < 5; i++) {
       const d = Math.round((qDur + i) * 1000);
       const beepLabel = `b${i}`;
       const mixedLabel = `m${i}`;
-      audioFilters.push(`[${beepIdx}:a]adelay=${d}|${d}[${beepLabel}]`);
+      audioFilters.push(`[beep${i}]adelay=${d}|${d}[${beepLabel}]`);
       audioFilters.push(`${lastAudioLabel}[${beepLabel}]amix=inputs=2:dropout_transition=0:normalize=0[${mixedLabel}]`);
       lastAudioLabel = `[${mixedLabel}]`;
     }
