@@ -1,10 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube } from "../../src/core/youtube.service";
+import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube, validateYouTubeToken } from "../../src/core/youtube.service";
 import { google } from "googleapis";
 import fs from "node:fs";
 
 // Mock googleapis
 const insertMock = vi.fn();
+const mockGetAccessToken = vi.fn();
+const mockSendTelegramMessage = vi.fn();
+
+vi.mock("grammy", () => {
+  return {
+    Bot: vi.fn().mockImplementation(function () {
+      return {
+        api: {
+          sendMessage: mockSendTelegramMessage,
+        },
+      };
+    }),
+    InlineKeyboard: class {
+      url = vi.fn().mockReturnThis();
+    },
+  };
+});
 
 vi.mock("googleapis", () => {
   return {
@@ -12,6 +29,7 @@ vi.mock("googleapis", () => {
       auth: {
         OAuth2: class {
           setCredentials = vi.fn();
+          getAccessToken = (...args: any[]) => mockGetAccessToken(...args);
         },
       },
       youtube: vi.fn().mockImplementation(() => ({
@@ -302,4 +320,53 @@ describe("youtube.service", () => {
       expect(mockIsDailyLimitReachedAsync).toHaveBeenCalledWith(customConfig.dailyUploadLimit, "channel-123");
     });
   });
+
+  describe("validateYouTubeToken", () => {
+    beforeEach(() => {
+      mockGetAccessToken.mockReset();
+      mockSendTelegramMessage.mockReset();
+    });
+
+    it("should return false if credentials are not configured", async () => {
+      const result = await validateYouTubeToken({} as any);
+      expect(result).toEqual({ valid: false, error: "YouTube credentials not configured" });
+    });
+
+    it("should return true if token is valid and credentials work", async () => {
+      mockCredsSetup();
+      mockGetAccessToken.mockResolvedValueOnce({ token: "access_token" });
+      const result = await validateYouTubeToken(mockConfig);
+      expect(result).toEqual({ valid: true });
+      expect(mockGetAccessToken).toHaveBeenCalled();
+    });
+
+    it("should return false and send Telegram notification on auth error", async () => {
+      mockCredsSetup();
+      const authError = new Error("invalid_grant");
+      mockGetAccessToken.mockRejectedValueOnce(authError);
+
+      const customConfig = {
+        ...mockConfig,
+        telegramBotToken: "bot-token",
+        telegramChatId: "chat-id",
+        managedRun: {
+          channelId: "channel-123",
+          channelName: "Custom Channel",
+        },
+      };
+
+      const result = await validateYouTubeToken(customConfig);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("invalid_grant");
+      expect(mockSendTelegramMessage).toHaveBeenCalledTimes(1);
+      
+      const [chatId, text, options] = mockSendTelegramMessage.mock.calls[0];
+      expect(chatId).toBe("chat-id");
+      expect(text).toContain("🚨 <b>Token do YouTube Inválido/Expirado!</b>");
+      expect(text).toContain("Custom Channel");
+      expect(text).toContain("channel-123");
+      expect(options.reply_markup).toBeDefined();
+    });
+  });
 });
+
