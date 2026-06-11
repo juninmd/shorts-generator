@@ -8,6 +8,8 @@ temp/
 *.webm
 *.ass
 *.srt
+!assets/**/*.mp3
+!assets/**/*.wav
 *.log
 .env
 .env.local
