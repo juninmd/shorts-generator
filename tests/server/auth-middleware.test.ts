@@ -39,6 +39,18 @@ describe("createAdminAuthMiddleware", () => {
     expect(await res.json()).toEqual({ error: "Origin not allowed" });
   });
 
+  it("rejects requests with an incorrect bearer token", async () => {
+    const res = await createApp().request("/admin/channels", {
+      headers: {
+        origin: "http://localhost:5173",
+        authorization: "Bearer wrong-token",
+      },
+    });
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
+  });
+
   it("allows requests with a valid bearer token and allowed origin", async () => {
     const res = await createApp().request("/admin/channels", {
       headers: {
