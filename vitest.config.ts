@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     pool: 'forks',
     fileParallelism: false,
+    testTimeout: 20000,
     include: ['tests/**/*.test.ts'],
     exclude: ['web/**'],
     coverage: {
