@@ -17,8 +17,12 @@ async function main() {
   const santidadeId = "santidade-catolica";
   const quizId = "quiz-channel";
 
-  const santidadeRefreshToken = "1//0hpJtb6AIeRqiCgYIARAAGBESNwF-L9IruL1El1UgkFKPmTvWoMSAKVnxkPNYYJZVuNnxu3VNQb8I4djZ6Y6JggMmLtY_Mc_4_BgQ";
-  const quizRefreshToken = "1//0hqhJyE_O_cT3CgYIARAAGBESNwF-L9Ir-9WzPPnvOH4dklOAEPRkyy9HxHh8ejpYFUmfpAZOF51A3FFtwWfROOH94iLUc0-8CRAo";
+  const santidadeRefreshToken = process.env.SANTIDADE_REFRESH_TOKEN!;
+  const quizRefreshToken = process.env.QUIZ_REFRESH_TOKEN!;
+
+  if (!santidadeRefreshToken || !quizRefreshToken) {
+    throw new Error("Missing SANTIDADE_REFRESH_TOKEN or QUIZ_REFRESH_TOKEN in env");
+  }
 
   const clientId = process.env.YOUTUBE_CLIENT_ID!;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET!;
@@ -54,8 +58,16 @@ async function main() {
         aiProvider: "openrouter",
         aiModel: "google/gemini-2.0-flash-lite-001",
       },
-      focuses: existing?.focuses || [],
-      sources: existing?.sources || [],
+      focuses: (existing?.focuses || []).map(f => ({
+        ...f,
+        id: f.id,
+        key: f.key || (f as any).focus_key,
+        label: f.label || (f as any).focus_label
+      })),
+      sources: (existing?.sources || []).map(s => ({
+        ...s,
+        createdAt: s.createdAt || (s as any).created_at || now
+      })),
       publishingAccounts: [
         {
           id: accountId,
@@ -77,7 +89,7 @@ async function main() {
     logger.info({ id, name, channelType }, "Channel upserted with YouTube credentials");
   }
 
-  await upsertChannel(santidadeId, "santidade-catolica", "Santidade CatÃ³lica", santidadeRefreshToken, "cuts");
+  await upsertChannel(santidadeId, "santidade-catolica", "Santidade Católica", santidadeRefreshToken, "cuts");
   await upsertChannel(quizId, "quiz-channel", "Quiz Channel", quizRefreshToken, "quiz");
 
   await db.end();
