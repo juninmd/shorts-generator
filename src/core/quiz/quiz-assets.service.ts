@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import type { Quiz } from "./quiz.domain.js";
+import { logger } from "../logger.js";
 
 export const wrapText = (text: string, maxLen: number): string => {
   const words = text.split(" ");
@@ -34,7 +35,7 @@ export const ensureFont = (): string => {
           return true;
         }
       } catch (e) {
-        console.warn(`⚠️ Falha ao copiar a fonte de ${src}:`, e);
+        logger.warn({ err: e, src }, "Falha ao copiar a fonte");
       }
       return false;
     };
@@ -58,7 +59,7 @@ export const ensureFont = (): string => {
       }
     }
     if (!copied) {
-      console.warn("⚠️ Não foi possível copiar automaticamente a fonte Arial.");
+      logger.warn("Não foi possível copiar automaticamente a fonte Arial.");
     }
   }
   return fontFile;
