@@ -38,7 +38,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
 
       - uses: pnpm/action-setup@v6
         with:
@@ -49,3 +49,6 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Test (with coverage gate)
+        run: pnpm test:coverage
