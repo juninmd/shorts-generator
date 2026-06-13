@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import type { MiddlewareHandler } from "hono";
 import type { ControlPlaneConfig } from "../core/control-plane-config.js";
 import { logger } from "../core/logger.js";
@@ -15,7 +16,7 @@ export function createAdminAuthMiddleware(
       return c.json({ error: "Origin not allowed" }, 403);
     }
 
-    if (!token || token !== config.adminToken) {
+    if (!token || !tokensMatch(token, config.adminToken)) {
       logger.warn({ origin, path: c.req.path }, "Unauthorized admin request");
       return c.json({ error: "Unauthorized" }, 401);
     }
@@ -31,6 +32,18 @@ export function extractBearerToken(header: string | undefined): string | null {
     return null;
   }
   return token;
+}
+
+/**
+ * Constant-time comparison to avoid leaking the admin token via timing.
+ */
+function tokensMatch(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) {
+    return false;
+  }
+  return timingSafeEqual(a, b);
 }
 
 function isOriginAllowed(
