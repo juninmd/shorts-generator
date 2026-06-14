@@ -30,7 +30,7 @@
     "diagnose:cluster": "tsx scripts/diagnose-cluster.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.37",
+    "@ai-sdk/openai": "^3.0.71",
     "@ai-sdk/openai-compatible": "^2.0.50",
     "@hono/node-server": "^2.0.4",
     "ai": "^6.0.140",
