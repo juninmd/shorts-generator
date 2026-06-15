@@ -11,5 +11,9 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 50Gi
-  # storageClassName: standard  # uncomment/adjust to the cluster's default class
+      storage: 10Gi
+  storageClassName: local-path
+  # NOTE: local-path does not support in-place resize. To change capacity on a
+  # live cluster, recreate the PVC during a window with no job mounting it.
+  # local-path is hostPath-backed and does not enforce the request as a hard
+  # quota — effective limit is node free disk.
