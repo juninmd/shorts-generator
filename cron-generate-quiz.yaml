@@ -1,10 +1,15 @@
+# Steadily produces quiz shorts to keep the upload queue / PVC stocked, so the
+# every-30-min queue-drip CronJob always has at least one short to publish per
+# hour. Quiz generation is self-contained (no download / Whisper), so it is
+# cheap to run on a schedule. Clips blocked by rate limits accumulate on the PVC
+# via the BullMQ queue and are retried by the drip job.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: queue-process-job
+  name: generate-quiz-job
   namespace: shorts-generator
 spec:
-  schedule: "*/30 * * * *"  # A cada 30 minutos
+  schedule: "0 */2 * * *"  # every 2 hours
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
@@ -14,10 +19,11 @@ spec:
       template:
         spec:
           containers:
-          - name: queue-processor
+          - name: generate-quiz
             image: ghcr.io/juninmd/shorts-generator:latest
             imagePullPolicy: Always
-            command: ["pnpm", "run", "queue:process"]
+            command: ["pnpm", "run", "cli"]
+            args: ["--", "generate:quiz", "--managed-channel", "akitemquiz"]
             volumeMounts:
             - name: output-storage
               mountPath: /app/output
@@ -34,10 +40,14 @@ spec:
                   key: REDIS_PASSWORD
                   name: redis-secret
                   optional: false
-            - name: DATABASE_URL
+            - name: AI_MODEL
+              value: cloud/gemma3
+            - name: LITELLM_BASE_URL
+              value: http://litellm.ai.svc.cluster.local:4000/v1
+            - name: LITELLM_KEY
               valueFrom:
                 secretKeyRef:
-                  key: DATABASE_URL
+                  key: LITELLM_KEY
                   name: shorts-generator-secret
             - name: CONTROL_PLANE_ENCRYPTION_KEY
               valueFrom:
@@ -59,13 +69,18 @@ spec:
                 secretKeyRef:
                   key: ADMIN_API_TOKEN
                   name: shorts-generator-secret
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_URL
+                  name: shorts-generator-secret
             resources:
               limits:
-                cpu: "500m"
-                memory: 1Gi
+                cpu: "1"
+                memory: 2Gi
               requests:
                 cpu: 10m
-                memory: 256Mi
+                memory: 512Mi
           restartPolicy: Never
           volumes:
           - name: output-storage

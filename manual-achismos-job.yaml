@@ -13,7 +13,20 @@ spec:
         imagePullPolicy: Always
         command: ["pnpm", "run", "generate"]
         args: ["--", "--managed-channel", "akitemquiz", "--channel", "@AchismosTV"]
+        volumeMounts:
+        - name: output-storage
+          mountPath: /app/output
         env:
+        - name: OUTPUT_DIR
+          value: "/app/output"
+        - name: REDIS_URL
+          value: "redis://redis.databases.svc.cluster.local:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: redis-secret
+              optional: false
         - name: YOUTUBE_PLAYER_CLIENT
           value: default
         - name: WHISPER_MODEL
@@ -74,5 +87,9 @@ spec:
             cpu: 10m
             memory: 1Gi
       restartPolicy: Never
+      volumes:
+      - name: output-storage
+        persistentVolumeClaim:
+          claimName: shorts-output-pvc
       imagePullSecrets:
       - name: ghcr-pull-secret

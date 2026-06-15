@@ -8,6 +8,8 @@ import type { Quiz } from "./quiz.domain.js";
 import { generateNarration } from "./quiz-tts.service.js";
 import { assembleVideo } from "./quiz-video.service.js";
 import { uploadToYouTube } from "../youtube.service.js";
+import { enqueueYoutubeUpload } from "../queue.js";
+import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "../state.js";
 
 export const buildAnswerNarration = (quiz: Quiz): string =>
   `A resposta correta é a letra ${quiz.resposta_correta}: ${quiz.opcoes[quiz.resposta_correta]}. ${quiz.fato_curioso}. E aí, você sabia? Se gostou da curiosidade, curta o vídeo e se inscreva no canal para mais vídeos como este!`;
@@ -96,7 +98,19 @@ export const runQuizPipeline = async (
       onProgress?.({ stage: "publishing_youtube", progress: 90, message: "Fazendo upload para o YouTube Shorts..." });
       const ytTitle = `Quiz: ${quiz.tema}!`;
       const ytDesc = `Teste seus conhecimentos! #quiz #shorts #curiosidades\n\nCanal: ${watermarkText}`;
-      youtubeUrl = await uploadToYouTube(outputPath, ytTitle, ytDesc, config);
+      const channelId = config.managedRun?.channelId || "global";
+      if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
+        logger.warn({ channelId }, "⚠️ Limite diário atingido — enfileirando quiz para o PVC");
+        await enqueueYoutubeUpload({ id: jobId, outputPath }, ytTitle, ytDesc, config);
+      } else {
+        youtubeUrl = await uploadToYouTube(outputPath, ytTitle, ytDesc, config);
+        if (youtubeUrl) {
+          await incrementDailyUploadCountAsync(channelId);
+        } else {
+          logger.warn({ jobId }, "Upload do quiz falhou — enfileirando para retry (acumulado no PVC)");
+          await enqueueYoutubeUpload({ id: jobId, outputPath }, ytTitle, ytDesc, config);
+        }
+      }
       if (youtubeUrl && config.telegramBotToken && config.telegramChatId) {
         try {
           const bot = new Bot(config.telegramBotToken);
