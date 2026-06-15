@@ -1,0 +1,15 @@
+# PersistentVolumeClaim that holds generated shorts (cortes + quiz) so clips
+# blocked by credential errors or YouTube rate limits accumulate durably and
+# survive across ephemeral generation / queue-drip pods.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shorts-output-pvc
+  namespace: shorts-generator
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  # storageClassName: standard  # uncomment/adjust to the cluster's default class

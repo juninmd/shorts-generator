@@ -34,8 +34,12 @@ export function getRedisClient(): Redis {
 
 export const getQueue = () => new Queue<YoutubeUploadJobData>(QUEUE_NAME, { connection: getRedisClient() as any });
 
+// One hour: used to defer jobs blocked by the daily channel limit so the next
+// attempt lands after the limit window rolls over instead of burning retries.
+const DAILY_LIMIT_DEFER_MS = 60 * 60 * 1000;
+
 export async function enqueueYoutubeUpload(
-  short: GeneratedShort, title: string, description: string, config: PipelineConfig, tags?: string[]
+  short: Pick<GeneratedShort, "id" | "outputPath">, title: string, description: string, config: PipelineConfig, tags?: string[]
 ): Promise<void> {
   const queue = getQueue();
   const channelId = config.managedRun?.channelId || "global";
@@ -55,8 +59,15 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
       throw new Error(`Video file not found: ${videoPath}`);
     }
     if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
-      logger.warn({ jobId: job.id, channelId }, "⚠️ Limite diário atingido. Postergando.");
-      throw new Error(`YouTube limit reached: ${channelId}`);
+      // Don't consume retry attempts on a quota wall — re-enqueue with a delay so
+      // the clip stays accumulated on the PVC and is retried after the limit resets.
+      await getQueue().add(job.name as any, job.data, {
+        delay: DAILY_LIMIT_DEFER_MS,
+        attempts: 5,
+        backoff: { type: "exponential", delay: 60000 },
+      });
+      logger.warn({ jobId: job.id, channelId }, "⚠️ Limite diário atingido. Reagendado para +1h (acumulado no PVC).");
+      return { deferred: true };
     }
     const youtubeUrl = await uploadToYouTube(videoPath, title, description, config, tags);
     if (!youtubeUrl) throw new Error("Upload falhou (retornou null)");
