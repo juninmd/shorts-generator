@@ -170,7 +170,7 @@ OBRIGATÓRIO:
 - Um espectador sem contexto DEVE entender a mensagem principal imediatamente
 - Duração: entre ${minDuration} e ${maxDuration} segundos
 - Cada linha da transcrição está no formato [inicio_em_segundos - fim_em_segundos] texto. Use estes segundos diretamente para startTime e endTime (ex: se o trecho começa no segmento [45.00-48.00] e termina no segmento [70.00-73.00], configure startTime=45 e endTime=73).
-- Retornar no mínimo ${minClips} e no máximo ${Math.min(20, maxClips)} cortes
+- Retornar no mínimo ${minClips} e no máximo ${maxClips} cortes
 
 PROIBIDO: não selecione trechos que:
 - Comecem com referências ao que foi falado antes ("como eu disse antes", "voltando ao assunto")
