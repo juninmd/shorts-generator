@@ -116,7 +116,7 @@ export async function sendToTelegram(
     `💡 <b>Insight:</b> <i>${escapeHtml(short.clip.reason)}</i>`,
     ``,
     youtubeUrl ? `🔴 <b>YouTube:</b> <a href="${youtubeUrl}">Assistir Short</a>` : "",
-    pendingRateLimit ? `⏳ <b>Pendente:</b> aguardando janela de upload do YouTube (rate limit). Já acumulado no PVC e será publicado automaticamente assim que o limite liberar.` : "",
+    pendingRateLimit ? `⏳ <b>Pendente:</b> já acumulado no PVC, aguardando a janela de publicação do YouTube (limite diário/rate limit). Será publicado automaticamente pela fila assim que a janela abrir.` : "",
     `🔗 <b>Original:</b> <a href="${short.originalVideoUrl}">Link</a>`,
     ``,
     `──────────────────────`,
