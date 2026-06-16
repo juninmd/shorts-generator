@@ -18,7 +18,14 @@ spec:
             image: ghcr.io/juninmd/shorts-generator:latest
             imagePullPolicy: Always
             command: ["pnpm", "run", "queue:process"]
+            volumeMounts:
+            - name: output-storage
+              mountPath: /app/output
             env:
+            - name: OUTPUT_DIR
+              value: "/app/output"
+            - name: ENABLE_YOUTUBE
+              value: "true"
             - name: REDIS_URL
               value: "redis://redis.databases.svc.cluster.local:6379"
             - name: REDIS_PASSWORD
@@ -60,5 +67,9 @@ spec:
                 cpu: 10m
                 memory: 256Mi
           restartPolicy: Never
+          volumes:
+          - name: output-storage
+            persistentVolumeClaim:
+              claimName: shorts-output-pvc
           imagePullSecrets:
           - name: ghcr-pull-secret
