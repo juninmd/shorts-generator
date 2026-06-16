@@ -1,0 +1,96 @@
+# Generates cuts AND quiz shorts from EVERY active managed channel, with boosted
+# volume (BATCH_VIDEO_LIMIT videos/channel x MAX_CLIPS_PER_VIDEO clips) so the
+# output scales ~10x. Clips blocked by YouTube rate limits accumulate durably on
+# the PVC via the BullMQ queue and are drip-published by queue-process-job, while
+# the generated video is still posted to Telegram flagged as pending.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: generate-all-job
+  namespace: shorts-generator
+spec:
+  schedule: "0 */6 * * *"  # every 6 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          containers:
+          - name: generate-all
+            image: ghcr.io/juninmd/shorts-generator:latest
+            imagePullPolicy: Always
+            command: ["pnpm", "run", "cli"]
+            args: ["--", "generate:all"]
+            volumeMounts:
+            - name: output-storage
+              mountPath: /app/output
+            env:
+            - name: OUTPUT_DIR
+              value: "/app/output"
+            - name: ENABLE_YOUTUBE
+              value: "true"
+            - name: BATCH_VIDEO_LIMIT
+              value: "10"
+            - name: MAX_CLIPS_PER_VIDEO
+              value: "50"
+            - name: SKIP_VIDEO_SIZE_CHECK
+              value: "true"
+            - name: REDIS_URL
+              value: "redis://redis.databases.svc.cluster.local:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: REDIS_PASSWORD
+                  name: redis-secret
+                  optional: false
+            - name: AI_MODEL
+              value: cloud/gemma3
+            - name: LITELLM_BASE_URL
+              value: http://litellm.ai.svc.cluster.local:4000/v1
+            - name: LITELLM_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: LITELLM_KEY
+                  name: shorts-generator-secret
+            - name: CONTROL_PLANE_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: CONTROL_PLANE_ENCRYPTION_KEY
+                  name: shorts-generator-secret
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: TELEGRAM_BOT_TOKEN
+                  name: shorts-generator-secret
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: TELEGRAM_CHAT_ID
+                  name: shorts-generator-secret
+            - name: ADMIN_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: ADMIN_API_TOKEN
+                  name: shorts-generator-secret
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_URL
+                  name: shorts-generator-secret
+            resources:
+              limits:
+                cpu: "2"
+                memory: 4Gi
+              requests:
+                cpu: 100m
+                memory: 1Gi
+          restartPolicy: Never
+          volumes:
+          - name: output-storage
+            persistentVolumeClaim:
+              claimName: shorts-output-pvc
+          imagePullSecrets:
+          - name: ghcr-pull-secret
