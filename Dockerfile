@@ -1,5 +1,5 @@
 # Use Node.js 24 LTS as the base image
-FROM node:24-slim AS base
+FROM node:26-slim AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
