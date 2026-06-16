@@ -1,0 +1,19 @@
+# PersistentVolumeClaim that holds generated shorts (cortes + quiz) so clips
+# blocked by credential errors or YouTube rate limits accumulate durably and
+# survive across ephemeral generation / queue-drip pods.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shorts-output-pvc
+  namespace: shorts-generator
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+  # NOTE: local-path does not support in-place resize. To change capacity on a
+  # live cluster, recreate the PVC during a window with no job mounting it.
+  # local-path is hostPath-backed and does not enforce the request as a hard
+  # quota — effective limit is node free disk.
