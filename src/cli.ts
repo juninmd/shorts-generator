@@ -214,6 +214,45 @@ async function main() {
       break;
     }
 
+    case "generate:all": {
+      // Batch: generate from EVERY active managed channel, in its native form
+      // (cuts -> runPipeline, quiz -> runQuizPipeline), with boosted volume so
+      // output scales ~10x. Clips blocked by YouTube rate limits accumulate on
+      // the PVC (BullMQ) and are still posted to Telegram flagged as pending.
+      const batchVideoLimit = parseInt(process.env.BATCH_VIDEO_LIMIT || "10", 10);
+      const maxClips = Number(process.env.MAX_CLIPS_PER_VIDEO) || undefined;
+      const overrides: Record<string, any> = { videoLimit: batchVideoLimit };
+      if (maxClips) overrides.maxClipsOverride = maxClips;
+
+      const controlPlaneConfig = loadControlPlaneConfig();
+      const db = getControlPlanePool(controlPlaneConfig);
+      await runControlPlaneMigrations(db);
+      const repository = new ChannelBundleRepository(db);
+      const bundles = (await repository.listBundles()).filter((b) => b.channel.status === "active");
+
+      logger.info({ channelCount: bundles.length, batchVideoLimit, maxClips: maxClips || "AUTO" }, "🚀 generate:all — gerando de todos os canais ativos");
+
+      let ok = 0;
+      let failed = 0;
+      for (const bundle of bundles) {
+        try {
+          if (bundle.channel.channelType === "quiz") {
+            await runQuizManagedChannel(bundle.channel.id);
+          } else {
+            await runManagedChannel(bundle.channel.id, loadConfig(overrides), overrides);
+          }
+          ok++;
+        } catch (err: any) {
+          failed++;
+          logger.error({ channelId: bundle.channel.id, error: err?.message }, "❌ Falha ao gerar para canal");
+        }
+      }
+
+      logger.info({ ok, failed }, "✅ generate:all finalizado");
+      if (failed > 0 && ok === 0) process.exit(1);
+      break;
+    }
+
     case "interactive":
     case undefined: {
       await runInteractive();
@@ -251,6 +290,7 @@ Commands:
   generate      Generate shorts from YouTube videos (latest)
   generate:top  Generate shorts from a top video (random from top 20 non-music)
   generate:quiz Generate a new educational quiz short
+  generate:all  Generate from EVERY active managed channel (cuts+quiz), boosted volume
   server        Start the API server
   queue:process Process the deferred YouTube upload queue
 

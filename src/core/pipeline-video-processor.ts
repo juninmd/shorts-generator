@@ -127,7 +127,8 @@ export async function processVideo(
           }
         }
         sendStage = "telegram";
-        const msgId = await sendToTelegram(short, config, youtubeUrl);
+        const pendingRateLimit = youtubeEnabled && !youtubeUrl;
+        const msgId = await sendToTelegram(short, config, youtubeUrl, pendingRateLimit);
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
         logger.error(
