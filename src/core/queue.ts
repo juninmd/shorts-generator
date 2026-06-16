@@ -72,6 +72,14 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
     const youtubeUrl = await uploadToYouTube(videoPath, title, description, config, tags);
     if (!youtubeUrl) throw new Error("Upload falhou (retornou null)");
     await incrementDailyUploadCountAsync(channelId);
+    // Free the PVC as soon as the clip is published — backlog storage is then
+    // bounded by unpublished clips only.
+    try {
+      fs.unlinkSync(videoPath);
+      logger.info({ jobId: job.id, videoPath }, "🧹 Arquivo removido do PVC após publicação");
+    } catch (err) {
+      logger.warn({ jobId: job.id, videoPath, error: err instanceof Error ? err.message : String(err) }, "Não foi possível remover o arquivo do PVC após upload");
+    }
     logger.info({ jobId: job.id, youtubeUrl }, "✅ Upload concluído com sucesso!");
     return { youtubeUrl };
   }, { connection: getRedisClient() as any, concurrency: 1, autorun: false });
