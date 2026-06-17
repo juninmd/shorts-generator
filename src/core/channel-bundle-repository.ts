@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 import type {
   ChannelFocus,
+  FocusKey,
   ChannelProfile,
   ManagedChannel,
   ManagedChannelBundle,
@@ -218,7 +219,12 @@ function buildBundle(
       aiProvider: profile.ai_provider,
       aiModel: profile.ai_model,
     },
-    focuses: focuses.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...focus }) => focus),
+    focuses: focuses.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...focus }) => ({
+      ...focus,
+      // queryRows returns snake_case focus_key/focus_label; ChannelFocus expects camelCase key/label.
+      key: focus.key ?? (focus as { focus_key?: FocusKey }).focus_key,
+      label: focus.label ?? (focus as { focus_label?: string }).focus_label,
+    })),
     sources: sources.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...source }) => ({
       ...source,
       // queryRows returns snake_case `created_at`; SourceTarget expects camelCase `createdAt`.

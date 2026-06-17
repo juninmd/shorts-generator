@@ -41,40 +41,15 @@ export async function validateYouTubeToken(config: PipelineConfig): Promise<{ va
                         errorMessage.includes("403");
     
     if (isAuthError && config.telegramBotToken && config.telegramChatId) {
-      try {
-        const { Bot, InlineKeyboard } = await import("grammy");
-        const bot = new Bot(config.telegramBotToken);
-        
-        const channelId = config.managedRun?.channelId || "unknown";
-        const channelName = config.managedRun?.channelName || "Unknown Channel";
-        const baseUrl = process.env.ADMIN_BASE_URL || `https://${process.env.ADMIN_DOMAIN || "localhost"}`;
-        const authUrl = `${baseUrl}/api/admin/channels/${channelId}/youtube/auth-url`;
-        
-        const message = [
-          `🚨 <b>Token do YouTube Inválido/Expirado!</b>`,
-          `──────────────────────`,
-          `📌 <b>Canal:</b> ${channelName}`,
-          `🆔 <b>Channel ID:</b> <code>${channelId}</code>`,
-          ``,
-          `❌ O token de atualização (refresh token) do YouTube expirou ou foi revogado.`,
-          `Isso impede o upload de novos Shorts.`,
-          ``,
-          `🔗 <b>Ação necessária:</b> Clique no botão abaixo para reautenticar:`,
-          ``,
-          `Após a autenticação, o token será atualizado automaticamente.`,
-          `──────────────────────`,
-          `<i>${new Date().toLocaleString("pt-BR")}</i>`
-        ].join("\n");
-        
-        const keyboard = new InlineKeyboard().url("🔐 Reautenticar no YouTube", authUrl);
-
-        await bot.api.sendMessage(config.telegramChatId, message, {
-          parse_mode: "HTML",
-          reply_markup: keyboard
-        });
-        logger.info({ channelId }, "Sent Telegram notification for invalid YouTube token");
-      } catch (notifyError) {
-        logger.error({ error: notifyError }, "Failed to send Telegram notification for invalid token");
+      const channelId = config.managedRun?.channelId || "unknown";
+      const channelName = config.managedRun?.channelName || channelId;
+      if (!config.serverPublicUrl) {
+        logger.error({ channelId }, "SERVER_PUBLIC_URL not configured; cannot build YouTube reauth link");
+      } else {
+        // Reuse the working OAuth flow: redirect_uri = ${SERVER_PUBLIC_URL}/api/youtube/callback,
+        // exchanged server-side and persisted automatically. Avoids the broken localhost auth-url link.
+        const reAuthUrl = generateReauthUrl(auth.clientId, auth.clientSecret, config.serverPublicUrl, channelId);
+        await sendReauthAlert(channelId, channelName, reAuthUrl, config);
       }
     }
     

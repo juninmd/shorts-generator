@@ -30,6 +30,7 @@ vi.mock("googleapis", () => {
         OAuth2: class {
           setCredentials = vi.fn();
           getAccessToken = (...args: any[]) => mockGetAccessToken(...args);
+          generateAuthUrl = vi.fn().mockReturnValue("https://accounts.google.com/o/oauth2/v2/auth?mock=1");
         },
       },
       youtube: vi.fn().mockImplementation(() => ({
@@ -349,6 +350,7 @@ describe("youtube.service", () => {
         ...mockConfig,
         telegramBotToken: "bot-token",
         telegramChatId: "chat-id",
+        serverPublicUrl: "https://shorts-generator.example.com",
         managedRun: {
           channelId: "channel-123",
           channelName: "Custom Channel",
@@ -359,12 +361,11 @@ describe("youtube.service", () => {
       expect(result.valid).toBe(false);
       expect(result.error).toContain("invalid_grant");
       expect(mockSendTelegramMessage).toHaveBeenCalledTimes(1);
-      
+
       const [chatId, text, options] = mockSendTelegramMessage.mock.calls[0];
       expect(chatId).toBe("chat-id");
-      expect(text).toContain("🚨 <b>Token do YouTube Inválido/Expirado!</b>");
+      expect(text).toContain("TOKEN YOUTUBE EXPIRADO");
       expect(text).toContain("Custom Channel");
-      expect(text).toContain("channel-123");
       expect(options.reply_markup).toBeDefined();
     });
   });
