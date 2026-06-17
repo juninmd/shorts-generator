@@ -6,7 +6,7 @@ import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
 import { withRetry } from "./retry-backoff.js";
 import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
-import { sendErrorAlert, notifyYoutubePublished } from "./telegram.js";
+import { sendErrorAlert, notifyYoutubePublished, notifyYoutubeRateLimited } from "./telegram.js";
 import { generateReauthUrl, sendReauthAlert } from "./youtube-reauth.js";
 import { createSecretStore } from "./secret-store.js";
 import { loadControlPlaneConfig } from "./control-plane-config.js";
@@ -273,7 +273,12 @@ async function performUpload(
     const errorMessage = sanitize(error?.message || String(error));
     if (errorMessage.includes("The user has exceeded the number of videos they may upload.")) {
       logger.warn({ channelId }, "⚠️ YouTube indicou que o limite diário de uploads foi atingido. Marcando limite atingido no estado.");
+      // Notify only on the transition (limit not yet flagged) to avoid spamming.
+      const alreadyReached = await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId);
       await setDailyLimitReachedAsync(channelId);
+      if (!alreadyReached) {
+        await notifyYoutubeRateLimited({ channelName: config.managedRun?.channelName, reason: "youtube-quota" }, config);
+      }
     }
     const rawError = String(error?.message || error || "");
     if (rawError.includes("invalid_grant") && config.serverPublicUrl && config.managedRun?.channelId) {
