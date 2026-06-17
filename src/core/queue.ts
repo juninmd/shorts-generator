@@ -4,41 +4,7 @@ import type { PipelineConfig, GeneratedShort } from "../types.js";
 import { uploadToYouTube } from "./youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
-import { tryLoadControlPlaneConfig } from "./control-plane-config.js";
-import { getControlPlanePool } from "./control-plane-db.js";
-import { ChannelBundleRepository } from "./channel-bundle-repository.js";
 import fs from "node:fs";
-
-/**
- * Jobs carry a YouTube account snapshot captured at enqueue time. After a token
- * renewal (or for long-deferred/retried jobs) that snapshot is stale and uploads
- * fail with invalid_grant. Reload the current account from the control plane DB
- * right before publishing so the freshest token is always used.
- */
-async function refreshYoutubeAccountFromDb(config: PipelineConfig, channelId: string): Promise<void> {
-  if (!config.managedRun) return;
-  const cp = tryLoadControlPlaneConfig();
-  if (!cp) return;
-  try {
-    const repo = new ChannelBundleRepository(getControlPlanePool(cp) as any);
-    const bundle = await repo.getBundle(channelId);
-    const yt = bundle?.publishingAccounts.find((a) => a.provider === "youtube");
-    if (!yt) return;
-    config.managedRun.publishingAccounts = [{
-      id: yt.id,
-      channelId: yt.channelId,
-      provider: "youtube",
-      clientId: yt.clientId,
-      clientSecret: yt.clientSecret,
-      tokenKeyVersion: yt.encryptedToken.keyVersion,
-      tokenIv: yt.encryptedToken.iv,
-      tokenAuthTag: yt.encryptedToken.authTag,
-      tokenCiphertext: yt.encryptedToken.ciphertext,
-    }];
-  } catch (e) {
-    logger.warn({ channelId, error: e instanceof Error ? e.message : String(e) }, "Não foi possível atualizar a conta do YouTube a partir do banco antes do upload");
-  }
-}
 
 export interface YoutubeUploadJobData {
   videoPath: string;
@@ -103,7 +69,6 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
       logger.warn({ jobId: job.id, channelId }, "⚠️ Limite diário atingido. Reagendado para +1h (acumulado no PVC).");
       return { deferred: true };
     }
-    await refreshYoutubeAccountFromDb(config, channelId);
     const youtubeUrl = await uploadToYouTube(videoPath, title, description, config, tags);
     if (!youtubeUrl) throw new Error("Upload falhou (retornou null)");
     await incrementDailyUploadCountAsync(channelId);

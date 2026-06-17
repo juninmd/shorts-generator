@@ -8,6 +8,10 @@ import { withRetry } from "./retry-backoff.js";
 import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
 import { sendErrorAlert, notifyYoutubePublished } from "./telegram.js";
 import { generateReauthUrl, sendReauthAlert } from "./youtube-reauth.js";
+import { createSecretStore } from "./secret-store.js";
+import { loadControlPlaneConfig } from "./control-plane-config.js";
+import { getControlPlanePool } from "./control-plane-db.js";
+import { ChannelBundleRepository } from "./channel-bundle-repository.js";
 
 interface YouTubeVideoInsertBody {
   snippet: { title: string; description: string; tags?: string[]; categoryId?: string };
@@ -20,7 +24,7 @@ const withOriginalVideoLink = (description: string, originalVideoUrl?: string | 
 };
 
 export async function validateYouTubeToken(config: PipelineConfig): Promise<{ valid: boolean; error?: string }> {
-  const auth = getYouTubeAuth(config);
+  const auth = await getYouTubeAuth(config);
   if (!auth) {
     return { valid: false, error: "YouTube credentials not configured" };
   }
@@ -144,36 +148,42 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
 };
 
 
-function getYouTubeAuth(config: PipelineConfig): YouTubeAuthConfig | null {
-  const authFromConfig = config.managedRun?.publishingAccounts?.find(a => a.provider === "youtube");
-
-  const clientId = authFromConfig?.clientId ?? config.youtubeAuth?.clientId ?? process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = authFromConfig?.clientSecret ?? config.youtubeAuth?.clientSecret ?? process.env.YOUTUBE_CLIENT_SECRET;
-  
-  // If we have a publishing account from DB, we need to decrypt its token
-  let refreshToken = config.youtubeAuth?.refreshToken ?? process.env.YOUTUBE_REFRESH_TOKEN;
-  
-  if (authFromConfig && authFromConfig.tokenCiphertext) {
+async function getYouTubeAuth(config: PipelineConfig): Promise<YouTubeAuthConfig | null> {
+  // Managed channels: ALWAYS read the live token straight from the control-plane
+  // DB. YouTube refresh tokens rotate over time, so any embedded snapshot (job
+  // payload) or env copy goes stale. We deliberately do NOT fall back to those —
+  // a missing/undecryptable DB token fails the upload instead of silently using
+  // an expired one.
+  if (config.managedRun?.channelId) {
+    const channelId = config.managedRun.channelId;
     try {
-      const { createSecretStore } = require("./secret-store.js");
-      const { loadControlPlaneConfig } = require("./control-plane-config.js");
       const cpConfig = loadControlPlaneConfig();
       const store = createSecretStore(cpConfig);
-      refreshToken = store.decryptToken(authFromConfig.channelId, authFromConfig.id, {
-        keyVersion: authFromConfig.tokenKeyVersion,
-        iv: authFromConfig.tokenIv,
-        authTag: authFromConfig.tokenAuthTag,
-        ciphertext: authFromConfig.tokenCiphertext
-      });
+      const repo = new ChannelBundleRepository(getControlPlanePool(cpConfig) as any);
+      const bundle = await repo.getBundle(channelId);
+      const yt = bundle?.publishingAccounts.find((a) => a.provider === "youtube");
+      if (!yt) {
+        logger.error({ channelId }, "Nenhuma conta YouTube no banco para o canal gerenciado");
+        return null;
+      }
+      const refreshToken = store.decryptToken(yt.channelId, yt.id, yt.encryptedToken);
+      const clientId = yt.clientId ?? process.env.YOUTUBE_CLIENT_ID;
+      const clientSecret = yt.clientSecret ?? process.env.YOUTUBE_CLIENT_SECRET;
+      if (!clientId || !clientSecret || !refreshToken) return null;
+      return { clientId, clientSecret, refreshToken };
     } catch (error) {
-      logger.error({ error }, "Failed to decrypt YouTube refresh token from database");
+      logger.error({ error, channelId }, "Falha ao carregar token do YouTube do banco — upload cancelado (sem fallback)");
+      return null;
     }
   }
 
+  // Non-managed single-channel mode (legacy/global): explicit config or env.
+  const clientId = config.youtubeAuth?.clientId ?? process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = config.youtubeAuth?.clientSecret ?? process.env.YOUTUBE_CLIENT_SECRET;
+  const refreshToken = config.youtubeAuth?.refreshToken ?? process.env.YOUTUBE_REFRESH_TOKEN;
   if (!clientId || !clientSecret || !refreshToken) {
     return null;
   }
-
   return { clientId, clientSecret, refreshToken };
 }
 
@@ -253,7 +263,7 @@ export const addCommentToVideo = async (
   commentText: string,
   config: PipelineConfig
 ): Promise<void> => {
-  const auth = getYouTubeAuth(config);
+  const auth = await getYouTubeAuth(config);
   if (!auth) return;
 
   // Validate token before attempting to add comment
@@ -314,7 +324,7 @@ export const uploadToYouTube = async (
 ): Promise<string | null> => {
   if (process.env.ENABLE_YOUTUBE !== "true") return null;
 
-  const auth = getYouTubeAuth(config);
+  const auth = await getYouTubeAuth(config);
   if (!auth) {
     logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload.");
     return null;
@@ -363,7 +373,7 @@ export const uploadFullVideoToYouTube = async (
 ): Promise<string | null> => {
   if (process.env.ENABLE_YOUTUBE !== "true") return null;
 
-  const auth = getYouTubeAuth(config);
+  const auth = await getYouTubeAuth(config);
   if (!auth) {
     logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload do vídeo completo.");
     return null;
