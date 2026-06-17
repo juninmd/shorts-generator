@@ -219,7 +219,11 @@ function buildBundle(
       aiModel: profile.ai_model,
     },
     focuses: focuses.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...focus }) => focus),
-    sources: sources.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...source }) => source),
+    sources: sources.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...source }) => ({
+      ...source,
+      // queryRows returns snake_case `created_at`; SourceTarget expects camelCase `createdAt`.
+      createdAt: source.createdAt ?? (source as { created_at?: string }).created_at,
+    })),
     publishingAccounts: channelAccounts.map((account) => ({
       id: account.id,
       channelId: account.channel_id,
