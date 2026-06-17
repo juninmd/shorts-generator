@@ -74,6 +74,18 @@ describe("config", () => {
       // 30s: min is 1, max is 2
       expect(getMaxCuts(30)).toBe(2);
     });
+
+    it("should cap at the default ceiling of 20 for long videos", () => {
+      delete process.env.MAX_CLIPS_PER_VIDEO;
+      // 120 min: floor(120/2)=60 cuts, capped at 20
+      expect(getMaxCuts(7200)).toBe(20);
+    });
+
+    it("should honor MAX_CLIPS_PER_VIDEO ceiling override", () => {
+      process.env.MAX_CLIPS_PER_VIDEO = "50";
+      // 120 min: floor(120/2)=60 cuts, capped at 50
+      expect(getMaxCuts(7200)).toBe(50);
+    });
   });
 
   describe("getMinCuts", () => {

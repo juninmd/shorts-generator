@@ -93,6 +93,10 @@ export async function processVideo(
 
     emitProgress("uploading", "Enviando resultados...", 85);
     const youtubeEnabled = process.env.ENABLE_YOUTUBE === "true";
+    // Night-generation mode: skip the immediate upload (don't burn the daily
+    // quota at 3am) and always enqueue, so queue-process drips them out during
+    // the day per the YouTube rate limit.
+    const deferUploads = process.env.DEFER_UPLOADS === "true";
 
     for (const short of shorts) {
       let sendStage = "metadata";
@@ -104,7 +108,9 @@ export async function processVideo(
           sendStage = "youtube_upload_or_queue";
           const channelId = config.managedRun?.channelId || "global";
           let uploaded = false;
-          if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
+          if (deferUploads) {
+            logger.info({ clipId: short.id, channelId }, "🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora");
+          } else if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
             logger.warn({ limit: config.dailyUploadLimit, channelId }, "⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila");
           } else {
             youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags) ?? undefined;
@@ -127,7 +133,8 @@ export async function processVideo(
           }
         }
         sendStage = "telegram";
-        const msgId = await sendToTelegram(short, config, youtubeUrl);
+        const pendingRateLimit = youtubeEnabled && !youtubeUrl;
+        const msgId = await sendToTelegram(short, config, youtubeUrl, pendingRateLimit);
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
         logger.error(

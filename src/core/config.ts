@@ -101,6 +101,8 @@ export function getMinCuts(videoDurationSeconds: number): number {
 export function getMaxCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
   const minCuts = getMinCuts(videoDurationSeconds);
-  // Rule: 1 cut every 2 minutes, maximum 15, at least minCuts + 1
-  return Math.min(20, Math.max(minCuts + 1, Math.floor(durationMinutes / 2)));
+  // Ceiling is configurable (MAX_CLIPS_PER_VIDEO) to scale output; defaults to 20.
+  const ceiling = parseInt(process.env.MAX_CLIPS_PER_VIDEO || "20", 10);
+  // Rule: 1 cut every 2 minutes, at least minCuts + 1, capped at ceiling
+  return Math.min(ceiling, Math.max(minCuts + 1, Math.floor(durationMinutes / 2)));
 }
