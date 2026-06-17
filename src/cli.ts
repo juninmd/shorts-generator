@@ -237,6 +237,18 @@ async function main() {
       break;
     }
 
+    case "queue:retry": {
+      try {
+        const { retryFailedWithExistingFiles, closeQueueConnections } = await import("./core/queue.js");
+        await retryFailedWithExistingFiles();
+        await closeQueueConnections();
+      } catch (err: any) {
+        logger.error({ error: err.message }, "❌ Falha ao reprocessar fila");
+        process.exit(1);
+      }
+      break;
+    }
+
     default: {
       console.log(`
 ╔══════════════════════════════════════════════╗
@@ -253,6 +265,7 @@ Commands:
   generate:quiz Generate a new educational quiz short
   server        Start the API server
   queue:process Process the deferred YouTube upload queue
+  queue:retry   Re-queue failed uploads whose video still exists, then publish
 
 Options (generate):
   --url            Comma-separated YouTube URLs (ex: "url1,url2")

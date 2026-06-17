@@ -122,6 +122,32 @@ export async function processQueueUntilEmpty(): Promise<void> {
   });
 }
 
+/**
+ * Re-queue failed upload jobs whose source video still exists on the PVC, then
+ * drain the queue. Jobs whose file was already cleaned are dropped (removed from
+ * the failed set) so the backlog doesn't keep retrying dead references.
+ */
+export async function retryFailedWithExistingFiles(): Promise<void> {
+  const queue = getQueue();
+  const failed = await queue.getFailed();
+  let retried = 0;
+  let dropped = 0;
+  for (const job of failed) {
+    const videoPath = job.data?.videoPath;
+    if (videoPath && fs.existsSync(videoPath)) {
+      await job.retry();
+      retried++;
+    } else {
+      await job.remove();
+      dropped++;
+    }
+  }
+  logger.info({ retried, dropped, total: failed.length }, "♻️ Jobs falhados reprocessados (arquivo presente) / descartados (arquivo ausente)");
+  if (retried > 0) {
+    await processQueueUntilEmpty();
+  }
+}
+
 export async function closeQueueConnections(): Promise<void> {
   if (redisClient) {
     await redisClient.quit();
