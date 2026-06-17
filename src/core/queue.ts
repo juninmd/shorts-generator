@@ -2,7 +2,7 @@ import { Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import type { PipelineConfig, GeneratedShort } from "../types.js";
 import { uploadToYouTube } from "./youtube.service.js";
-import { notifyYoutubeRateLimited } from "./telegram.js";
+import { notifyYoutubeRateLimited, notifyYoutubeResumed } from "./telegram.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync, getDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
 import fs from "node:fs";
@@ -39,6 +39,10 @@ export const getQueue = () => new Queue<YoutubeUploadJobData>(QUEUE_NAME, { conn
 // attempt lands after the limit window rolls over instead of burning retries.
 const DAILY_LIMIT_DEFER_MS = 60 * 60 * 1000;
 
+// Redis marker set while a channel is rate-limited, so the first successful
+// upload afterwards can announce that publishing resumed.
+const pausedKey = (channelId: string) => `youtube:paused:${channelId}`;
+
 export async function enqueueYoutubeUpload(
   short: Pick<GeneratedShort, "id" | "outputPath">, title: string, description: string, config: PipelineConfig, tags?: string[]
 ): Promise<void> {
@@ -67,12 +71,21 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
         attempts: 5,
         backoff: { type: "exponential", delay: 60000 },
       });
+      // Mark the channel as paused so the first successful upload after the
+      // limit resets can announce that publishing resumed.
+      await getRedisClient().set(pausedKey(channelId), "1", "EX", 60 * 60 * 48);
       logger.warn({ jobId: job.id, channelId }, "⚠️ Limite diário atingido. Reagendado para +1h (acumulado no PVC).");
       return { deferred: true };
     }
     const youtubeUrl = await uploadToYouTube(videoPath, title, description, config, tags);
     if (!youtubeUrl) throw new Error("Upload falhou (retornou null)");
     await incrementDailyUploadCountAsync(channelId);
+    // If this channel was paused by a rate limit, the limit has now cleared:
+    // announce the resume once and drop the marker.
+    if (await getRedisClient().get(pausedKey(channelId))) {
+      await getRedisClient().del(pausedKey(channelId));
+      await notifyYoutubeResumed(config.managedRun?.channelName, config);
+    }
     // Notify exactly once, on the upload that reaches the configured daily cap.
     if ((await getDailyUploadCountAsync(channelId)) === config.dailyUploadLimit) {
       await notifyYoutubeRateLimited(

@@ -88,6 +88,34 @@ export async function notifyYoutubeRateLimited(
 }
 
 /**
+ * Notify Telegram that YouTube uploads resumed after a rate-limit pause.
+ */
+export async function notifyYoutubeResumed(
+  channelName: string | null | undefined,
+  config: PipelineConfig,
+): Promise<void> {
+  if (!config.telegramBotToken || !config.telegramChatId) return;
+  const bot = new Bot(config.telegramBotToken);
+  const message = [
+    `▶️ <b>UPLOADS DO YOUTUBE RETOMADOS</b>`,
+    `──────────────────────`,
+    `📺 <b>Canal:</b> ${escapeHtml(channelName || "Canal")}`,
+    ``,
+    `O limite foi liberado e a fila voltou a publicar automaticamente.`,
+    `──────────────────────`,
+  ].join("\n");
+  try {
+    await withRetry(
+      () => bot.api.sendMessage(config.telegramChatId, message, { parse_mode: "HTML" }),
+      { maxAttempts: 3, baseDelayMs: 2000, logMessage: "Telegram resume alert failed, retrying..." },
+    );
+    logger.info({ channelName }, "Sent YouTube resume alert to Telegram");
+  } catch (e) {
+    logger.error({ error: e instanceof Error ? e.message : String(e) }, "Failed to send YouTube resume alert");
+  }
+}
+
+/**
  * Send a full video to a Telegram channel (used by generate:top).
  */
 export async function sendFullVideoToTelegram(
