@@ -6,7 +6,7 @@ import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
 import { withRetry } from "./retry-backoff.js";
 import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
-import { sendErrorAlert } from "./telegram.js";
+import { sendErrorAlert, notifyYoutubePublished } from "./telegram.js";
 import { generateReauthUrl, sendReauthAlert } from "./youtube-reauth.js";
 
 interface YouTubeVideoInsertBody {
@@ -224,8 +224,12 @@ async function performUpload(
     const videoId = res.data?.id;
     const url = videoId ? (isShort ? `https://youtube.com/shorts/${videoId}` : `https://youtube.com/watch?v=${videoId}`) : null;
 
-    if (url) {
+    if (url && videoId) {
       logger.info({ url }, "✅ Vídeo enviado com sucesso para o YouTube!");
+      await notifyYoutubePublished(
+        { videoId, url, title: requestBody.snippet.title, channelName: config.managedRun?.channelName, isShort: !!isShort },
+        config,
+      );
     }
     return url;
   } catch (error: any) {

@@ -14,6 +14,45 @@ function escapeHtml(text: string): string {
 }
 
 /**
+ * Notify Telegram that a video was published to YouTube, with thumbnail + link.
+ */
+export async function notifyYoutubePublished(
+  params: { videoId: string; url: string; title: string; channelName?: string | null; isShort: boolean },
+  config: PipelineConfig,
+): Promise<void> {
+  if (!config.telegramBotToken || !config.telegramChatId) return;
+
+  const bot = new Bot(config.telegramBotToken);
+  const { videoId, url, title, channelName, isShort } = params;
+  const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  const caption = [
+    isShort ? `🎬 <b>SHORT PUBLICADO NO YOUTUBE</b>` : `🎬 <b>VÍDEO PUBLICADO NO YOUTUBE</b>`,
+    `──────────────────────`,
+    `📌 <b>${escapeHtml(title)}</b>`,
+    channelName ? `📺 <b>Canal:</b> ${escapeHtml(channelName)}` : "",
+    ``,
+    `🔗 <a href="${url}">Assistir no YouTube</a>`,
+    `──────────────────────`,
+  ].filter(line => line !== "").join("\n");
+
+  try {
+    await withRetry(
+      () => bot.api.sendPhoto(config.telegramChatId, thumbnailUrl, { caption, parse_mode: "HTML" }),
+      { maxAttempts: 2, baseDelayMs: 1500, logMessage: "Telegram sendPhoto failed, retrying..." },
+    );
+    logger.info({ videoId, url }, "Sent YouTube publish notification to Telegram");
+  } catch (error) {
+    // Thumbnail may not be ready yet right after upload — fall back to a text link.
+    logger.warn({ videoId, error: error instanceof Error ? error.message : String(error) }, "sendPhoto failed; sending text link");
+    try {
+      await bot.api.sendMessage(config.telegramChatId, caption, { parse_mode: "HTML", link_preview_options: { is_disabled: false } });
+    } catch (e) {
+      logger.error({ videoId, error: e instanceof Error ? e.message : String(e) }, "Failed to send YouTube publish notification");
+    }
+  }
+}
+
+/**
  * Send a full video to a Telegram channel (used by generate:top).
  */
 export async function sendFullVideoToTelegram(
