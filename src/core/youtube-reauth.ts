@@ -4,7 +4,13 @@ import { Bot, InlineKeyboard } from "grammy";
 import type { PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 
-const YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"];
+const YOUTUBE_SCOPES = [
+  "https://www.googleapis.com/auth/youtube.upload",
+  // readonly lets the callback identify which YouTube channel was actually
+  // authorized, so a wrong-account consent is caught instead of silently
+  // uploading to the wrong channel.
+  "https://www.googleapis.com/auth/youtube.readonly",
+];
 const OAUTH_CALLBACK_PATH = "/api/youtube/callback";
 
 export function getOAuthCallbackUrl(serverPublicUrl: string): string {
