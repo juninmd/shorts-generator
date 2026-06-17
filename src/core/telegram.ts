@@ -87,6 +87,7 @@ export async function sendToTelegram(
   short: GeneratedShort,
   config: PipelineConfig,
   youtubeUrl?: string | null,
+  pendingRateLimit?: boolean,
 ): Promise<number | undefined> {
   if (!config.telegramBotToken || !config.telegramChatId) {
     logger.warn("Telegram not configured, skipping upload");
@@ -115,6 +116,7 @@ export async function sendToTelegram(
     `💡 <b>Insight:</b> <i>${escapeHtml(short.clip.reason)}</i>`,
     ``,
     youtubeUrl ? `🔴 <b>YouTube:</b> <a href="${youtubeUrl}">Assistir Short</a>` : "",
+    pendingRateLimit ? `⏳ <b>Pendente:</b> já acumulado no PVC, aguardando a janela de publicação do YouTube (limite diário/rate limit). Será publicado automaticamente pela fila assim que a janela abrir.` : "",
     `🔗 <b>Original:</b> <a href="${short.originalVideoUrl}">Link</a>`,
     ``,
     `──────────────────────`,
