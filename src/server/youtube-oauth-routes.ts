@@ -95,8 +95,19 @@ export function registerYoutubeOAuthRoutes(app: Hono): void {
 
       logger.info({ channelId, authorizedChannelTitle, authorizedChannelId }, "YouTube token refreshed via OAuth callback");
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = process.env.TELEGRAM_CHAT_ID;
+      // Notify the CHANNEL's own Telegram chat, not the global env one — each
+      // managed channel has its own telegram publishing account.
+      let botToken = process.env.TELEGRAM_BOT_TOKEN;
+      let chatId = process.env.TELEGRAM_CHAT_ID;
+      const telegramAccount = bundle.publishingAccounts.find(a => a.provider === "telegram");
+      if (telegramAccount) {
+        try {
+          botToken = secretStore.decryptToken(channelId, telegramAccount.id, telegramAccount.encryptedToken);
+          chatId = telegramAccount.accountIdentifier;
+        } catch (e) {
+          logger.warn({ channelId, error: e instanceof Error ? e.message : String(e) }, "Could not resolve channel Telegram account; falling back to global");
+        }
+      }
       if (botToken && chatId) {
         const bot = new Bot(botToken);
         const linked = authorizedChannelTitle
