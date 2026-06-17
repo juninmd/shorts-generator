@@ -127,6 +127,7 @@ export const generateYoutubeMetadata = async (
 
   const prompt = `Crie um título, uma descrição e tags/palavras-chave OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
 Título Sugerido: ${short.clip.title}
+Título do Vídeo Original: ${short.originalVideoTitle}
 Descrição Sugerida: ${short.clip.description}
 Contexto do Canal: ${short.channelName}
 Motivo da Viralização: ${short.clip.reason}
@@ -134,6 +135,7 @@ Hashtags Sugeridas: ${short.clip.hashtags?.join(", ")}
 Focos do canal de destino: ${config.managedRun?.focusLabels?.join(", ") || "não informado"}
 
 O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
+Se o "Título do Vídeo Original" contiver o NOME de uma pessoa (ex.: convidado, entrevistado, personalidade), INCLUA esse nome no título do short — nomes de pessoas atraem buscas e cliques. Caso não haja nome de pessoa, ignore esta instrução.
 A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags?.join(" ")}.
 A descricao DEVE conter o link original: ${short.originalVideoUrl}.
 Gere a MAIOR quantidade possível de tags/palavras-chave de pesquisa (termos simples, sem #) para maximizar o alcance, a viralização e o número de views. Priorize termos com ALTO volume de busca e potencial de viralização; misture termos amplos (head) com termos de cauda longa (long-tail), sinônimos e variações que as pessoas realmente pesquisam sobre o tema. Ordene da tag MAIS relevante/buscada para a menos relevante. O conjunto de tags deve somar o MÁXIMO possível de caracteres SEM ULTRAPASSAR 490 caracteres no total (somando todas as tags e separadores).
