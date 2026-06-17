@@ -24,31 +24,31 @@ export async function notifyYoutubePublished(
 
   const bot = new Bot(config.telegramBotToken);
   const { videoId, url, title, channelName, isShort } = params;
-  const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-  const caption = [
+  // The YouTube thumbnail (i.ytimg.com) is often not generated yet immediately
+  // after upload, so sendPhoto-by-URL fails with "wrong type of web page
+  // content". Instead send a single message with the link preview ENABLED — the
+  // YouTube card (with thumbnail) is rendered natively by Telegram once ready,
+  // and one call per publish keeps us under the group rate limit.
+  const text = [
     isShort ? `🎬 <b>SHORT PUBLICADO NO YOUTUBE</b>` : `🎬 <b>VÍDEO PUBLICADO NO YOUTUBE</b>`,
     `──────────────────────`,
     `📌 <b>${escapeHtml(title)}</b>`,
     channelName ? `📺 <b>Canal:</b> ${escapeHtml(channelName)}` : "",
     ``,
-    `🔗 <a href="${url}">Assistir no YouTube</a>`,
-    `──────────────────────`,
+    `🔗 <a href="${url}">${url}</a>`,
   ].filter(line => line !== "").join("\n");
 
   try {
     await withRetry(
-      () => bot.api.sendPhoto(config.telegramChatId, thumbnailUrl, { caption, parse_mode: "HTML" }),
-      { maxAttempts: 2, baseDelayMs: 1500, logMessage: "Telegram sendPhoto failed, retrying..." },
+      () => bot.api.sendMessage(config.telegramChatId, text, {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: false, url, prefer_large_media: true },
+      }),
+      { maxAttempts: 3, baseDelayMs: 2000, logMessage: "Telegram publish notification failed, retrying..." },
     );
     logger.info({ videoId, url }, "Sent YouTube publish notification to Telegram");
-  } catch (error) {
-    // Thumbnail may not be ready yet right after upload — fall back to a text link.
-    logger.warn({ videoId, error: error instanceof Error ? error.message : String(error) }, "sendPhoto failed; sending text link");
-    try {
-      await bot.api.sendMessage(config.telegramChatId, caption, { parse_mode: "HTML", link_preview_options: { is_disabled: false } });
-    } catch (e) {
-      logger.error({ videoId, error: e instanceof Error ? e.message : String(e) }, "Failed to send YouTube publish notification");
-    }
+  } catch (e) {
+    logger.error({ videoId, error: e instanceof Error ? e.message : String(e) }, "Failed to send YouTube publish notification");
   }
 }
 
