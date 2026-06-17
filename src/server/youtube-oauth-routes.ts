@@ -47,6 +47,22 @@ export function registerYoutubeOAuthRoutes(app: Hono): void {
         );
       }
 
+      // Identify the actual YouTube channel that was authorized, so a consent
+      // with the wrong Google account/brand channel is caught instead of
+      // silently uploading to the wrong channel.
+      let authorizedChannelTitle = "";
+      let authorizedChannelId = "";
+      try {
+        oauth2Client.setCredentials(tokens);
+        const yt = google.youtube({ version: "v3", auth: oauth2Client });
+        const me = await yt.channels.list({ mine: true, part: ["snippet"] } as any);
+        const ch = me.data.items?.[0];
+        authorizedChannelTitle = ch?.snippet?.title ?? "";
+        authorizedChannelId = ch?.id ?? "";
+      } catch (e) {
+        logger.warn({ channelId, error: e instanceof Error ? e.message : String(e) }, "Could not read authorized YouTube channel identity");
+      }
+
       const db = getControlPlanePool(cpConfig);
       const repo = new ChannelBundleRepository(db);
       const secretStore = createSecretStore(cpConfig);
@@ -61,35 +77,42 @@ export function registerYoutubeOAuthRoutes(app: Hono): void {
       const accountId = existingAccount?.id ?? randomUUID();
       const encryptedToken = secretStore.encryptToken(channelId, accountId, tokens.refresh_token);
 
+      const identifier = authorizedChannelTitle || bundle.channel.name;
       const updatedAccounts = existingAccount
         ? bundle.publishingAccounts.map(a =>
-            a.provider === "youtube" ? { ...a, encryptedToken, updatedAt: now } : a,
+            a.provider === "youtube" ? { ...a, encryptedToken, accountIdentifier: identifier, updatedAt: now } : a,
           )
         : [
             ...bundle.publishingAccounts,
             {
               id: accountId, channelId, provider: "youtube" as const, label: "Principal",
-              status: "active" as const, accountIdentifier: bundle.channel.name,
+              status: "active" as const, accountIdentifier: identifier,
               clientId, clientSecret, encryptedToken, createdAt: now, updatedAt: now,
             },
           ];
 
       await repo.saveBundle({ ...bundle, publishingAccounts: updatedAccounts });
 
-      logger.info({ channelId }, "YouTube token refreshed via OAuth callback");
+      logger.info({ channelId, authorizedChannelTitle, authorizedChannelId }, "YouTube token refreshed via OAuth callback");
 
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       const chatId = process.env.TELEGRAM_CHAT_ID;
       if (botToken && chatId) {
         const bot = new Bot(botToken);
+        const linked = authorizedChannelTitle
+          ? `📺 <b>Conta YouTube vinculada:</b> ${authorizedChannelTitle}`
+          : `⚠️ Não foi possível ler o canal autorizado (verifique manualmente).`;
         await bot.api.sendMessage(
           chatId,
-          `✅ <b>Token YouTube atualizado!</b>\nCanal: <b>${bundle.channel.name}</b>`,
+          `✅ <b>Token YouTube atualizado!</b>\nCanal interno: <b>${bundle.channel.name}</b>\n${linked}\n\n<i>⚠️ Se a conta vinculada acima não for a esperada, refaça a autorização e escolha o canal correto na tela do Google.</i>`,
           { parse_mode: "HTML" },
         );
       }
 
-      return c.html("<h1>✅ Token atualizado com sucesso!</h1><p>Você pode fechar esta aba.</p>");
+      const warn = authorizedChannelTitle
+        ? `<p>Conta YouTube vinculada: <b>${authorizedChannelTitle}</b></p><p>Se não for o canal esperado, refaça e escolha a conta correta no Google.</p>`
+        : "";
+      return c.html(`<h1>✅ Token atualizado com sucesso!</h1>${warn}<p>Você pode fechar esta aba.</p>`);
     } catch (error) {
       logger.error({ error, channelId }, "Failed to exchange OAuth code");
       return c.text("Failed to exchange OAuth code", 500);
