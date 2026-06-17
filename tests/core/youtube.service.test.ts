@@ -78,6 +78,35 @@ vi.mock("../../src/core/logger", () => ({
   },
 }));
 
+// Managed-channel YouTube auth now ALWAYS loads the live token from the control
+// plane DB (no env/embedded fallback). Mock that chain so managed configs resolve
+// a token; non-managed configs still use the env path in getYouTubeAuth.
+const mockGetBundle = vi.fn();
+vi.mock("../../src/core/control-plane-config.js", () => ({
+  loadControlPlaneConfig: () => ({}),
+  tryLoadControlPlaneConfig: () => ({}),
+}));
+vi.mock("../../src/core/control-plane-db.js", () => ({
+  getControlPlanePool: () => ({}),
+}));
+vi.mock("../../src/core/secret-store.js", () => ({
+  createSecretStore: () => ({ decryptToken: () => process.env.YOUTUBE_REFRESH_TOKEN || "789" }),
+}));
+vi.mock("../../src/core/channel-bundle-repository.js", () => ({
+  ChannelBundleRepository: class {
+    getBundle = (...args: any[]) => mockGetBundle(...args);
+  },
+}));
+
+const youtubeAccountFixture = {
+  provider: "youtube",
+  id: "acc-1",
+  channelId: "channel-123",
+  clientId: "123",
+  clientSecret: "456",
+  encryptedToken: { keyVersion: "v1", iv: "iv", authTag: "tag", ciphertext: "cipher" },
+};
+
 describe("youtube.service", () => {
   const mockConfig = {
     aiProvider: "openrouter",
@@ -101,6 +130,7 @@ describe("youtube.service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     originalEnv = { ...process.env };
+    mockGetBundle.mockResolvedValue({ publishingAccounts: [youtubeAccountFixture] });
   });
 
   afterEach(() => {
