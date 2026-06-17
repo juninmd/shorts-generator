@@ -69,19 +69,43 @@ const extractJsonObject = (content: string): string => {
   return clean.slice(firstBrace, lastBrace + 1);
 };
 
+// YouTube caps the combined length of all video tags at ~500 chars (commas
+// included). Keep the highest-priority tags (assumed already ordered by
+// relevance) within a safe 490-char budget, deduping and dropping empties.
+// Uses `continue` (not `break`) so a single oversized tag doesn't block shorter
+// ones that still fit — maximizing how much of the budget we actually use.
+const TAG_CHAR_BUDGET = 490;
+const capTagsToLimit = (tags: string[]): string[] => {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  let total = 0;
+  for (const raw of tags) {
+    const tag = (raw ?? "").trim();
+    if (!tag) continue;
+    const key = tag.toLowerCase();
+    if (seen.has(key)) continue;
+    const cost = tag.length + 1; // approx separator/quote overhead per tag
+    if (total + cost > TAG_CHAR_BUDGET) continue;
+    seen.add(key);
+    result.push(tag);
+    total += cost;
+  }
+  return result;
+};
+
 export const generateYoutubeMetadata = async (
   short: GeneratedShort,
   config: PipelineConfig
 ): Promise<{ title: string; description: string; tags: string[] }> => {
   const isEnabled = process.env.ENABLE_YOUTUBE === "true";
   const originalDescription = withOriginalVideoLink(short.clip.description, short.originalVideoUrl);
-  const defaultTags = [
+  const defaultTags = capTagsToLimit([
     "shorts",
     "curiosidades",
     "viral",
     ...(short.clip.hashtags || []),
     ...(config.managedRun?.focusLabels || [])
-  ];
+  ]);
 
   if (!isEnabled) {
     return {
@@ -112,7 +136,7 @@ Focos do canal de destino: ${config.managedRun?.focusLabels?.join(", ") || "não
 O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
 A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags?.join(" ")}.
 A descricao DEVE conter o link original: ${short.originalVideoUrl}.
-Gere também o máximo possível de tags/palavras-chave de pesquisa relevantes (termos simples, sem #) para maximizar o alcance e gerar views. Retorne até 30 tags altamente otimizadas.
+Gere a MAIOR quantidade possível de tags/palavras-chave de pesquisa (termos simples, sem #) para maximizar o alcance, a viralização e o número de views. Priorize termos com ALTO volume de busca e potencial de viralização; misture termos amplos (head) com termos de cauda longa (long-tail), sinônimos e variações que as pessoas realmente pesquisam sobre o tema. Ordene da tag MAIS relevante/buscada para a menos relevante. O conjunto de tags deve somar o MÁXIMO possível de caracteres SEM ULTRAPASSAR 490 caracteres no total (somando todas as tags e separadores).
 
 Responda APENAS com um objeto JSON no formato:
 {
@@ -127,15 +151,16 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
       model: createModel(config),
       prompt,
       temperature: 0.5,
-      maxOutputTokens: 256,
+      maxOutputTokens: 700,
       maxRetries: 5,
     });
 
     const metadata = JSON.parse(extractJsonObject(text));
+    const rawTags = Array.isArray(metadata.tags) && metadata.tags.length > 0 ? metadata.tags : defaultTags;
     return {
       title: metadata.title || short.clip.title,
       description: withOriginalVideoLink(metadata.description || short.clip.description, short.originalVideoUrl),
-      tags: Array.isArray(metadata.tags) && metadata.tags.length > 0 ? metadata.tags : defaultTags,
+      tags: capTagsToLimit(rawTags),
     };
   } catch (error) {
     logger.error({ error, clipId: short.id }, "Erro ao gerar metadados para o YouTube");
