@@ -2,7 +2,8 @@ import { Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import type { PipelineConfig, GeneratedShort } from "../types.js";
 import { uploadToYouTube } from "./youtube.service.js";
-import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
+import { notifyYoutubeRateLimited } from "./telegram.js";
+import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync, getDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
 import fs from "node:fs";
 
@@ -72,6 +73,13 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
     const youtubeUrl = await uploadToYouTube(videoPath, title, description, config, tags);
     if (!youtubeUrl) throw new Error("Upload falhou (retornou null)");
     await incrementDailyUploadCountAsync(channelId);
+    // Notify exactly once, on the upload that reaches the configured daily cap.
+    if ((await getDailyUploadCountAsync(channelId)) === config.dailyUploadLimit) {
+      await notifyYoutubeRateLimited(
+        { channelName: config.managedRun?.channelName, reason: "daily-cap", limit: config.dailyUploadLimit },
+        config,
+      );
+    }
     // Free the PVC as soon as the clip is published — backlog storage is then
     // bounded by unpublished clips only.
     try {

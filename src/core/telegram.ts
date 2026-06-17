@@ -53,6 +53,41 @@ export async function notifyYoutubePublished(
 }
 
 /**
+ * Notify Telegram that YouTube uploads are paused for the day — either the
+ * channel's configured daily cap was reached or YouTube itself rejected the
+ * upload with its account rate limit. Backlog stays queued and resumes next day.
+ */
+export async function notifyYoutubeRateLimited(
+  params: { channelName?: string | null; reason: "daily-cap" | "youtube-quota"; limit?: number },
+  config: PipelineConfig,
+): Promise<void> {
+  if (!config.telegramBotToken || !config.telegramChatId) return;
+  const bot = new Bot(config.telegramBotToken);
+  const name = params.channelName || "Canal";
+  const cause = params.reason === "youtube-quota"
+    ? "O YouTube bloqueou novos uploads (limite de envios da conta atingido)."
+    : `Limite diário de uploads atingido${params.limit ? ` (${params.limit})` : ""}.`;
+  const message = [
+    `⏸️ <b>UPLOADS DO YOUTUBE PAUSADOS</b>`,
+    `──────────────────────`,
+    `📺 <b>Canal:</b> ${escapeHtml(name)}`,
+    ``,
+    `${cause}`,
+    `Os shorts restantes seguem na fila e serão publicados automaticamente quando a janela reabrir.`,
+    `──────────────────────`,
+  ].join("\n");
+  try {
+    await withRetry(
+      () => bot.api.sendMessage(config.telegramChatId, message, { parse_mode: "HTML" }),
+      { maxAttempts: 3, baseDelayMs: 2000, logMessage: "Telegram rate-limit alert failed, retrying..." },
+    );
+    logger.info({ channelName: name, reason: params.reason }, "Sent YouTube rate-limit alert to Telegram");
+  } catch (e) {
+    logger.error({ error: e instanceof Error ? e.message : String(e) }, "Failed to send YouTube rate-limit alert");
+  }
+}
+
+/**
  * Send a full video to a Telegram channel (used by generate:top).
  */
 export async function sendFullVideoToTelegram(
