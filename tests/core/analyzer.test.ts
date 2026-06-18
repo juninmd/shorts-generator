@@ -252,6 +252,17 @@ describe("analyzer", () => {
     expect(clips[0].title).toBe("FB Clip");
   });
 
+  it("should parse a markdown-fenced top-level array from fallback", async () => {
+    vi.mocked(aiModule.generateObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: "```json\n[{\"title\":\"Arr Clip\",\"description\":\"D\",\"startTime\":10,\"endTime\":40,\"viralScore\":7,\"reason\":\"R\",\"hashtags\":[]}]\n```",
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("Arr Clip");
+  });
+
   it("should correctly handle words within the clip range", async () => {
     const mockResponse = {
       clips: [
