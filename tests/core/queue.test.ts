@@ -6,6 +6,7 @@ const mockQueueGetWaitingCount = vi.fn().mockResolvedValue(0);
 const mockQueueGetActiveCount = vi.fn().mockResolvedValue(0);
 const mockQueueGetDelayedCount = vi.fn().mockResolvedValue(0);
 const mockQueuePromoteJobs = vi.fn().mockResolvedValue(undefined);
+const workerHandlers: Record<string, any> = {};
 
 vi.mock("bullmq", () => {
   class MockQueue {
@@ -17,8 +18,13 @@ vi.mock("bullmq", () => {
   }
 
   class MockWorker {
-    on = vi.fn();
-    run = vi.fn().mockResolvedValue(undefined);
+    on = vi.fn((evt: string, cb: any) => { workerHandlers[evt] = cb; });
+    // Simulate one job flowing through (active -> completed) so the drain
+    // promise reaches checkDone and resolves instead of hanging on the timeout.
+    run = vi.fn(async () => {
+      workerHandlers.active?.();
+      await workerHandlers.completed?.({ id: "job-1" });
+    });
     close = vi.fn().mockResolvedValue(undefined);
   }
 
@@ -66,6 +72,7 @@ vi.mock("node:fs", async () => {
 describe("Queue System", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    for (const k of Object.keys(workerHandlers)) delete workerHandlers[k];
   });
 
   it("should enqueue a YouTube upload", async () => {
@@ -98,5 +105,24 @@ describe("Queue System", () => {
     mockQueueGetDelayedCount.mockResolvedValueOnce(0);
 
     await expect(processQueueUntilEmpty()).resolves.toBeUndefined();
+  });
+
+  it("promotes delayed jobs and drains them when only delayed are present", async () => {
+    mockQueueGetWaitingCount.mockResolvedValue(0);
+    mockQueueGetActiveCount.mockResolvedValueOnce(0);
+    mockQueueGetDelayedCount.mockResolvedValueOnce(5);
+
+    await expect(processQueueUntilEmpty()).resolves.toBeUndefined();
+    expect(mockQueuePromoteJobs).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not promote when promoteJobs throws (logged and swallowed)", async () => {
+    mockQueueGetWaitingCount.mockResolvedValue(0);
+    mockQueueGetActiveCount.mockResolvedValueOnce(0);
+    mockQueueGetDelayedCount.mockResolvedValueOnce(3);
+    mockQueuePromoteJobs.mockRejectedValueOnce(new Error("redis down"));
+
+    await expect(processQueueUntilEmpty()).resolves.toBeUndefined();
+    expect(mockQueuePromoteJobs).toHaveBeenCalledTimes(1);
   });
 });
