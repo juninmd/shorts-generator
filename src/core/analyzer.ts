@@ -118,10 +118,17 @@ async function analyzeSinglePassFallback(
     });
 
     clearTimeout(timeoutId);
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    // Models frequently wrap JSON in ```json fences and return a top-level
+    // array instead of an object. Strip fences and extract whichever of
+    // array/object appears first so both shapes parse.
+    const cleaned = text.replace(/```(?:json)?/gi, "").trim();
+    const start = cleaned.search(/[[{]/);
+    if (start === -1) return [];
+    const re = cleaned[start] === "[" ? /\[[\s\S]*\]/ : /\{[\s\S]*\}/;
+    const jsonMatch = cleaned.match(re);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.clips || (Array.isArray(parsed) ? parsed : []);
+      return Array.isArray(parsed) ? parsed : (parsed.clips ?? []);
     }
     return [];
   } catch (e: unknown) {
