@@ -110,8 +110,22 @@ export async function processQueueUntilEmpty(): Promise<void> {
   const queue = getQueue();
   const waiting = await queue.getWaitingCount();
   const active = await queue.getActiveCount();
-  logger.info({ waiting, active }, "📊 Estado da fila de uploads");
-  if (waiting === 0 && active === 0) return;
+  const delayed = await queue.getDelayedCount();
+  logger.info({ waiting, active, delayed }, "📊 Estado da fila de uploads");
+  if (waiting === 0 && active === 0 && delayed === 0) return;
+
+  // Delayed jobs (re-enqueued after a daily-cap hit) are not counted as waiting,
+  // so without an explicit promote they sit in the queue forever and never
+  // publish. Promote due jobs now so this run drains the accumulated backlog;
+  // any job re-deferred again (cap still reached) simply returns to delayed.
+  if (delayed > 0) {
+    try {
+      await queue.promoteJobs();
+      logger.info({ delayed }, "⏫ Jobs adiados promovidos para processamento");
+    } catch (err) {
+      logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Falha ao promover jobs adiados");
+    }
+  }
 
   const worker = createWorker();
   return new Promise<void>((resolve, reject) => {
