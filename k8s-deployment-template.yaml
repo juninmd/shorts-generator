@@ -18,6 +18,7 @@ metadata:
   namespace: default
 data:
   # YouTube access configuration
+  ENABLE_YOUTUBE: "true"
   YOUTUBE_PLAYER_CLIENT: "default"
   YOUTUBE_CHANNELS: "@your_channel_1,@your_channel_2"
   VIDEO_LIMIT: "3"
