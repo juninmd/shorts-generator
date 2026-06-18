@@ -4,12 +4,16 @@ import { enqueueYoutubeUpload, processQueueUntilEmpty, createWorker } from "../.
 const mockQueueAdd = vi.fn();
 const mockQueueGetWaitingCount = vi.fn().mockResolvedValue(0);
 const mockQueueGetActiveCount = vi.fn().mockResolvedValue(0);
+const mockQueueGetDelayedCount = vi.fn().mockResolvedValue(0);
+const mockQueuePromoteJobs = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("bullmq", () => {
   class MockQueue {
     add = mockQueueAdd;
     getWaitingCount = mockQueueGetWaitingCount;
     getActiveCount = mockQueueGetActiveCount;
+    getDelayedCount = mockQueueGetDelayedCount;
+    promoteJobs = mockQueuePromoteJobs;
   }
 
   class MockWorker {
@@ -91,6 +95,7 @@ describe("Queue System", () => {
   it("should process queue until empty and resolve if queue is already empty", async () => {
     mockQueueGetWaitingCount.mockResolvedValueOnce(0);
     mockQueueGetActiveCount.mockResolvedValueOnce(0);
+    mockQueueGetDelayedCount.mockResolvedValueOnce(0);
 
     await expect(processQueueUntilEmpty()).resolves.toBeUndefined();
   });
