@@ -42,7 +42,7 @@
     "googleapis": "^172.0.0",
     "grammy": "^1.31.0",
     "hono": "^4.12.25",
-    "ioredis": "^5.11.0",
+    "ioredis": "^5.11.1",
     "nanoid": "^5.1.11",
     "ollama-ai-provider": "^1.2.0",
     "p-limit": "^7.3.0",
