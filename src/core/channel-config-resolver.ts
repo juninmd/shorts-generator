@@ -66,7 +66,6 @@ export function buildManagedPipelineConfig(
   resolvedRun: ResolvedChannelRun,
   overrides?: Partial<PipelineConfig>,
 ): PipelineConfig {
-  const focusQuery = resolvedRun.focuses.map((focus) => focus.label).join(" ").trim();
   return loadConfig({
     ...baseConfig,
     channels: overrides?.channels ?? resolvedRun.sources.map((source) => source.value),
@@ -76,7 +75,7 @@ export function buildManagedPipelineConfig(
     maxShortDuration: resolvedRun.profile.maxShortDuration,
     targetShorts: overrides?.targetShorts ?? (resolvedRun.profile.targetShorts ?? undefined),
     sortByViews: overrides?.sortByViews ?? resolvedRun.profile.sortByViews,
-    videoQuery: overrides?.videoQuery ?? ((resolvedRun.profile.videoQuery ?? focusQuery) || undefined),
+    videoQuery: overrides?.videoQuery ?? (resolvedRun.profile.videoQuery || undefined),
     aiModel: resolvedRun.profile.aiModel,
     watermarkText: resolvedRun.channel.watermarkText,
     youtubeAuth: {
