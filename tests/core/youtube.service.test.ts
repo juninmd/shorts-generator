@@ -122,6 +122,7 @@ describe("youtube.service", () => {
       description: "Original Description",
       reason: "viral",
       hashtags: ["#dummy"],
+      transcript: [{ text: "Hello transcript segment" }],
     },
   } as any;
 
@@ -181,7 +182,17 @@ describe("youtube.service", () => {
       const result = await generateYoutubeMetadata(mockShort, config);
 
       expect(result.title).toBe("Viral Title");
-      expect(result.tags).toEqual(["shorts"]);
+      expect(result.tags).toEqual(["shorts", "curiosidades", "viral", "#dummy"]);
+    });
+
+    it("should pass the transcript in the AI prompt", async () => {
+      setupMock('{"title": "Viral Title", "description": "Viral Description", "tags": ["shorts"]}');
+      await generateYoutubeMetadata(mockShort, mockConfig);
+
+      const calls = vi.mocked(aiModule.generateText).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const prompt = calls[0][0].prompt;
+      expect(prompt).toContain('Transcrição do trecho/corte: "Hello transcript segment"');
     });
 
 
