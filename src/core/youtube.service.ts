@@ -99,19 +99,19 @@ export const generateYoutubeMetadata = async (
 ): Promise<{ title: string; description: string; tags: string[] }> => {
   const isEnabled = process.env.ENABLE_YOUTUBE === "true";
   const originalDescription = withOriginalVideoLink(short.clip.description, short.originalVideoUrl);
-  const defaultTags = capTagsToLimit([
+  const defaultTags = [
     "shorts",
     "curiosidades",
     "viral",
     ...(short.clip.hashtags || []),
     ...(config.managedRun?.focusLabels || [])
-  ]);
+  ];
 
   if (!isEnabled) {
     return {
       title: short.clip.title,
       description: originalDescription,
-      tags: defaultTags,
+      tags: capTagsToLimit(defaultTags),
     };
   }
 
@@ -120,27 +120,48 @@ export const generateYoutubeMetadata = async (
     return {
       title: short.clip.title,
       description: originalDescription,
-      tags: defaultTags,
+      tags: capTagsToLimit(defaultTags),
     };
   }
   /* v8 ignore stop */
 
+  const clipTranscript = (short.clip.transcript || [])
+    .map((s) => s.text)
+    .join(" ")
+    .trim();
+
   const prompt = `Crie um título, uma descrição e tags/palavras-chave OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
-Título Sugerido: ${short.clip.title}
+Título Sugerido do Corte: ${short.clip.title}
 Título do Vídeo Original: ${short.originalVideoTitle}
-Descrição Sugerida: ${short.clip.description}
-Contexto do Canal: ${short.channelName}
+Descrição Sugerida do Corte: ${short.clip.description}
+Contexto/Canal de Origem: ${short.channelName}
 Motivo da Viralização: ${short.clip.reason}
 Hashtags Sugeridas: ${short.clip.hashtags?.join(", ")}
 Focos do canal de destino: ${config.managedRun?.focusLabels?.join(", ") || "não informado"}
+Transcrição do trecho/corte: "${clipTranscript}"
 
-O título deve ser EXTREMAMENTE chamativo, com no máximo 60 caracteres, e incluir emojis. Use o "Hook" se fizer sentido.
-Se o "Título do Vídeo Original" contiver o NOME de uma pessoa (ex.: convidado, entrevistado, personalidade), INCLUA esse nome no título do short — nomes de pessoas atraem buscas e cliques. Caso não haja nome de pessoa, ignore esta instrução.
-A descrição deve ser muito curta, focada em engajamento, com as hashtags: #shorts #curiosidades #viral ${short.clip.hashtags?.join(" ")}.
-A descricao DEVE conter o link original: ${short.originalVideoUrl}.
-Gere a MAIOR quantidade possível de tags/palavras-chave de pesquisa (termos simples, sem #) para maximizar o alcance, a viralização e o número de views. Priorize termos com ALTO volume de busca e potencial de viralização; misture termos amplos (head) com termos de cauda longa (long-tail), sinônimos e variações que as pessoas realmente pesquisam sobre o tema. Ordene da tag MAIS relevante/buscada para a menos relevante. O conjunto de tags deve somar o MÁXIMO possível de caracteres SEM ULTRAPASSAR 490 caracteres no total (somando todas as tags e separadores).
+INSTRUÇÕES PARA O TÍTULO:
+1. O título deve ser EXTREMAMENTE chamativo e instigante, com no máximo 60 caracteres, e incluir emojis. Use gatilhos mentais ou um "Hook" se fizer sentido.
+2. Identifique na Transcrição, no Título do Vídeo Original ou no Contexto o nome da pessoa envolvida (entrevistado, palestrante, convidado, influenciador, ou figura principal). O título do Short DEVE obrigatoriamente incluir o nome ou sobrenome dessa pessoa envolvida no vídeo (exemplo: "Padre Paulo Ricardo alertou sobre isso", "Tiago Brunet revela segredo", "Monja Coen ensina como acalmar"). Se NENHUMA pessoa for identificável, crie o título mais chamativo possível focado no assunto.
 
-Responda APENAS com um objeto JSON no formato:
+INSTRUÇÕES PARA A DESCRIÇÃO:
+1. A descrição deve ser completa e altamente engajadora em Português do Brasil (pt-BR).
+2. Escreva um resumo/teaser curto e instigante sobre o que é falado neste clipe (1 a 3 frases) para instigar a curiosidade e gerar retenção.
+3. Inclua obrigatoriamente uma chamada para ação (CTA) convidativa para engajar o público no canal (exemplo: "Inscreva-se no canal para não perder os próximos cortes! Deixe seu like e comente o que você achou.").
+4. O link do vídeo original completo DEVE ser inserido na descrição exatamente desta forma: "🎥 Vídeo original completo: ${short.originalVideoUrl}".
+5. Insira um bloco de hashtags ao final, incluindo: #shorts #viral, o nome da pessoa envolvida, o nome do canal/contexto e as hashtags sugeridas.
+
+INSTRUÇÕES PARA AS TAGS (PALAVRAS-CHAVE):
+1. Gere a MAIOR quantidade possível de tags/palavras-chave de pesquisa relevantes (termos simples, sem #) para maximizar o alcance de busca no YouTube.
+2. Gere pelo menos 30 tags cobrindo:
+   - O nome completo e variações do nome da pessoa envolvida no vídeo.
+   - O nome do canal e termos relacionados ao canal original.
+   - Termos e tópicos específicos abordados na Transcrição e no Título.
+   - Termos amplos relacionados (head tags) e termos específicos de pesquisa (long-tail tags) que as pessoas digitam para achar esse tipo de conteúdo.
+   - Variações, sinônimos e termos relacionados.
+3. Ordene da tag mais relevante e buscada para a menos relevante.
+
+Responda APENAS com um objeto JSON válido no formato:
 {
   "title": "...",
   "description": "...",
@@ -158,7 +179,8 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
     });
 
     const metadata = JSON.parse(extractJsonObject(text));
-    const rawTags = Array.isArray(metadata.tags) && metadata.tags.length > 0 ? metadata.tags : defaultTags;
+    const aiTags = Array.isArray(metadata.tags) ? metadata.tags : [];
+    const rawTags = [...aiTags, ...defaultTags];
     return {
       title: metadata.title || short.clip.title,
       description: withOriginalVideoLink(metadata.description || short.clip.description, short.originalVideoUrl),
@@ -169,7 +191,7 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
     return {
       title: short.clip.title,
       description: originalDescription,
-      tags: defaultTags,
+      tags: capTagsToLimit(defaultTags),
     };
   }
 };
