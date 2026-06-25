@@ -150,7 +150,7 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Original Title",
         description: "Original Description",
-        tags: ["shorts", "curiosidades", "viral", "#dummy"],
+        tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"],
       });
     });
 
@@ -165,7 +165,7 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Viral Title",
         description: "Viral Description",
-        tags: ["shorts", "curiosidades", "viral", "#dummy"],
+        tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"],
       });
     });
 
@@ -182,7 +182,7 @@ describe("youtube.service", () => {
       const result = await generateYoutubeMetadata(mockShort, config);
 
       expect(result.title).toBe("Viral Title");
-      expect(result.tags).toEqual(["shorts", "curiosidades", "viral", "#dummy"]);
+      expect(result.tags).toEqual(["shorts", "dummy channel", "dummy", "cortes", "viral", "curiosidades", "melhores momentos"]);
     });
 
     it("should pass the transcript in the AI prompt", async () => {
@@ -197,9 +197,9 @@ describe("youtube.service", () => {
 
 
     it.each([
-      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } },
-      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } },
-      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description", tags: ["shorts", "curiosidades", "viral", "#dummy"] } }
+      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description", tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"] } },
+      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description", tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"] } },
+      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description", tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"] } }
     ])("should fallback properly when JSON parsing fails or misses fields: $content", async ({ content, expected }) => {
       setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
@@ -213,7 +213,7 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Original Title",
         description: "Original Description",
-        tags: ["shorts", "curiosidades", "viral", "#dummy"],
+        tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"],
       });
     });
   });
