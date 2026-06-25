@@ -7,6 +7,7 @@ import { uploadFullVideoToYouTube } from "./youtube.service.js";
 import { logger } from "./logger.js";
 import { isMusicVideoByTitle, isVideoWithinLimits, selectValidVideos, matchesVideoQuery } from "./pipeline-filters.js";
 import { processVideo } from "./pipeline-video-processor.js";
+import { buildFullVideoDescription, buildFullVideoTags } from "./full-video-metadata.js";
 
 export type { ProgressCallback } from "./pipeline-video-processor.js";
 export { processVideo };
@@ -51,8 +52,9 @@ export async function runTopVideoPipeline(
 
     const fullVideoPath = await downloadVideoSection(targetVideo, 0, targetVideo.duration, config);
     const downloadedFull = { ...downloaded, filePath: fullVideoPath };
-    const ytDescription = `Este é um repost do canal: ${targetVideo.channelName}\n\nAssista ao original aqui: ${targetVideo.url}`;
-    const youtubeUrl = await uploadFullVideoToYouTube(downloadedFull.filePath, targetVideo.title, ytDescription, config);
+    const ytDescription = buildFullVideoDescription(targetVideo);
+    const ytTags = buildFullVideoTags(targetVideo, config);
+    const youtubeUrl = await uploadFullVideoToYouTube(downloadedFull.filePath, targetVideo.title, ytDescription, config, ytTags);
 
     await sendFullVideoToTelegram(downloadedFull, config, youtubeUrl);
     if (!config.keepTempFiles) cleanupVideo(targetVideo.id, config);

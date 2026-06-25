@@ -14,16 +14,50 @@ function escapeHtml(text: string): string {
 }
 
 /**
+ * Build a short, human-friendly preview of the tags applied to a YouTube upload.
+ * Caps the number shown so the Telegram message stays readable, and signals how
+ * many extra tags were sent beyond the preview.
+ */
+function formatTagsPreview(tags: string[] | undefined, maxShown = 12): string {
+  const clean = (tags || []).map((t) => (t ?? "").trim()).filter(Boolean);
+  if (clean.length === 0) return "";
+  const shown = clean.slice(0, maxShown);
+  const rest = clean.length - shown.length;
+  const list = shown.map((t) => escapeHtml(t)).join(", ");
+  return rest > 0 ? `${list} <i>(+${rest})</i>` : list;
+}
+
+/**
  * Notify Telegram that a video was published to YouTube, with thumbnail + link.
+ * Also surfaces the optimized title, a teaser from the description and the
+ * search tags that were actually applied to the upload.
  */
 export async function notifyYoutubePublished(
-  params: { videoId: string; url: string; title: string; channelName?: string | null; isShort: boolean },
+  params: {
+    videoId: string;
+    url: string;
+    title: string;
+    channelName?: string | null;
+    isShort: boolean;
+    tags?: string[];
+    description?: string;
+  },
   config: PipelineConfig,
 ): Promise<void> {
   if (!config.telegramBotToken || !config.telegramChatId) return;
 
   const bot = new Bot(config.telegramBotToken);
-  const { videoId, url, title, channelName, isShort } = params;
+  const { videoId, url, title, channelName, isShort, tags, description } = params;
+
+  const tagsPreview = formatTagsPreview(tags);
+  // Teaser: first line/sentence of the description, before any hashtag/CTA block,
+  // trimmed so the notification stays compact.
+  const teaserRaw = (description || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .find((l) => l.length > 0 && !l.startsWith("#") && !l.startsWith("🎥") && !l.startsWith("🔗")) || "";
+  const teaser = teaserRaw.length > 180 ? `${teaserRaw.slice(0, 177)}...` : teaserRaw;
+
   // The YouTube thumbnail (i.ytimg.com) is often not generated yet immediately
   // after upload, so sendPhoto-by-URL fails with "wrong type of web page
   // content". Instead send a single message with the link preview ENABLED — the
@@ -34,6 +68,10 @@ export async function notifyYoutubePublished(
     `──────────────────────`,
     `📌 <b>${escapeHtml(title)}</b>`,
     channelName ? `📺 <b>Canal:</b> ${escapeHtml(channelName)}` : "",
+    teaser ? `` : "",
+    teaser ? `📝 <i>${escapeHtml(teaser)}</i>` : "",
+    tagsPreview ? `` : "",
+    tagsPreview ? `🏷 <b>Tags:</b> ${tagsPreview}` : "",
     ``,
     `🔗 <a href="${url}">${url}</a>`,
   ].filter(line => line !== "").join("\n");
