@@ -45,6 +45,8 @@ export interface ShortClip {
   id: string;
   videoId: string;
   title: string;
+  /** Name of the person presenting/speaking in this clip, when identifiable */
+  presenter?: string;
   description: string;
   startTime: number;
   endTime: number;

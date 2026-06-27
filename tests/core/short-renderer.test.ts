@@ -34,6 +34,22 @@ describe("short-renderer", () => {
     expect(filter).toContain("ass='C\\:/tmp/clip.ass'");
   });
 
+  it("buildSafeFramingFilter centers the crop by default", () => {
+    const filter = buildSafeFramingFilter("clip.ass", 1080, 1920);
+    expect(filter).toContain("crop=1080:1920:'clip((in_w*0.5000)-(1080/2)");
+    expect(filter).toContain(":(in_h-1920)/2,");
+  });
+
+  it("buildSafeFramingFilter biases the crop toward the detected speaker", () => {
+    const filter = buildSafeFramingFilter("clip.ass", 1080, 1920, null, 0.75);
+    expect(filter).toContain("crop=1080:1920:'clip((in_w*0.7500)-(1080/2)");
+  });
+
+  it("buildSafeFramingFilter clamps the focus into [0,1]", () => {
+    expect(buildSafeFramingFilter("clip.ass", 1080, 1920, null, 2)).toContain("in_w*1.0000");
+    expect(buildSafeFramingFilter("clip.ass", 1080, 1920, null, -1)).toContain("in_w*0.0000");
+  });
+
   it("buildSafeFramingFilter includes logo overlay when logoPath is provided", () => {
     const filter = buildSafeFramingFilter("C:\\tmp\\clip.ass", 1080, 1920, "/logos/wm.png");
     expect(filter).toContain("[1:v]scale=180:-1[logo]");
