@@ -23,4 +23,8 @@ describe("buildPresenterTitle", () => {
   it("trims surrounding whitespace", () => {
     expect(buildPresenterTitle("  Título  ", "  Fulano  ")).toBe("Fulano: Título");
   });
+
+  it("prefixes the presenter name even if it is a substring of a word in the title", () => {
+    expect(buildPresenterTitle("Semana de oração", "Ana")).toBe("Ana: Semana de oração");
+  });
 });
