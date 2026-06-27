@@ -78,6 +78,7 @@ The pipeline requires these system tools at runtime:
 - **yt-dlp** — YouTube video download
 - **OpenAI Whisper** (Python) — audio transcription
 - **LiteLLM** — OpenAI-compatible LLM gateway (must be reachable at `LITELLM_BASE_URL`)
+- **opencv-python** (Python, optional) — speaker-centered framing (`scripts/detect_face.py`); when absent the crop falls back to centered (toggled by `SPEAKER_FOCUS`)
 
 ### Code Constraints (Antigravity Protocol)
 

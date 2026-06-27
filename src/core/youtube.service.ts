@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import type { GeneratedShort, PipelineConfig, YouTubeAuthConfig } from "../types.js";
 import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
+import { buildPresenterTitle } from "./presenter-title.js";
 import { withRetry } from "./retry-backoff.js";
 import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
 import { sendErrorAlert, notifyYoutubePublished, notifyYoutubeRateLimited } from "./telegram.js";
@@ -131,7 +132,7 @@ export const generateYoutubeMetadata = async (
 
   if (!isEnabled) {
     return {
-      title: short.clip.title,
+      title: buildPresenterTitle(short.clip.title, short.clip.presenter),
       description: originalDescription,
       tags: capTagsToLimit(defaultTags),
     };
@@ -140,7 +141,7 @@ export const generateYoutubeMetadata = async (
   /* v8 ignore start */
   if (process.env.SKIP_AI_METADATA === "true") {
     return {
-      title: short.clip.title,
+      title: buildPresenterTitle(short.clip.title, short.clip.presenter),
       description: originalDescription,
       tags: capTagsToLimit(defaultTags),
     };
@@ -154,6 +155,7 @@ export const generateYoutubeMetadata = async (
 
   const prompt = `Crie um título, uma descrição e tags/palavras-chave OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
 Título Sugerido do Corte: ${short.clip.title}
+Apresentador identificado: ${short.clip.presenter || "não informado"}
 Título do Vídeo Original: ${short.originalVideoTitle}
 Descrição Sugerida do Corte: ${short.clip.description}
 Contexto/Canal de Origem: ${short.channelName}
@@ -213,7 +215,7 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
   } catch (error) {
     logger.error({ error, clipId: short.id }, "Erro ao gerar metadados para o YouTube");
     return {
-      title: short.clip.title,
+      title: buildPresenterTitle(short.clip.title, short.clip.presenter),
       description: originalDescription,
       tags: capTagsToLimit(defaultTags),
     };
