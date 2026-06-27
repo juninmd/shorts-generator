@@ -4,6 +4,7 @@ import fs from "node:fs";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 import { withRetry } from "./retry-backoff.js";
+import { buildPresenterTitle } from "./presenter-title.js";
 
 function escapeHtml(text: string): string {
   if (!text) return "";
@@ -243,11 +244,15 @@ export async function sendToTelegram(
 
   const timeRange = `${startMin}:${startSec.toString().padStart(2, "0")} - ${endMin}:${endSec.toString().padStart(2, "0")}`;
 
+  const presenter = short.clip.presenter?.trim();
+  const displayTitle = buildPresenterTitle(short.clip.title, presenter);
+
   const caption = [
     `✂️ <b>NOVO SHORT GERADO</b>`,
     `──────────────────────`,
-    `🎬 <b>${escapeHtml(short.clip.title)}</b>`,
+    `🎬 <b>${escapeHtml(displayTitle)}</b>`,
     ``,
+    presenter ? `🎤 <b>Apresentador:</b> ${escapeHtml(presenter)}` : "",
     `📺 <b>Canal:</b> ${escapeHtml(short.channelName)}`,
     `🎥 <b>Original:</b> ${escapeHtml(short.originalVideoTitle)}`,
     `⏱ <b>Corte:</b> <code>${timeRange}</code>`,
