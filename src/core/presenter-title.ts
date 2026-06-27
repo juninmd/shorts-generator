@@ -8,6 +8,8 @@ export function buildPresenterTitle(title: string, presenter?: string | null): s
   const name = (presenter ?? "").trim();
   const base = (title ?? "").trim();
   if (!name) return base;
-  if (base.toLowerCase().includes(name.toLowerCase())) return base;
-  return `${name}: ${base}`;
+  const escapedName = name.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+  const regex = new RegExp("(?<![\\p{L}\\p{N}])" + escapedName + "(?![\\p{L}\\p{N}])", "ui");
+  if (regex.test(base)) return base;
+  return name + ": " + base;
 }
