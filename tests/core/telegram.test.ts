@@ -65,6 +65,21 @@ describe("telegram", () => {
     expect(result).toBe(123);
   });
 
+  it("should include the presenter name in caption and title", async () => {
+    vi.mocked(fs.statSync).mockReturnValue({ size: 10 * 1024 * 1024 } as any);
+    mockSendVideo.mockResolvedValue({ message_id: 321 });
+    const withPresenter: GeneratedShort = {
+      ...mockShort,
+      clip: { title: "O segredo da fé", description: "Desc", hashtags: ["#tag"], presenter: "Padre Paulo" } as ShortClip,
+    };
+    await sendToTelegram(withPresenter, mockConfig);
+
+    const caption = mockSendVideo.mock.calls[0][2].caption as string;
+    expect(caption).toContain("Padre Paulo: O segredo da fé");
+    expect(caption).toContain("Apresentador:");
+    expect(caption).toContain("Padre Paulo");
+  });
+
   it("should send text message if video is too large", async () => {
     vi.mocked(fs.statSync).mockReturnValue({ size: 60 * 1024 * 1024 } as any);
     mockSendMessage.mockResolvedValue({ message_id: 999 });

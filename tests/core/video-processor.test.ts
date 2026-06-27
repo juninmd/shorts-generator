@@ -121,7 +121,10 @@ describe("video-processor", () => {
 
       const execFileCalls = vi.mocked(execFile).mock.calls;
       expect(execFileCalls.length).toBeGreaterThan(0);
-      const args = execFileCalls[0][1] as string[];
+      // The speaker-focus detection may run first; locate the ffmpeg render call.
+      const ffmpegCall = execFileCalls.find((c) => (c[1] as string[]).includes("-filter_complex"));
+      expect(ffmpegCall).toBeDefined();
+      const args = ffmpegCall![1] as string[];
       const filterArgIndex = args.indexOf("-filter_complex");
       expect(filterArgIndex).toBeGreaterThan(-1);
       expect(args[filterArgIndex + 1]).toContain("crop=1080:1920");

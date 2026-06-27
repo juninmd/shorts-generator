@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import ffmpeg from "fluent-ffmpeg";
 import type { PipelineConfig, ShortClip } from "../types.js";
 import { logger } from "./logger.js";
+import { CENTER_FOCUS, detectSpeakerFocusX } from "./face-framing.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -35,9 +36,14 @@ export function buildSafeFramingFilter(
   width: number,
   height: number,
   logoPath?: string | null,
+  focusX: number = CENTER_FOCUS,
 ): string {
   const assPath = escapeFilterPath(subtitlePath);
-  const baseVideo = `[0:v]scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos+accurate_rnd,crop=${width}:${height},hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1,ass='${assPath}'[base]`;
+  // Horizontal crop offset biased toward the speaker (focusX in [0,1]); clamped
+  // so the crop window never leaves the frame. focusX=0.5 yields a centered crop.
+  const fx = Math.max(0, Math.min(1, focusX)).toFixed(4);
+  const cropX = `'clip((in_w*${fx})-(${width}/2)\\,0\\,in_w-${width})'`;
+  const baseVideo = `[0:v]scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos+accurate_rnd,crop=${width}:${height}:${cropX}:(in_h-${height})/2,hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1,ass='${assPath}'[base]`;
   if (!logoPath) {
     return `${baseVideo};[base]copy[v]`;
   }
@@ -54,11 +60,13 @@ export async function renderShort(
   const logoPath = config.managedRun?.logoPath && fs.existsSync(config.managedRun.logoPath)
     ? config.managedRun.logoPath
     : null;
+  const focusX = await detectSpeakerFocusX(inputPath, clip);
   const filter = buildSafeFramingFilter(
     subtitlePath,
     config.verticalWidth,
     config.verticalHeight,
     logoPath,
+    focusX,
   );
   const isNvenc = config.videoEncoder.includes("nvenc");
   const qualityArgs = isNvenc ? ["-cq", "18"] : ["-crf", "18"];

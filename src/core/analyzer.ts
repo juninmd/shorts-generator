@@ -192,6 +192,8 @@ PONTUAÇÃO viralScore (1-10):
 
 Títulos em Português (pt-BR), máx 50 caracteres, sem: "corte", "clipe", "short", "vídeo", "canal", "parte".
 
+APRESENTADOR: identifique no título do vídeo, no nome do canal ou na própria transcrição o nome (ou sobrenome) da pessoa que está FALANDO/apresentando neste trecho e preencha o campo "presenter". Se houver mais de uma pessoa, use a que conduz o trecho. Se não for possível identificar com segurança, deixe "presenter" vazio.
+
 TRANSCRIÇÃO:
 ${transcript}`;
 }
@@ -225,6 +227,7 @@ function processClips(clips: ClipItem[], transcript: Transcript, config: Pipelin
         id: nanoid(10),
         videoId: transcript.videoId,
         title: clip.title,
+        presenter: clip.presenter?.trim() || undefined,
         description: clip.description,
         startTime: snapped.startTime,
         endTime: snapped.endTime,
