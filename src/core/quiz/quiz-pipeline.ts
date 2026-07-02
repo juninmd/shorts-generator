@@ -4,23 +4,37 @@ import path from "node:path";
 import type { PipelineConfig } from "../../types.js";
 import { logger } from "../logger.js";
 import { generateQuiz } from "./quiz-content.service.js";
-import type { Quiz } from "./quiz.domain.js";
+import type { Quiz, QuizQuestion } from "./quiz.domain.js";
 import { generateNarration } from "./quiz-tts.service.js";
 import { assembleVideo } from "./quiz-video.service.js";
 import { uploadToYouTube } from "../youtube.service.js";
 import { enqueueYoutubeUpload } from "../queue.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "../state.js";
 
-export const buildAnswerNarration = (quiz: Quiz): string =>
-  `A resposta correta é a letra ${quiz.resposta_correta}: ${quiz.opcoes[quiz.resposta_correta]}. ${quiz.fato_curioso}. E aí, você sabia? Se gostou da curiosidade, curta o vídeo e se inscreva no canal para mais vídeos como este!`;
+export const buildRevealNarration = (question: QuizQuestion): string =>
+  `Letra ${question.resposta_correta}: ${question.opcoes[question.resposta_correta]}!`;
+
+export const buildOutroNarration = (quiz: Quiz): string =>
+  `${quiz.fato_curioso}. Comenta quantas você acertou e se inscreve para o próximo quiz!`;
 
 export const buildTelegramCaption = (quiz: Quiz, watermarkText: string): string =>
-  `🏆 <b>NOVO QUIZ: ${quiz.tema.toUpperCase()}!</b>\n\nPerguntamos: ${quiz.pergunta}\n\nCanal: ${watermarkText}\n\n#quiz #shorts #gerado_ia`;
+  `🏆 <b>${quiz.titulo_youtube}</b>\n\nPrimeira pergunta: ${quiz.perguntas[0]?.pergunta}\n\nCanal: ${watermarkText}\n\n#quiz #shorts`;
 
 export const buildYoutubeRelayCaption = (quiz: Quiz, url: string): string =>
-  `📺 <b>O vídeo do quiz "${quiz.tema.toUpperCase()}" também já está no YouTube!</b>\n\nAssista e deixe aquele like: ${url}`;
+  `📺 <b>O quiz "${quiz.tema.toUpperCase()}" já está no YouTube!</b>\n\nAssista e deixe aquele like: ${url}`;
 
 export const buildOutputFileName = (quiz: Quiz): string => `quiz_${quiz.tema.replace(/\s+/g, "_")}_${Date.now()}.mp4`;
+
+export const buildYoutubeMetadata = (quiz: Quiz, watermarkText: string): { title: string; description: string; tags: string[] } => {
+  const slug = quiz.tema.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "");
+  return {
+    title: quiz.titulo_youtube || `${quiz.perguntas[0]?.pergunta ?? quiz.tema} 🧠`,
+    description: `${quiz.hook} Teste seus conhecimentos de ${quiz.tema} em ${quiz.perguntas.length} perguntas — a última quase ninguém acerta.\n` +
+      `Comenta quantas você acertou e se inscreve para o próximo!\n\n` +
+      `#shorts #quiz #${slug}\n\nCanal: ${watermarkText}`,
+    tags: [...(quiz.tags || []), quiz.tema, "quiz"],
+  };
+};
 
 export const runQuizPipeline = async (
   config: PipelineConfig,
@@ -43,26 +57,23 @@ export const runQuizPipeline = async (
   const outputPath = path.join(config.outputDir, outputFileName);
 
   try {
-    // Step 2: Speech Generation (TTS)
+    // Step 2: Speech Generation (TTS) — one narration per question/reveal + outro
     onProgress?.({ stage: "generating_tts", progress: 30, message: "Gerando narração via Text-to-Speech..." });
-    const questionText = quiz.pergunta;
-    const answerText = buildAnswerNarration(quiz);
-
-    const [questionNarration, answerNarration] = await Promise.all([
-      generateNarration(questionText, "question", jobWorkspace),
-      generateNarration(answerText, "answer", jobWorkspace),
+    const narrationJobs = quiz.perguntas.flatMap((question, i) => [
+      generateNarration(question.pergunta, `question_${i}`, jobWorkspace),
+      generateNarration(buildRevealNarration(question), `answer_${i}`, jobWorkspace),
     ]);
+    narrationJobs.push(generateNarration(buildOutroNarration(quiz), "outro", jobWorkspace));
+    const results = await Promise.all(narrationJobs);
+    const outro = results.pop()!;
+    const questionAudioPaths = results.filter((_, idx) => idx % 2 === 0).map((r) => r.audioPath);
+    const answerAudioPaths = results.filter((_, idx) => idx % 2 === 1).map((r) => r.audioPath);
 
     // Step 3: Video Rendering (FFmpeg assembly)
     onProgress?.({ stage: "rendering", progress: 60, message: "Montando e renderizando vídeo via FFmpeg..." });
     await assembleVideo(
       quiz,
-      {
-        qPath: questionNarration.audioPath,
-        aPath: answerNarration.audioPath,
-        qWords: questionNarration.wordTimestamps,
-        aWords: answerNarration.wordTimestamps,
-      },
+      { questionAudioPaths, answerAudioPaths, outroAudioPath: outro.audioPath },
       outputPath,
       jobWorkspace,
       config
@@ -96,19 +107,18 @@ export const runQuizPipeline = async (
     const enableYouTube = process.env.ENABLE_YOUTUBE === "true";
     if (enableYouTube) {
       onProgress?.({ stage: "publishing_youtube", progress: 90, message: "Fazendo upload para o YouTube Shorts..." });
-      const ytTitle = `Quiz: ${quiz.tema}!`;
-      const ytDesc = `Teste seus conhecimentos! #quiz #shorts #curiosidades\n\nCanal: ${watermarkText}`;
+      const meta = buildYoutubeMetadata(quiz, watermarkText);
       const channelId = config.managedRun?.channelId || "global";
       if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
         logger.warn({ channelId }, "⚠️ Limite diário atingido — enfileirando quiz para o PVC");
-        await enqueueYoutubeUpload({ id: jobId, outputPath }, ytTitle, ytDesc, config);
+        await enqueueYoutubeUpload({ id: jobId, outputPath }, meta.title, meta.description, config, meta.tags);
       } else {
-        youtubeUrl = await uploadToYouTube(outputPath, ytTitle, ytDesc, config);
+        youtubeUrl = await uploadToYouTube(outputPath, meta.title, meta.description, config, meta.tags);
         if (youtubeUrl) {
           await incrementDailyUploadCountAsync(channelId);
         } else {
           logger.warn({ jobId }, "Upload do quiz falhou — enfileirando para retry (acumulado no PVC)");
-          await enqueueYoutubeUpload({ id: jobId, outputPath }, ytTitle, ytDesc, config);
+          await enqueueYoutubeUpload({ id: jobId, outputPath }, meta.title, meta.description, config, meta.tags);
         }
       }
       if (youtubeUrl && config.telegramBotToken && config.telegramChatId) {

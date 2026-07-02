@@ -7,6 +7,7 @@ import { getMinCuts, getMaxCuts } from "./config.js";
 import { createModel } from "./ai-provider.js";
 import { ClipSchema, type ClipItem } from "./analyzer-schema.js";
 import { formatTranscriptForLLM, analyzeInChunks, CHUNK_THRESHOLD_CHARS } from "./analyzer-chunks.js";
+import { getChannelFeedback, formatFeedbackForPrompt } from "./viral-feedback.js";
 
 export async function analyzeTranscript(
   transcript: Transcript,
@@ -49,9 +50,10 @@ export async function analyzeSinglePass(
   minCuts: number,
   maxCuts: number,
 ): Promise<ClipItem[]> {
+  const feedback = formatFeedbackForPrompt(await getChannelFeedback(config));
   const prompt = buildAnalysisPrompt(
     transcript, videoTitle, channelName, minCuts, maxCuts,
-    config.minShortDuration, config.maxShortDuration,
+    config.minShortDuration, config.maxShortDuration, feedback,
   );
 
   const controller = new AbortController();
@@ -100,9 +102,10 @@ async function analyzeSinglePassFallback(
   minCuts: number,
   maxCuts: number,
 ): Promise<ClipItem[]> {
+  const feedback = formatFeedbackForPrompt(await getChannelFeedback(config));
   const prompt = buildAnalysisPrompt(
     transcript, videoTitle, channelName, minCuts, maxCuts,
-    config.minShortDuration, config.maxShortDuration,
+    config.minShortDuration, config.maxShortDuration, feedback,
   );
 
   const controller = new AbortController();
@@ -150,53 +153,67 @@ function buildAnalysisPrompt(
   maxClips: number,
   minDuration: number,
   maxDuration: number,
+  feedbackBlock = "",
 ): string {
-  return `Você é um editor de vídeo profissional especializado em cortes virais (YouTube Shorts, TikTok, Reels).
-Sua missão: identificar os trechos mais interessantes, impactantes, engraçados ou informativos da transcrição fornecida. Cada corte deve ser uma "pílula de conteúdo" autocontida, com sentido completo e compreensível sem o resto do vídeo.
+  return `Você é um editor sênior de cortes virais (YouTube Shorts). Sua reputação depende de escolher POUCOS cortes excepcionais — nunca preencher quota com trechos medianos. O espectador decide em 1-2 segundos se desliza para o próximo vídeo: o gancho é tudo.
 
 VÍDEO: "${videoTitle}"
 CANAL: "${channelName}"
+${feedbackBlock}
+REGRA DE OURO — O GANCHO (primeiros 3 segundos):
+O corte DEVE começar "in media res", direto na frase mais intrigante, emocional ou polêmica do trecho — NUNCA em saudação, contexto, transição ou introdução. Se a primeira frase não prender um desconhecido que nunca viu o canal, o corte é reprovado.
 
-PRIORIDADE: selecione por este tipo de conteúdo (nesta ordem):
-1. Revelações surpreendentes, segredos ou fatos curiosos/inesperados
-2. Histórias ou anedotas com início, meio e clímax/conclusão claros
-3. Debates calorosos, opiniões fortes ou declarações impactantes
-4. Explicações cativantes de tópicos interessantes (ciência, tecnologia, comportamento)
-5. Momentos engraçados, piadas ou reações divertidas
+O QUE PROCURAR (nesta ordem):
+1. Vulnerabilidade emocional ou história pessoal de luta/superação com a qual qualquer um se identifica
+2. Frase "quotável" dita com convicção (declaração forte, verdade incômoda, opinião polêmica)
+3. Revelação surpreendente ou fato contraintuitivo que gera "eu não sabia disso"
+4. Sabedoria prática aplicável hoje: UM ensinamento específico, nunca resumo ou conclusão de raciocínio anterior
+5. Humor genuíno ou reação inesperada
 
-SE o conteúdo for católico/espiritual/religioso (pregações, homilias, orações, estudos bíblicos), MUDE a prioridade para:
-1. Passagens bíblicas citadas E comentadas (inclua início e fim da citação)
-2. Histórias ou parábolas com início, meio e fim claros
-3. Ensinamentos morais que concluam um raciocínio completo
-4. Momentos de oração com início e fim delimitados
-5. Exemplos de vida de santos ou fatos históricos religiosos
+SE o conteúdo for católico/espiritual/religioso, procure (nesta ordem):
+1. Testemunho ou história pessoal/de santo emocionante com detalhe surpreendente
+2. Explicação de UMA passagem bíblica com aplicação direta à vida de hoje
+3. Frase desafiadora/profética dita com convicção
+4. Oração curta e poderosa com início e fim delimitados
+5. Ensinamento moral que fecha um raciocínio completo
 
 OBRIGATÓRIO:
-- O trecho DEVE começar em uma ideia nova (não no meio de uma frase ou assunto inacabado)
-- O trecho DEVE terminar com uma frase completa e com sentido de conclusão
+- A PRIMEIRA frase do corte já é o gancho (sem aquecimento)
+- A ÚLTIMA frase fecha o raciocínio (payoff) — termine EXATAMENTE quando a ideia fecha, sem enrolação após o clímax
 - Um espectador sem contexto DEVE entender a mensagem principal imediatamente
-- Duração: entre ${minDuration} e ${maxDuration} segundos
+- Duração ideal: 30-45 segundos (aceitável entre ${minDuration} e ${maxDuration} segundos)
+- TEMAS DISTINTOS: cada corte deve abordar um momento/tema DIFERENTE do vídeo — nunca dois cortes sobre a mesma passagem ou ideia
 - Cada linha da transcrição está no formato [inicio_em_segundos - fim_em_segundos] texto. Use estes segundos diretamente para startTime e endTime (ex: se o trecho começa no segmento [45.00-48.00] e termina no segmento [70.00-73.00], configure startTime=45 e endTime=73).
-- Retornar no mínimo ${minClips} e no máximo ${maxClips} cortes
+- Retorne no máximo ${maxClips} cortes (mínimo ${minClips} apenas se houver material à altura). É MELHOR retornar 1 corte excelente do que ${maxClips} medianos — nunca inclua um corte com nota abaixo de 7 só para completar quantidade.
 
 PROIBIDO: não selecione trechos que:
 - Comecem com referências ao que foi falado antes ("como eu disse antes", "voltando ao assunto")
 - Dependam de referências visuais que o espectador não conseguirá entender apenas ouvindo
-- Sejam cortados abruptamente no meio de uma frase ou ideia
+- Sejam abertura, encerramento, avisos ou agradecimentos do vídeo
 
-PONTUAÇÃO viralScore (1-10):
-- 9-10: Declaração bombástica, revelação chocante ou piada extremamente engraçada com excelente gancho (hook) inicial
-- 7-8: História interessante ou explicação clara de um conceito cativante
-- 5-6: Reflexão curiosa ou conversa informal com valor moderado de entretenimento
-- 1-4: Fragmento sem gancho, sem sentido completo ou chato
+PONTUAÇÃO viralScore (1-10) — seja RIGOROSO, notas altas são raras:
+- 10: gancho irresistível nos 3 primeiros segundos + emoção forte + payoff memorável
+- 8-9: história ou revelação forte com bom gancho inicial
+- 6-7: bom conteúdo, gancho apenas mediano
+- 1-5: sem gancho, genérico, dependente de contexto — NÃO retorne
+- BÔNUS +1: se a última frase emenda naturalmente na primeira (loop de replay)
 
-Títulos em Português (pt-BR), máx 50 caracteres, sem: "corte", "clipe", "short", "vídeo", "canal", "parte".
+TÍTULOS (title) em Português (pt-BR):
+- ÚNICO e específico ao conteúdo falado no corte — títulos genéricos são PROIBIDOS (ex.: "Oração", "A Benção", "Conclusão", "O Poder da Fé")
+- Gancho de curiosidade nos primeiros 40 caracteres; total entre 40 e 60 caracteres
+- Inclua o nome de quem fala quando identificável (ex: "Frei Gilson: o que Padre Pio fazia às 4h da manhã")
+- Sem as palavras: "corte", "clipe", "short", "vídeo", "canal", "parte"
+
+HASHTAGS (hashtags): 3 a 5, específicas do tema e da pessoa (ex: #freigilson), nunca genéricas.
 
 APRESENTADOR: identifique no título do vídeo, no nome do canal ou na própria transcrição o nome (ou sobrenome) da pessoa que está FALANDO/apresentando neste trecho e preencha o campo "presenter". Se houver mais de uma pessoa, use a que conduz o trecho. Se não for possível identificar com segurança, deixe "presenter" vazio.
 
 TRANSCRIÇÃO:
 ${transcript}`;
 }
+const normalizeTitle = (title: string): string =>
+  title.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
 function processClips(clips: ClipItem[], transcript: Transcript, config: PipelineConfig, maxCuts: number): ShortClip[] {
   const filtered = clips.filter((clip) => {
     const duration = clip.endTime - clip.startTime;
@@ -217,9 +234,28 @@ function processClips(clips: ClipItem[], transcript: Transcript, config: Pipelin
     }
     return ok;
   });
-  logger.info({ total: clips.length, afterFilter: filtered.length }, "processClips filter result");
-  return filtered
+  // Publish quality gate: weak clips flood the channel and trigger YouTube's
+  // mass-produced content suppression — better to skip a video than post filler.
+  const minScore = config.minViralScore ?? 0;
+  const scored = filtered.filter((clip) => {
+    if (clip.viralScore >= minScore) return true;
+    logger.info({ title: clip.title, viralScore: clip.viralScore, minScore }, "Clip below MIN_VIRAL_SCORE — dropped");
+    return false;
+  });
+  // Near-duplicate titles across clips of the same video are a spam fingerprint.
+  const seenTitles = new Set<string>();
+  logger.info({ total: clips.length, afterFilter: filtered.length, afterScoreGate: scored.length }, "processClips filter result");
+  return scored
     .sort((a, b) => b.viralScore - a.viralScore)
+    .filter((clip) => {
+      const key = normalizeTitle(clip.title);
+      if (seenTitles.has(key)) {
+        logger.info({ title: clip.title }, "Clip with duplicate title — dropped");
+        return false;
+      }
+      seenTitles.add(key);
+      return true;
+    })
     .slice(0, maxCuts)
     .map((clip) => {
       const snapped = snapToSentenceBoundaries({ startTime: clip.startTime, endTime: clip.endTime }, transcript.segments, config);
