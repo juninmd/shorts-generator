@@ -39,7 +39,9 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
   const maxVideoSizeMb = parseInt(optionalEnv("MAX_VIDEO_SIZE_MB", "500"), 10);
   const skipVideoSizeCheck = optionalEnv("SKIP_VIDEO_SIZE_CHECK", "false") === "true";
   const keepTempFiles = optionalEnv("KEEP_TEMP_FILES", "false") === "true";
-  const dailyUploadLimit = parseInt(optionalEnv("MAX_DAILY_UPLOADS", "70"), 10);
+  // Default lowered from 70: flooding uploads triggers YouTube's mass-produced
+  // content suppression (channel-wide distribution collapse). Quality > volume.
+  const dailyUploadLimit = parseInt(optionalEnv("MAX_DAILY_UPLOADS", "4"), 10);
   const maxVideoDurationMinutes = optionalEnv("MAX_VIDEO_DURATION_MINUTES", "");
   const maxVideoDurationSec = maxVideoDurationMinutes
     ? parseFloat(maxVideoDurationMinutes) * 60
@@ -61,6 +63,8 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     maxVideoDurationSec,
     videoQuery,
     minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "1"), 10),
+    minViralScore: parseFloat(optionalEnv("MIN_VIRAL_SCORE", "7")),
+    channelHandle: optionalEnv("CHANNEL_HANDLE", "") || undefined,
     targetShorts: Number(optionalEnv("TARGET_SHORTS", "0")) || undefined,
     fullVideoCount: Number(optionalEnv("FULL_VIDEO_COUNT", "0")) || undefined,
     outputDir,
@@ -101,8 +105,10 @@ export function getMinCuts(videoDurationSeconds: number): number {
 export function getMaxCuts(videoDurationSeconds: number): number {
   const durationMinutes = Math.floor(videoDurationSeconds / 60);
   const minCuts = getMinCuts(videoDurationSeconds);
-  // Ceiling is configurable (MAX_CLIPS_PER_VIDEO) to scale output; defaults to 20.
-  const ceiling = parseInt(process.env.MAX_CLIPS_PER_VIDEO || "20", 10);
+  // Ceiling is configurable (MAX_CLIPS_PER_VIDEO) to scale output; defaults to 6.
+  // Lowered from 20: dozens of near-duplicate clips from the same source video
+  // feed YouTube's inauthentic-content detection and cannibalize each other.
+  const ceiling = parseInt(process.env.MAX_CLIPS_PER_VIDEO || "6", 10);
   // Rule: 1 cut every 2 minutes, at least minCuts + 1, capped at ceiling
   return Math.min(ceiling, Math.max(minCuts + 1, Math.floor(durationMinutes / 2)));
 }

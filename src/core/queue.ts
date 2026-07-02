@@ -127,19 +127,34 @@ export async function processQueueUntilEmpty(): Promise<void> {
     }
   }
 
+  // Optional per-run publish cap: spreads the daily quota across the scheduled
+  // publishing slots (e.g. 12h/15h/17h/19h) instead of bursting the whole cap
+  // in the first run — back-to-back Shorts compete for the same seed audience.
+  const maxPerRun = parseInt(process.env.MAX_UPLOADS_PER_RUN || "0", 10);
+
   const worker = createWorker();
   return new Promise<void>((resolve, reject) => {
     let activeJobs = 0;
+    let published = 0;
+    const finish = async () => {
+      await worker.close();
+      resolve();
+    };
     worker.on("active", () => activeJobs++);
     const checkDone = async () => {
       if ((await queue.getWaitingCount()) === 0 && activeJobs === 0) {
-        await worker.close();
-        resolve();
+        await finish();
       }
     };
     worker.on("completed", async (job) => {
       activeJobs--;
       logger.info({ jobId: job.id }, "Job concluído.");
+      if ((job.returnvalue as { youtubeUrl?: string } | undefined)?.youtubeUrl) published++;
+      if (maxPerRun > 0 && published >= maxPerRun) {
+        logger.info({ published, maxPerRun }, "🎯 Cap de uploads por execução atingido — o restante publica no próximo slot");
+        await finish();
+        return;
+      }
       await checkDone();
     });
     worker.on("failed", async (job, err) => {
