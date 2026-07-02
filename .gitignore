@@ -27,3 +27,8 @@ posted_top_videos.json
 
 local.db
 package-lock.json
+
+# Local debug scratch (swept in accidentally by workspace auto-commit)
+job-fix-santidade.yaml
+q.cjs
+qout.txt
