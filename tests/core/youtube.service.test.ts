@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube, validateYouTubeToken } from "../../src/core/youtube.service";
+import { generateYoutubeMetadata, uploadToYouTube, uploadFullVideoToYouTube, validateYouTubeToken, buildEngagementComment } from "../../src/core/youtube.service";
 import { google } from "googleapis";
 import fs from "node:fs";
 
@@ -150,7 +150,7 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Original Title",
         description: "Original Description",
-        tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"],
+        tags: ["dummy channel", "dummy", "shorts", "cortes"],
       });
     });
 
@@ -165,7 +165,7 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Viral Title",
         description: "Viral Description",
-        tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"],
+        tags: ["dummy channel", "dummy", "shorts", "cortes"],
       });
     });
 
@@ -182,7 +182,7 @@ describe("youtube.service", () => {
       const result = await generateYoutubeMetadata(mockShort, config);
 
       expect(result.title).toBe("Viral Title");
-      expect(result.tags).toEqual(["shorts", "dummy channel", "dummy", "cortes", "viral", "curiosidades", "melhores momentos"]);
+      expect(result.tags).toEqual(["shorts", "dummy channel", "dummy", "cortes"]);
     });
 
     it("should pass the transcript in the AI prompt", async () => {
@@ -197,9 +197,9 @@ describe("youtube.service", () => {
 
 
     it.each([
-      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description", tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"] } },
-      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description", tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"] } },
-      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description", tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"] } }
+      { content: 'invalid json', expected: { title: "Original Title", description: "Original Description", tags: ["dummy channel", "dummy", "shorts", "cortes"] } },
+      { content: '{"description": "Viral Description"}', expected: { title: "Original Title", description: "Viral Description", tags: ["dummy channel", "dummy", "shorts", "cortes"] } },
+      { content: '{"title": "Viral Title"}', expected: { title: "Viral Title", description: "Original Description", tags: ["dummy channel", "dummy", "shorts", "cortes"] } }
     ])("should fallback properly when JSON parsing fails or misses fields: $content", async ({ content, expected }) => {
       setupMock(content);
       const result = await generateYoutubeMetadata(mockShort, mockConfig);
@@ -213,8 +213,26 @@ describe("youtube.service", () => {
       expect(result).toEqual({
         title: "Original Title",
         description: "Original Description",
-        tags: ["dummy channel", "dummy", "shorts", "cortes", "viral", "curiosidades", "melhores momentos"],
+        tags: ["dummy channel", "dummy", "shorts", "cortes"],
       });
+    });
+  });
+
+  describe("buildEngagementComment", () => {
+    it("asks a religious question for faith-focused channels and includes the link", () => {
+      const text = buildEngagementComment("https://youtube.com/watch?v=abc", ["Católicos", "cortes"]);
+      expect(text).toContain("tocou em você");
+      expect(text).toContain("🎥 Vídeo original completo: https://youtube.com/watch?v=abc");
+    });
+
+    it("falls back to a generic opinion question without faith focus labels", () => {
+      const text = buildEngagementComment("https://youtube.com/watch?v=abc", ["curiosidades"]);
+      expect(text).toContain("Deixa sua opinião");
+      expect(text).toContain("https://youtube.com/watch?v=abc");
+    });
+
+    it("handles missing focus labels", () => {
+      expect(buildEngagementComment("https://u.rl")).toContain("Deixa sua opinião");
     });
   });
 

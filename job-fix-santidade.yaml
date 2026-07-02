@@ -1,0 +1,112 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fix-santidade-20260624
+  namespace: shorts-generator
+spec:
+  activeDeadlineSeconds: 7200
+  backoffLimit: 0
+  template:
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: shorts-generator
+          image: ghcr.io/juninmd/shorts-generator:latest
+          imagePullPolicy: Always
+          command:
+            - pnpm
+            - run
+            - generate
+            - --
+            - --managed-channel
+            - santidade-catolica
+            - --limit
+            - "15"
+            - --target-shorts
+            - "20"
+          env:
+            - name: ENABLE_YOUTUBE
+              value: "true"
+            - name: DEFER_UPLOADS
+              value: "false"
+            - name: MAX_CLIPS_PER_VIDEO
+              value: "50"
+            - name: MAX_VIDEO_DURATION_HOURS
+              value: "6"
+            - name: MAX_VIDEO_SIZE_MB
+              value: "3000"
+            - name: YOUTUBE_PLAYER_CLIENT
+              value: default
+            - name: WHISPER_MODEL
+              value: tiny
+            - name: WHISPER_USE_GPU
+              value: "false"
+            - name: OLLAMA_BASE_URL
+              value: http://litellm.ai.svc.cluster.local:4000
+            - name: AI_PROVIDER
+              value: openai
+            - name: OPENAI_BASE_URL
+              value: http://litellm.ai.svc.cluster.local:4000/v1
+            - name: WHISPER_BASE_URL
+              value: http://whisper.ai.svc.cluster.local:9000
+            - name: REDIS_URL
+              value: redis://redis.databases.svc.cluster.local:6379
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: REDIS_PASSWORD
+                  name: redis-secret
+            - name: OLLAMA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: LITELLM_KEY
+                  name: shorts-generator-secret
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: LITELLM_KEY
+                  name: shorts-generator-secret
+            - name: ADMIN_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: ADMIN_API_TOKEN
+                  name: shorts-generator-secret
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_URL
+                  name: shorts-generator-secret
+            - name: CONTROL_PLANE_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: CONTROL_PLANE_ENCRYPTION_KEY
+                  name: shorts-generator-secret
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: TELEGRAM_BOT_TOKEN
+                  name: shorts-generator-secret
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: TELEGRAM_CHAT_ID
+                  name: shorts-generator-secret
+            - name: SERVER_PUBLIC_URL
+              value: https://shorts-generator.antonio-code.duckdns.org
+          resources:
+            limits:
+              cpu: "1"
+              memory: 3Gi
+            requests:
+              cpu: 10m
+              memory: 1Gi
+          volumeMounts:
+            - mountPath: /app/output
+              name: output-volume
+      volumes:
+        - name: output-volume
+          persistentVolumeClaim:
+            claimName: shorts-output-pvc

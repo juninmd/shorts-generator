@@ -34,6 +34,15 @@ describe("short-renderer", () => {
     expect(filter).toContain("ass='C\\:/tmp/clip.ass'");
   });
 
+  it("buildSafeFramingFilter applies the breathing punch-in before subtitles", () => {
+    const filter = buildSafeFramingFilter("C:\\tmp\\clip.ass", 1080, 1920);
+    const punchIn = filter.indexOf("pow(sin(PI*t/8),2)");
+    expect(punchIn).toBeGreaterThan(-1);
+    expect(filter).toContain("eval=frame");
+    // zoom happens before the subtitle burn so caption text stays fixed
+    expect(punchIn).toBeLessThan(filter.indexOf("ass='"));
+  });
+
   it("buildSafeFramingFilter centers the crop by default", () => {
     const filter = buildSafeFramingFilter("clip.ass", 1080, 1920);
     expect(filter).toContain("crop=1080:1920:'clip((in_w*0.5000)-(1080/2)");

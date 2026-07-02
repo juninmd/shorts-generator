@@ -5,7 +5,7 @@ import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
 import { sendToTelegram, sendSummary } from "./telegram.js";
-import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo } from "./youtube.service.js";
+import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment } from "./youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
 import { enqueueYoutubeUpload } from "./queue.js";
@@ -120,10 +120,10 @@ export async function processVideo(
               uploaded = true;
               await incrementDailyUploadCountAsync(channelId);
               
-              // Post original video link in comments
+              // Engagement question + original link as the channel's comment
               const videoId = youtubeUrl.split("/").pop();
               if (videoId) {
-                const commentText = `Vídeo original: ${video.url}`;
+                const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels);
                 await addCommentToVideo(videoId, commentText, config);
               }
             }

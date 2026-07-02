@@ -132,8 +132,12 @@ export interface PipelineConfig {
   sortByViews?: boolean;
   /** Keep temp files (audio, video sections) after processing — useful for debugging */
   keepTempFiles?: boolean;
-  /** Max YouTube uploads per calendar day (default: 70). Shorts beyond this are Telegram-only. */
+  /** Max YouTube uploads per calendar day (default: 4). Shorts beyond this are Telegram-only. */
   dailyUploadLimit: number;
+  /** Minimum viralScore (1-10) a clip must reach to be published (default: 7) */
+  minViralScore: number;
+  /** Channel handle (e.g. "@akitemquiz") used to fetch real performance feedback for prompts */
+  channelHandle?: string;
   /** Maximum video duration (seconds) to include from channel listings. Default: 3h */
   maxVideoDurationSec: number;
   /** Optional query string to filter videos by title (case-insensitive substring match) */

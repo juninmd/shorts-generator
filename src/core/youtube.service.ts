@@ -9,6 +9,7 @@ import { withRetry } from "./retry-backoff.js";
 import { isDailyLimitReachedAsync, setDailyLimitReachedAsync } from "./state.js";
 import { sendErrorAlert, notifyYoutubePublished, notifyYoutubeRateLimited } from "./telegram.js";
 import { generateReauthUrl, sendReauthAlert } from "./youtube-reauth.js";
+import { getChannelFeedback, formatFeedbackForPrompt } from "./viral-feedback.js";
 import { createSecretStore } from "./secret-store.js";
 import { loadControlPlaneConfig } from "./control-plane-config.js";
 import { getControlPlanePool } from "./control-plane-db.js";
@@ -117,7 +118,9 @@ export const generateYoutubeMetadata = async (
   const originalDescription = withOriginalVideoLink(short.clip.description, short.originalVideoUrl);
   // Derive search tags from the source channel name (e.g. "Padre Paulo Ricardo"
   // → "padre paulo ricardo", "padre paulo", "paulo ricardo") so even the
-  // AI-less fallback carries channel-relevant keywords.
+  // AI-less fallback carries channel-relevant keywords. Content-specific tags
+  // only — generic filler ("viral", "curiosidades") is ignored by YouTube at
+  // best and feeds mass-produced classification at worst.
   const channelTags = deriveChannelTags(short.channelName);
   const defaultTags = [
     ...channelTags,
@@ -125,9 +128,6 @@ export const generateYoutubeMetadata = async (
     ...(config.managedRun?.focusLabels || []),
     "shorts",
     "cortes",
-    "viral",
-    "curiosidades",
-    "melhores momentos",
   ];
 
   if (!isEnabled) {
@@ -153,7 +153,8 @@ export const generateYoutubeMetadata = async (
     .join(" ")
     .trim();
 
-  const prompt = `Crie um título, uma descrição e tags/palavras-chave OTIMIZADOS para o YouTube Shorts para o seguinte corte de vídeo:
+  const feedbackBlock = formatFeedbackForPrompt(await getChannelFeedback(config));
+  const prompt = `Você é especialista em crescimento de YouTube Shorts. Crie título, descrição e tags para este corte:
 Título Sugerido do Corte: ${short.clip.title}
 Apresentador identificado: ${short.clip.presenter || "não informado"}
 Título do Vídeo Original: ${short.originalVideoTitle}
@@ -163,29 +164,23 @@ Motivo da Viralização: ${short.clip.reason}
 Hashtags Sugeridas: ${short.clip.hashtags?.join(", ")}
 Focos do canal de destino: ${config.managedRun?.focusLabels?.join(", ") || "não informado"}
 Transcrição do trecho/corte: "${clipTranscript}"
-
+${feedbackBlock}
 INSTRUÇÕES PARA O TÍTULO:
-1. O título deve ser EXTREMAMENTE chamativo e instigante, com no máximo 70 caracteres, e DEVE começar ou terminar com 1 ou 2 emojis relevantes ao tema (ex: 🔥, 😱, 🙏, 💡, ⚠️, ❤️). Use gatilhos mentais ou um "Hook" (curiosidade, polêmica, urgência, números) se fizer sentido.
-2. Identifique na Transcrição, no Título do Vídeo Original ou no Contexto o nome da pessoa que está FALANDO no vídeo (entrevistado, palestrante, convidado, influenciador, ou figura principal). O título do Short DEVE obrigatoriamente incluir o nome ou sobrenome dessa pessoa (exemplo: "🔥 Padre Paulo Ricardo alertou sobre isso", "😱 Tiago Brunet revela segredo", "🙏 Monja Coen ensina como acalmar a mente"). Se houver mais de uma pessoa, use a que conduz o trecho. Se NENHUMA pessoa for identificável, crie o título mais chamativo possível focado no assunto, ainda com emojis.
-3. NÃO use as palavras "corte", "clipe", "short", "vídeo", "parte" no título. Não use CAIXA ALTA na frase inteira.
+1. Máximo 60 caracteres, com o gancho de curiosidade nos PRIMEIROS 40 (o feed mobile corta o resto).
+2. Use o Apresentador identificado (ou a pessoa que fala na Transcrição/Título Original) no título — ex: "Frei Gilson: o que Padre Pio fazia às 4h". Se houver mais de uma pessoa, use a que conduz o trecho; se ninguém for identificável, foque no gatilho de curiosidade do assunto.
+3. ÚNICO e específico ao que é DITO neste trecho — títulos genéricos como "Oração", "A Benção", "Conclusão" são PROIBIDOS.
+4. No máximo 1 emoji, no final do título. Não use CAIXA ALTA na frase inteira nem as palavras "corte", "clipe", "short", "vídeo", "parte".
 
 INSTRUÇÕES PARA A DESCRIÇÃO:
-1. A descrição deve ser completa e altamente engajadora em Português do Brasil (pt-BR), bem formatada com quebras de linha entre os blocos.
-2. Comece com um resumo/teaser curto e instigante sobre o que é falado neste clipe (2 a 4 frases) que gere curiosidade e retenção, citando o nome da pessoa que fala quando identificada.
-3. Em seguida, inclua de 3 a 5 tópicos curtos (bullets com "•" ou emojis) destacando os pontos altos do trecho.
-4. Inclua obrigatoriamente uma chamada para ação (CTA) convidativa (exemplo: "👉 Inscreva-se no canal para não perder os próximos cortes! Deixe seu like 👍 e comente o que você achou.").
-5. O link do vídeo original completo DEVE ser inserido na descrição exatamente desta forma: "🎥 Vídeo original completo: ${short.originalVideoUrl}".
-6. Termine com um bloco de 5 a 10 hashtags em uma única linha, incluindo: #shorts #viral, o nome da pessoa envolvida (sem espaços, ex: #PadrePauloRicardo), o nome do canal/contexto e as hashtags sugeridas.
+1. 2 a 3 frases específicas sobre o que é dito no clipe, com a palavra-chave principal e o nome da pessoa nos primeiros 125 caracteres (é o que aparece na busca).
+2. Feche com um CTA curto (ex: "Inscreva-se para mais cortes como este e comente o que achou!").
+3. Última linha: 3 a 5 hashtags — #shorts + 2 a 4 do nicho/pessoa/tema (ex: #freigilson #oracao).
+4. NÃO inclua links (o link do vídeo original é adicionado automaticamente).
 
 INSTRUÇÕES PARA AS TAGS (PALAVRAS-CHAVE):
-1. Gere a MAIOR quantidade possível de tags/palavras-chave de pesquisa relevantes (termos simples em minúsculas, sem #) para maximizar o alcance de busca no YouTube.
-2. Gere pelo menos 30 tags cobrindo:
-   - O nome completo e variações do nome da pessoa envolvida no vídeo.
-   - O nome do canal e termos relacionados ao canal original.
-   - Termos e tópicos específicos abordados na Transcrição e no Título.
-   - Termos amplos relacionados (head tags) e termos específicos de pesquisa (long-tail tags) que as pessoas digitam para achar esse tipo de conteúdo.
-   - Variações, sinônimos e termos relacionados.
-3. Ordene da tag mais relevante e buscada para a menos relevante.
+1. 10 a 14 tags de busca (termos simples em minúsculas, sem #): nome completo e variações da pessoa, nome do canal de origem, tema específico do trecho, termos que o público digitaria para achar este conteúdo.
+2. Somente termos DIRETAMENTE ligados ao conteúdo falado — nada de tags genéricas ("viral", "fyp", "shorts").
+3. Ordene da mais relevante para a menos relevante.
 
 Responda APENAS com um objeto JSON válido no formato:
 {
@@ -195,14 +190,16 @@ Responda APENAS com um objeto JSON válido no formato:
 }
 O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de forma alguma.`;
 
+  let rawText: string | undefined;
   try {
     const { text } = await generateText({
       model: createModel(config),
       prompt,
       temperature: 0.5,
-      maxOutputTokens: 1100,
+      maxOutputTokens: 1200,
       maxRetries: 5,
     });
+    rawText = text;
 
     const metadata = JSON.parse(extractJsonObject(text));
     const aiTags = Array.isArray(metadata.tags) ? metadata.tags : [];
@@ -213,7 +210,12 @@ O texto deve estar EXCLUSIVAMENTE em Português do Brasil. NÃO use inglês de f
       tags: capTagsToLimit(rawTags),
     };
   } catch (error) {
-    logger.error({ error, clipId: short.id }, "Erro ao gerar metadados para o YouTube");
+    // A silent fallback here ships the raw analyzer title/description to
+    // YouTube — log loudly with the response head so failures are visible.
+    logger.error(
+      { error, clipId: short.id, responseHead: rawText?.slice(0, 300) },
+      "Erro ao gerar metadados para o YouTube — publicando com metadata de fallback",
+    );
     return {
       title: buildPresenterTitle(short.clip.title, short.clip.presenter),
       description: originalDescription,
@@ -346,6 +348,16 @@ async function performUpload(
   }
 }
 
+// The Data API cannot pin comments, but a channel-authored question still
+// drives replies — and comments are a satisfaction signal the Shorts feed uses.
+export const buildEngagementComment = (originalVideoUrl: string, focusLabels?: string[]): string => {
+  const religious = (focusLabels ?? []).some((l) => /cat[óo]lic|gospel|crist[ãa]?o|f[ée]|igreja|ora[çc][ãa]o|b[íi]blia/i.test(l));
+  const question = religious
+    ? "O que essa mensagem tocou em você? Conta aqui nos comentários 🙏"
+    : "Concorda? Deixa sua opinião aqui nos comentários 👇";
+  return `${question}\n\n🎥 Vídeo original completo: ${originalVideoUrl}`;
+};
+
 export const addCommentToVideo = async (
   videoId: string,
   commentText: string,
@@ -428,7 +440,7 @@ export const uploadToYouTube = async (
   const uploadTags = limitTagsLength(
     tags && tags.length > 0
       ? tags
-      : ["quiz", "shorts", "curiosidades", "viral", ...config.managedRun?.focusLabels ?? []],
+      : [...config.managedRun?.focusLabels ?? [], "shorts"],
     490
   );
 
