@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import type { PipelineConfig } from "../../src/types.js";
 
-vi.mock("@ai-sdk/openai", () => ({
-  createOpenAI: vi.fn((opts: { apiKey: string; baseURL: string }) =>
-    (model: string) => ({ modelId: model, provider: "litellm", apiKey: opts.apiKey, baseURL: opts.baseURL }),
+vi.mock("@ai-sdk/openai-compatible", () => ({
+  createOpenAICompatible: vi.fn((opts: { name: string; apiKey: string; baseURL: string }) =>
+    (model: string) => ({ modelId: model, provider: opts.name, apiKey: opts.apiKey, baseURL: opts.baseURL }),
   ),
 }));
 
