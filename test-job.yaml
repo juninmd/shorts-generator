@@ -47,6 +47,8 @@ spec:
           value: "true"
         - name: YOUTUBE_NO_COOKIES
           value: "true"
+        - name: LOG_LEVEL
+          value: "debug"
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:
