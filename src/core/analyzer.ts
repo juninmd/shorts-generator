@@ -131,7 +131,19 @@ async function analyzeSinglePassFallback(
     const jsonMatch = cleaned.match(re);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      return Array.isArray(parsed) ? parsed : (parsed.clips ?? []);
+      const rawArray = Array.isArray(parsed)
+        ? parsed
+        : (parsed.clips && Array.isArray(parsed.clips) ? parsed.clips : [parsed]);
+      
+      return rawArray.filter((item: any) => item && typeof item === "object").map((item: any) => {
+        const startTime = typeof item.startTime === "number" ? item.startTime : (typeof item.start === "number" ? item.start : 0);
+        const endTime = typeof item.endTime === "number" ? item.endTime : (typeof item.end === "number" ? item.end : 0);
+        return {
+          ...item,
+          startTime,
+          endTime,
+        };
+      });
     }
     return [];
   } catch (e: unknown) {
