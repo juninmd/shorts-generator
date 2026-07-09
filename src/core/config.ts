@@ -81,6 +81,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     youtubeCookiesBrowser: optionalEnv("YOUTUBE_COOKIES_BROWSER", ""),
     youtubeCookiesFile: optionalEnv("YOUTUBE_COOKIES_FILE", ""),
     youtubeCookiesBase64: optionalEnv("YOUTUBE_COOKIES_BASE64", ""),
+    youtubeNoCookies: optionalEnv("YOUTUBE_NO_COOKIES", optionalEnv("NO_COOKIES", "false")) === "true",
     watermarkText: optionalEnv("WATERMARK_TEXT", "santidade católica"),
     videoEncoder: optionalEnv("VIDEO_ENCODER", "libx264"),
     serverPublicUrl: optionalEnv("SERVER_PUBLIC_URL", "") || undefined,

@@ -126,14 +126,15 @@ describe("State management", () => {
     });
 
     it("markVideoAsPostedAsync calls db.query", async () => {
-      await markVideoAsPostedAsync("video-abc");
-      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining("INSERT"), ["video-abc"]);
+      await markVideoAsPostedAsync("video-abc", "canal-1");
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining("INSERT"), ["canal-1", "video-abc"]);
     });
 
     it("getPostedTopVideosAsync returns video ids from DB", async () => {
       vi.mocked(queryRows).mockResolvedValue([{ video_id: "vid-1" }, { video_id: "vid-2" }] as any);
-      const result = await getPostedTopVideosAsync();
+      const result = await getPostedTopVideosAsync("canal-1");
       expect(result).toEqual(["vid-1", "vid-2"]);
+      expect(queryRows).toHaveBeenCalledWith(expect.any(Object), expect.stringContaining("channel_id = $1"), ["canal-1"]);
     });
   });
 

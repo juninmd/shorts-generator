@@ -25,7 +25,8 @@ export async function runTopVideoPipeline(
   logger.info({ channel: randomChannel }, "Selected random channel for top video pipeline");
 
   const topVideos = await getTopChannelVideos(randomChannel, 20, config.maxVideoDurationSec);
-  const postedVideos = new Set(await getPostedTopVideosAsync());
+  const channelId = config.managedRun?.channelId || randomChannel;
+  const postedVideos = new Set(await getPostedTopVideosAsync(channelId));
 
   let targetVideo: VideoInfo | null = null;
   for (const video of topVideos) {
@@ -58,7 +59,7 @@ export async function runTopVideoPipeline(
 
     await sendFullVideoToTelegram(downloadedFull, config, youtubeUrl);
     if (!config.keepTempFiles) cleanupVideo(targetVideo.id, config);
-    await markVideoAsPostedAsync(targetVideo.id);
+    await markVideoAsPostedAsync(targetVideo.id, channelId);
 
     onProgress?.({ stage: "done", videoId: targetVideo.id, videoTitle: targetVideo.title, message: "Vídeo completo publicado no Telegram com sucesso", progress: 100 });
     return [{ videoId: targetVideo.id, videoTitle: targetVideo.title, channelName: targetVideo.channelName, shorts: [], errors: [], processingTimeMs: Date.now() - startTime }];

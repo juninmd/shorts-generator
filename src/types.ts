@@ -120,6 +120,7 @@ export interface PipelineConfig {
   youtubeCookiesBrowser?: string;
   youtubeCookiesFile?: string;
   youtubeCookiesBase64?: string;
+  youtubeNoCookies?: boolean;
   watermarkText: string;
   videoEncoder: string;
   /** Explicit total short clips target for this pipeline run */

@@ -19,6 +19,11 @@ export function getLocalPool(config: DatabaseConnectionConfig): SqlClient {
       sqliteSql = sqliteSql.replace(/::text/g, "");
       sqliteSql = sqliteSql.replace(/TIMESTAMPTZ/g, "DATETIME");
       sqliteSql = sqliteSql.replace(/NOW\(\)/g, "CURRENT_TIMESTAMP");
+      sqliteSql = sqliteSql.replace(/ADD COLUMN IF NOT EXISTS/gi, "ADD COLUMN");
+
+      if (sqliteSql.includes("DROP CONSTRAINT") || sqliteSql.includes("ADD CONSTRAINT")) {
+        return { rows: [], rowCount: 0 };
+      }
 
       // Polyfill for "!= ALL(?)" or "!= ALL(?::text[])" which is Postgres specific
       if (sqliteSql.includes("!= ALL(")) {
@@ -50,7 +55,13 @@ export function getLocalPool(config: DatabaseConnectionConfig): SqlClient {
           const result = db.prepare(sqliteSql).run(sanitizedParams);
           return { rows: [], rowCount: result.changes };
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (
+          error?.message?.includes("duplicate column name") ||
+          error?.message?.includes("already exists")
+        ) {
+          return { rows: [], rowCount: 0 };
+        }
         logger.error({ error, sql, sqliteSql, params }, "SQLite query error");
         throw error;
       }

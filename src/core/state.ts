@@ -6,13 +6,14 @@ import { logger } from "./logger.js";
 const STATE_FILE_PATH = path.resolve(process.cwd(), "posted_top_videos.json");
 const DAILY_UPLOADS_PATH = path.resolve(process.cwd(), "daily_uploads.json");
 
-export async function getPostedTopVideosAsync(): Promise<string[]> {
+export async function getPostedTopVideosAsync(channelId?: string): Promise<string[]> {
   const db = getOptionalPool();
   if (db) {
-    const rows = await queryRows<{ video_id: string }>(
-      db,
-      "SELECT video_id FROM posted_source_videos ORDER BY created_at DESC",
-    );
+    const sql = channelId
+      ? "SELECT video_id FROM posted_source_videos WHERE channel_id = $1 ORDER BY created_at DESC"
+      : "SELECT video_id FROM posted_source_videos ORDER BY created_at DESC";
+    const params = channelId ? [channelId] : [];
+    const rows = await queryRows<{ video_id: string }>(db, sql, params);
     return rows.map((row) => row.video_id);
   }
   /* v8 ignore start */
@@ -28,22 +29,22 @@ export async function getPostedTopVideosAsync(): Promise<string[]> {
   /* v8 ignore stop */
 }
 
-export async function markVideoAsPostedAsync(videoId: string): Promise<void> {
+export async function markVideoAsPostedAsync(videoId: string, channelId = "global"): Promise<void> {
   const db = getOptionalPool();
   if (db) {
     await db.query(
-      "INSERT INTO posted_source_videos (video_id) VALUES ($1) ON CONFLICT (video_id) DO NOTHING",
-      [videoId],
+      "INSERT INTO posted_source_videos (channel_id, video_id) VALUES ($1, $2) ON CONFLICT (channel_id, video_id) DO NOTHING",
+      [channelId, videoId],
     );
-    logger.info({ videoId }, "Durable posted video state saved");
+    logger.info({ videoId, channelId }, "Durable posted video state saved");
     return;
   }
   /* v8 ignore start */
   try {
-    const posted = new Set(await getPostedTopVideosAsync());
+    const posted = new Set(await getPostedTopVideosAsync(channelId));
     posted.add(videoId);
     fs.writeFileSync(STATE_FILE_PATH, JSON.stringify(Array.from(posted), null, 2));
-    logger.debug({ videoId }, "Marked video as posted in state file");
+    logger.debug({ videoId, channelId }, "Marked video as posted in state file");
   } catch (error) {
     logger.error({ error }, "Failed to save posted top videos state");
   }

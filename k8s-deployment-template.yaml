@@ -20,6 +20,7 @@ data:
   # YouTube access configuration
   ENABLE_YOUTUBE: "true"
   YOUTUBE_PLAYER_CLIENT: "default"
+  YOUTUBE_NO_COOKIES: "true"
   YOUTUBE_CHANNELS: "@your_channel_1,@your_channel_2"
   VIDEO_LIMIT: "3"
 
@@ -152,6 +153,7 @@ spec:
             secretKeyRef:
               name: shorts-generator-secrets
               key: YOUTUBE_COOKIES_BASE64
+              optional: true
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:
