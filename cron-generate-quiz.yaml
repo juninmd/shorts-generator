@@ -32,6 +32,8 @@ spec:
               value: "/app/output"
             - name: ENABLE_YOUTUBE
               value: "true"
+            - name: YOUTUBE_NO_COOKIES
+              value: "true"
             - name: REDIS_URL
               value: "redis://redis.databases.svc.cluster.local:6379"
             - name: REDIS_PASSWORD

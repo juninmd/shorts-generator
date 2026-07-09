@@ -12,6 +12,7 @@ const execFileAsync = promisify(execFile);
 export function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: string): string[] {
   const browser = config?.youtubeCookiesBrowser || process.env.YOUTUBE_COOKIES_BROWSER;
   const file = tempCookieFile || config?.youtubeCookiesFile || process.env.YOUTUBE_COOKIES_FILE;
+  const noCookies = config?.youtubeNoCookies || process.env.YOUTUBE_NO_COOKIES === "true" || process.env.NO_COOKIES === "true";
 
   const args: string[] = [
     "--no-check-certificates",
@@ -20,6 +21,10 @@ export function getYtDlpBaseArgs(config?: PipelineConfig, tempCookieFile?: strin
     "--js-runtimes",
     "node",
   ];
+
+  if (noCookies) {
+    return args;
+  }
 
   if (browser) {
     args.push("--cookies-from-browser", browser);
@@ -36,6 +41,11 @@ export async function withCookies<T>(
   config: PipelineConfig | undefined,
   fn: (cookiePath?: string) => Promise<T>
 ): Promise<T> {
+  const noCookies = config?.youtubeNoCookies || process.env.YOUTUBE_NO_COOKIES === "true" || process.env.NO_COOKIES === "true";
+  if (noCookies) {
+    return fn(undefined);
+  }
+
   const base64Cookies = config?.youtubeCookiesBase64 || process.env.YOUTUBE_COOKIES_BASE64;
   let tempCookiePath: string | undefined;
 
