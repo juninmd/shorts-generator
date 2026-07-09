@@ -37,6 +37,8 @@ spec:
           value: "true"
         - name: ENABLE_YOUTUBE
           value: "true"
+        - name: YOUTUBE_NO_COOKIES
+          value: "true"
         - name: MAX_VIDEO_DURATION_MINUTES
           value: "50"
         - name: AI_MODEL
