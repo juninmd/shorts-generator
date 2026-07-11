@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { generateFilters, type QuizFilterAssets } from "../../src/core/quiz/quiz-filters.service.js";
-import { buildTimeline, TIMER_SECONDS, type Quiz } from "../../src/core/quiz/quiz.domain.js";
+import { generateFilters, type QuizFilterAssets } from "../../../src/core/quiz/quiz-filters.service.js";
+import { buildTimeline, TIMER_SECONDS, type Quiz } from "../../../src/core/quiz/quiz.domain.js";
 
 const quiz: Quiz = {
   tema: "futebol",
