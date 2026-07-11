@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildTimeline, quizSchema, TIMER_SECONDS, OUTRO_TAIL_SECONDS } from "../../src/core/quiz/quiz.domain.js";
+import { buildTimeline, quizSchema, TIMER_SECONDS, OUTRO_TAIL_SECONDS } from "../../../src/core/quiz/quiz.domain.js";
 
 describe("quiz.domain", () => {
   describe("buildTimeline", () => {
