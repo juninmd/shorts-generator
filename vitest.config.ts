@@ -31,10 +31,10 @@ export default defineConfig({
       // Enforced floor (ratchet). Raise these as coverage improves; never lower
       // without justification. Reflects the current real coverage of the suite.
       thresholds: {
-        lines: 63,
-        functions: 76,
-        branches: 60,
-        statements: 63,
+        lines: 79,
+        functions: 85,
+        branches: 74,
+        statements: 79,
       },
     },
   },

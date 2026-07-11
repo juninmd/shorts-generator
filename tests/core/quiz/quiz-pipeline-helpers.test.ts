@@ -5,8 +5,8 @@ import {
   buildTelegramCaption,
   buildYoutubeMetadata,
   buildOutputFileName,
-} from "../../src/core/quiz/quiz-pipeline.js";
-import type { Quiz } from "../../src/core/quiz/quiz.domain.js";
+} from "../../../src/core/quiz/quiz-pipeline.js";
+import type { Quiz } from "../../../src/core/quiz/quiz.domain.js";
 
 const quiz: Quiz = {
   tema: "história do Brasil",
