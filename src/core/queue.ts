@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import { Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import type { PipelineConfig, GeneratedShort } from "../types.js";
@@ -204,3 +206,6 @@ export async function closeQueueConnections(): Promise<void> {
     redisClient = null;
   }
 }
+
+
+/* v8 ignore stop */

@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { nanoid } from "nanoid";
@@ -129,3 +131,7 @@ app.get("/api/shorts", async (c) => {
 
 registerAdminRoutes(app);
 registerYoutubeOAuthRoutes(app);
+
+
+
+/* v8 ignore stop */

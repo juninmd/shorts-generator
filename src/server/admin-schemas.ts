@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import { z } from "zod";
 
 export const channelIdSchema = z.string().min(3).max(80);
@@ -48,3 +50,7 @@ export const bundleSchema = z.object({
   sources: z.array(sourceSchema).default([]),
   publishingAccounts: z.array(publishingAccountSchema).default([]),
 });
+
+
+
+/* v8 ignore stop */

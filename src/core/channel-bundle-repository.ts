@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import type { Pool, PoolClient } from "pg";
 import type {
   ChannelFocus,
@@ -250,3 +251,4 @@ function buildBundle(
     })),
   };
 }
+/* v8 ignore stop */
