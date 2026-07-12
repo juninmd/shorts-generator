@@ -1,4 +1,5 @@
 /* v8 ignore start */
+
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
@@ -72,4 +73,6 @@ export function cleanupVideo(videoId: string, config: PipelineConfig): void {
     logger.warn({ videoId }, "Failed to cleanup temp files");
   }
 }
+
+
 /* v8 ignore stop */

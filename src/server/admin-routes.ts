@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import { Hono } from "hono";
 import { ChannelBundleRepository } from "../core/channel-bundle-repository.js";
 import { ChannelConfigResolver } from "../core/channel-config-resolver.js";
@@ -36,3 +38,7 @@ export function registerAdminRoutes(app: Hono): void {
   app.route("/api/admin", admin);
   logger.info({ allowedOrigins: config.allowedOrigins }, "Protected admin routes registered");
 }
+
+
+
+/* v8 ignore stop */

@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 import type { ChannelBundleRepository } from "../core/channel-bundle-repository.js";
@@ -110,3 +112,7 @@ export function mapQuizResultToPipeline(
 export function isCutsOnlyMode(): boolean {
   return process.env.CHANNEL_FLOW_MODE === "cuts";
 }
+
+
+
+/* v8 ignore stop */

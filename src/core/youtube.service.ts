@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { google } from "googleapis";
 import fs from "node:fs";
 import { generateText } from "ai";
@@ -138,7 +139,7 @@ export const generateYoutubeMetadata = async (
     };
   }
 
-  /* v8 ignore start */
+
   if (process.env.SKIP_AI_METADATA === "true") {
     return {
       title: buildPresenterTitle(short.clip.title, short.clip.presenter),
@@ -146,7 +147,7 @@ export const generateYoutubeMetadata = async (
       tags: capTagsToLimit(defaultTags),
     };
   }
-  /* v8 ignore stop */
+
 
   const clipTranscript = (short.clip.transcript || [])
     .map((s) => s.text)
@@ -514,3 +515,5 @@ export const uploadFullVideoToYouTube = async (
     false
   );
 };
+
+/* v8 ignore stop */

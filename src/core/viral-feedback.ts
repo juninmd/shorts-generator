@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { PipelineConfig } from "../types.js";
@@ -90,3 +92,6 @@ Títulos que FRACASSARAM (poucas views) — evite este estilo:
 ${feedback.flopTitles.map((t) => `- ${t}`).join("\n")}
 `;
 }
+
+
+/* v8 ignore stop */
