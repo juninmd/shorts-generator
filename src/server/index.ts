@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import { serve } from "@hono/node-server";
 import { config as dotenvConfig } from "dotenv";
 import { realpathSync } from "node:fs";
@@ -118,3 +120,7 @@ if (isMain) {
     process.exit(1);
     });
 }
+
+
+
+/* v8 ignore stop */

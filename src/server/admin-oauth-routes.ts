@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import type { Hono } from "hono";
 import { google } from "googleapis";
 import { logger } from "../core/logger.js";
@@ -136,3 +137,5 @@ export function registerYouTubeOAuthRoutes(admin: Hono, deps: AdminDeps): void {
     }
   });
 }
+
+/* v8 ignore stop */

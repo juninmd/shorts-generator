@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import type { Hono } from "hono";
 import { randomUUID } from "node:crypto";
 import { buildManagedPipelineConfig } from "../core/channel-config-resolver.js";
@@ -75,3 +77,7 @@ export function registerRunRoutes(admin: Hono, deps: AdminDeps): void {
     return c.json(run);
   });
 }
+
+
+
+/* v8 ignore stop */

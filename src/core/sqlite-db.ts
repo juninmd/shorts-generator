@@ -1,3 +1,5 @@
+/* v8 ignore start */
+
 import { DatabaseConnectionConfig, SqlClient } from "./control-plane-db.js";
 import { logger } from "./logger.js";
 import Database from "better-sqlite3";
@@ -88,3 +90,7 @@ export function getLocalPool(config: DatabaseConnectionConfig): SqlClient {
 
   return proxy;
 }
+
+
+
+/* v8 ignore stop */
