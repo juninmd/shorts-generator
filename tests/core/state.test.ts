@@ -149,3 +149,111 @@ describe("State management", () => {
     });
   });
 });
+  describe("getPostedTopVideosAsync (no DB coverage)", () => {
+    it("returns video ids from DB without channelId filter", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(mockPool);
+      vi.mocked(queryRows).mockResolvedValue([{ video_id: "vid-1" }, { video_id: "vid-2" }] as any);
+    });
+  });
+
+  describe("Async state functions (no-DB fallback 2)", () => {
+    it("getDailyUploadCountAsync returns count from file when no DB", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      const today = new Date().toISOString().slice(0, 10);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ date: today, count: 7 }));
+      expect(await getDailyUploadCountAsync()).toBe(7);
+    });
+
+    it("returns video ids without channel id filter (no db branch)", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(["vid-1", "vid-2"]));
+      const result = await getPostedTopVideosAsync();
+      expect(result).toEqual(["vid-1", "vid-2"]);
+    });
+
+    it("returns empty array if file reading fails", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation(() => { throw new Error("bad file"); });
+      const result = await getPostedTopVideosAsync();
+      expect(result).toEqual([]);
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it("returns empty array if no file exists", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      const result = await getPostedTopVideosAsync();
+      expect(result).toEqual([]);
+    });
+
+    it("saves to file if file exists", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(["vid-1"]));
+      await markVideoAsPostedAsync("vid-2");
+      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining("posted_top_videos.json"), JSON.stringify(["vid-1", "vid-2"], null, 2));
+    });
+
+    it("creates new file if file does not exist", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      await markVideoAsPostedAsync("vid-1");
+      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining("posted_top_videos.json"), JSON.stringify(["vid-1"], null, 2));
+    });
+
+    it("catches error during mark video file write", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation(() => { throw new Error("bad read"); });
+      await markVideoAsPostedAsync("vid-1");
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it("sets high count in json file", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      const today = new Date().toISOString().slice(0, 10);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ date: today, count: 1 }));
+      await setDailyLimitReachedAsync();
+      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining("daily_uploads.json"), JSON.stringify({ date: today, count: 9999 }, null, 2));
+    });
+
+    it("catches write error", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation(() => { throw new Error("read fail"); });
+      await setDailyLimitReachedAsync();
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it("increments json file count", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      const today = new Date().toISOString().slice(0, 10);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ date: today, count: 1 }));
+      await incrementDailyUploadCountAsync();
+      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining("daily_uploads.json"), JSON.stringify({ date: today, count: 2 }, null, 2));
+    });
+
+    it("catches write error", async () => {
+      vi.mocked(getOptionalPool).mockReturnValue(null);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation(() => { throw new Error("read fail"); });
+      await incrementDailyUploadCountAsync();
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe("getPostedTopVideosAsync (no DB coverage)", () => {
+    it("returns video ids from DB without channelId filter (when queryRows executes properly)", async () => {
+      // Recreate conditions for coverage of channelId logic
+      vi.mocked(getOptionalPool).mockReturnValue(mockPool);
+      vi.mocked(queryRows).mockResolvedValue([{ video_id: "vid-1" }, { video_id: "vid-2" }] as any);
+      const result = await getPostedTopVideosAsync();
+      expect(result).toEqual(["vid-1", "vid-2"]);
+      expect(queryRows).toHaveBeenCalledWith(expect.any(Object), expect.stringContaining("ORDER BY"), []);
+    });
+  });
