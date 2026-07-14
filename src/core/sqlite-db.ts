@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { DatabaseConnectionConfig, SqlClient } from "./control-plane-db.js";
 import { logger } from "./logger.js";
@@ -93,4 +93,3 @@ export function getLocalPool(config: DatabaseConnectionConfig): SqlClient {
 
 
 
-/* v8 ignore stop */
