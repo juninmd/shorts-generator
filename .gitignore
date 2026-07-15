@@ -32,3 +32,9 @@ package-lock.json
 job-fix-santidade.yaml
 q.cjs
 qout.txt
+# Operational debug scripts — some embed OAuth secrets, must never be committed
+scripts/analyze-queue-errors.ts
+scripts/decode-secrets.ts
+scripts/generate-reauth-urls.ts
+scripts/print-db-channels.ts
+scripts/print-redis-queue.ts
