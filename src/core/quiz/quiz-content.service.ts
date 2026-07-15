@@ -32,19 +32,16 @@ export const generateQuiz = async (config: PipelineConfig, customTopic?: string)
     8. tags: 8 a 12 termos de busca específicos do tema (sem #).
     9. Língua: Português do Brasil.`;
 
-  // Bound the call: cap output (quiz JSON is small) and abort a stalled
-  // connection so a hung litellm request can never block the pipeline forever.
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), config.aiTimeoutMs ?? 120_000);
   try {
     const model = createModel(config);
     const basePrompt = customTopic ? `Gere um quiz exatamente sobre: ${customTopic}` : `Gere um quiz sobre ${topic}.`;
+    // generateJsonObject bounds each attempt and retries, so a stalled litellm
+    // connection can't hang the pipeline. Quiz JSON is small — cap the output.
     const quizResult = await generateJsonObject<Quiz>({
       model,
       schema: quizSchema,
       prompt: `${basePrompt}\n\n${QUIZ_JSON_FORMAT}`,
       system: systemPrompt,
-      abortSignal: controller.signal,
       maxOutputTokens: 1500,
     });
     if (!quizResult.tema) {
@@ -55,7 +52,5 @@ export const generateQuiz = async (config: PipelineConfig, customTopic?: string)
   } catch (error: any) {
     logger.error({ error: error.message || error }, "Erro na geração de conteúdo do quiz");
     throw new Error(`Falha na geração de conteúdo do quiz: ${error.message}`);
-  } finally {
-    clearTimeout(timeoutId);
   }
 };
