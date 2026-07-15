@@ -40,23 +40,55 @@ export interface GenerateJsonOptions {
   abortSignal?: AbortSignal;
   maxRetries?: number;
   maxOutputTokens?: number;
+  /** Hard wall-clock cap per attempt; a stalled connection is aborted and retried. */
+  attemptTimeoutMs?: number;
 }
 
-/** generateObject replacement that works with non-structured-output models. */
+/** One generateText call bounded by its own timeout, then parse + validate. */
+async function attempt<T>(opts: GenerateJsonOptions, timeoutMs: number): Promise<T> {
+  const controller = new AbortController();
+  const onExternalAbort = () => controller.abort();
+  opts.abortSignal?.addEventListener("abort", onExternalAbort);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const { text } = await generateText({
+      model: opts.model,
+      system: opts.system,
+      temperature: opts.temperature,
+      maxOutputTokens: opts.maxOutputTokens,
+      // Retries are handled by generateJsonObject with a fresh timeout each try,
+      // so a silently-stalled connection (no error to trigger a retry) is caught.
+      maxRetries: 0,
+      abortSignal: controller.signal,
+      prompt: opts.prompt + JSON_INSTRUCTION,
+    });
+    const raw = extractJson(text);
+    if (!raw) throw new Error(`No JSON found in model output: ${text.slice(0, 200)}`);
+    const parsed = opts.schema.safeParse(JSON.parse(raw));
+    if (!parsed.success) throw new Error(`JSON did not match schema: ${parsed.error.message}`);
+    return parsed.data as T;
+  } finally {
+    clearTimeout(timer);
+    opts.abortSignal?.removeEventListener("abort", onExternalAbort);
+  }
+}
+
+/**
+ * generateObject replacement for models that don't honor structured output.
+ * Drives generateText and parses/validates the JSON ourselves, retrying with a
+ * fresh per-attempt timeout so a stalled litellm connection can't hang forever.
+ */
 export async function generateJsonObject<T>(opts: GenerateJsonOptions): Promise<T> {
-  const { model, schema, prompt, system, temperature, abortSignal, maxRetries = 2, maxOutputTokens } = opts;
-  const { text } = await generateText({
-    model,
-    system,
-    temperature,
-    abortSignal,
-    maxRetries,
-    maxOutputTokens,
-    prompt: prompt + JSON_INSTRUCTION,
-  });
-  const raw = extractJson(text);
-  if (!raw) throw new Error(`No JSON found in model output: ${text.slice(0, 200)}`);
-  const parsed = schema.safeParse(JSON.parse(raw));
-  if (!parsed.success) throw new Error(`JSON did not match schema: ${parsed.error.message}`);
-  return parsed.data as T;
+  const maxRetries = opts.maxRetries ?? 2;
+  const timeoutMs = opts.attemptTimeoutMs ?? 90_000;
+  let lastError: unknown;
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      return await attempt<T>(opts, timeoutMs);
+    } catch (error) {
+      lastError = error;
+      if (opts.abortSignal?.aborted) throw error;
+    }
+  }
+  throw lastError;
 }
