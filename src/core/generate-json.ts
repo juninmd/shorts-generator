@@ -39,17 +39,19 @@ export interface GenerateJsonOptions {
   temperature?: number;
   abortSignal?: AbortSignal;
   maxRetries?: number;
+  maxOutputTokens?: number;
 }
 
 /** generateObject replacement that works with non-structured-output models. */
 export async function generateJsonObject<T>(opts: GenerateJsonOptions): Promise<T> {
-  const { model, schema, prompt, system, temperature, abortSignal, maxRetries = 2 } = opts;
+  const { model, schema, prompt, system, temperature, abortSignal, maxRetries = 2, maxOutputTokens } = opts;
   const { text } = await generateText({
     model,
     system,
     temperature,
     abortSignal,
     maxRetries,
+    maxOutputTokens,
     prompt: prompt + JSON_INSTRUCTION,
   });
   const raw = extractJson(text);
