@@ -49,19 +49,27 @@ async function attempt<T>(opts: GenerateJsonOptions, timeoutMs: number): Promise
   const controller = new AbortController();
   const onExternalAbort = () => controller.abort();
   opts.abortSignal?.addEventListener("abort", onExternalAbort);
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // A stalled litellm connection does NOT reliably reject on AbortSignal, so we
+  // race the request against an independent timeout that rejects on its own.
+  // Whichever settles first wins; a still-dangling request is left to die.
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error(`generateText timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
   try {
-    const { text } = await generateText({
+    const generation = generateText({
       model: opts.model,
       system: opts.system,
       temperature: opts.temperature,
       maxOutputTokens: opts.maxOutputTokens,
-      // Retries are handled by generateJsonObject with a fresh timeout each try,
-      // so a silently-stalled connection (no error to trigger a retry) is caught.
       maxRetries: 0,
       abortSignal: controller.signal,
       prompt: opts.prompt + JSON_INSTRUCTION,
     });
+    const { text } = await Promise.race([generation, timeout]);
     const raw = extractJson(text);
     if (!raw) throw new Error(`No JSON found in model output: ${text.slice(0, 200)}`);
     const parsed = opts.schema.safeParse(JSON.parse(raw));
