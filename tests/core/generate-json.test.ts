@@ -69,4 +69,21 @@ describe("generateJsonObject", () => {
     vi.mocked(aiModule.generateText).mockResolvedValue({ text: '{"greeting":123}' } as any);
     await expect(generateJsonObject({ model: {} as any, schema, prompt: "p" })).rejects.toThrow(/did not match schema/);
   });
+
+  it("retries a failed attempt and returns on the next success", async () => {
+    vi.mocked(aiModule.generateText)
+      .mockRejectedValueOnce(new Error("stalled/aborted"))
+      .mockResolvedValueOnce({ text: '{"greeting":"ola"}' } as any);
+    const out = await generateJsonObject<{ greeting: string }>({ model: {} as any, schema, prompt: "p" });
+    expect(out.greeting).toBe("ola");
+    expect(aiModule.generateText).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives up after maxRetries + 1 attempts", async () => {
+    vi.mocked(aiModule.generateText).mockRejectedValue(new Error("always stalled"));
+    await expect(
+      generateJsonObject({ model: {} as any, schema, prompt: "p", maxRetries: 2 }),
+    ).rejects.toThrow(/always stalled/);
+    expect(aiModule.generateText).toHaveBeenCalledTimes(3);
+  });
 });
