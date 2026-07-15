@@ -1,5 +1,4 @@
 
-import { generateObject } from "ai";
 import type { Transcript, TranscriptSegment, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
