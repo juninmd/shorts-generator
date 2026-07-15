@@ -1,7 +1,8 @@
 /* v8 ignore start */
 
-import { generateText, generateObject } from "ai";
+import { generateText } from "ai";
 import { nanoid } from "nanoid";
+import { generateJsonObject } from "./generate-json.js";
 import type { Transcript, ShortClip, TranscriptSegment, TranscriptWord, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 import { snapToSentenceBoundaries } from "./clip-boundary.js";
@@ -64,7 +65,7 @@ export async function analyzeSinglePass(
   try {
     logger.debug({ model: config.aiModel, promptLength: prompt.length }, "Enviando prompt para AI Provider (Object Mode)");
 
-    const { object } = await generateObject({
+    const object = await generateJsonObject<{ clips?: ClipItem[] }>({
       model: createModel(config),
       schema: ClipSchema,
       prompt,
@@ -221,6 +222,9 @@ TÍTULOS (title) em Português (pt-BR):
 HASHTAGS (hashtags): 3 a 5, específicas do tema e da pessoa (ex: #freigilson), nunca genéricas.
 
 APRESENTADOR: identifique no título do vídeo, no nome do canal ou na própria transcrição o nome (ou sobrenome) da pessoa que está FALANDO/apresentando neste trecho e preencha o campo "presenter". Se houver mais de uma pessoa, use a que conduz o trecho. Se não for possível identificar com segurança, deixe "presenter" vazio.
+
+FORMATO JSON EXATO (startTime/endTime em segundos, strings curtas):
+{"clips":[{"title":"...","presenter":"","description":"...","contentValue":"...","startTime":0,"endTime":40,"viralScore":8,"reason":"...","hashtags":["#exemplo"]}]}
 
 TRANSCRIÇÃO:
 ${transcript}`;

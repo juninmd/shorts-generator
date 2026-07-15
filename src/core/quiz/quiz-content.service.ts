@@ -1,8 +1,11 @@
-import { generateObject } from "ai";
 import { quizSchema, type Quiz } from "./quiz.domain.js";
 import { createModel } from "../ai-provider.js";
+import { generateJsonObject } from "../generate-json.js";
 import type { PipelineConfig } from "../../types.js";
 import { logger } from "../logger.js";
+
+const QUIZ_JSON_FORMAT = `Formato JSON EXATO (respeite as chaves e o tipo de cada campo):
+{"tema":"...","titulo_youtube":"...","hook":"...","perguntas":[{"pergunta":"...","opcoes":{"A":"...","B":"...","C":"...","D":"..."},"resposta_correta":"A"}],"fato_curioso":"...","tags":["...","..."]}`;
 
 export const generateQuiz = async (config: PipelineConfig, customTopic?: string): Promise<Quiz> => {
   const topics = [
@@ -31,14 +34,13 @@ export const generateQuiz = async (config: PipelineConfig, customTopic?: string)
 
   try {
     const model = createModel(config);
-    const { object } = await generateObject({
+    const basePrompt = customTopic ? `Gere um quiz exatamente sobre: ${customTopic}` : `Gere um quiz sobre ${topic}.`;
+    const quizResult = await generateJsonObject<Quiz>({
       model,
       schema: quizSchema,
-      prompt: customTopic ? `Gere um quiz exatamente sobre: ${customTopic}` : `Gere um quiz sobre ${topic}.`,
+      prompt: `${basePrompt}\n\n${QUIZ_JSON_FORMAT}`,
       system: systemPrompt,
     });
-
-    const quizResult = object as Quiz;
     if (!quizResult.tema) {
       quizResult.tema = topic;
     }

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generateQuiz } from "../../../src/core/quiz/quiz-content.service.js";
-import { generateObject } from "ai";
+import { generateJsonObject } from "../../../src/core/generate-json.js";
 import { logger } from "../../../src/core/logger.js";
 import * as aiProvider from "../../../src/core/ai-provider.js";
 
-vi.mock("ai");
+vi.mock("../../../src/core/generate-json.js", () => ({ generateJsonObject: vi.fn() }));
 vi.mock("../../../src/core/logger.js", () => ({ logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 vi.mock("../../../src/core/ai-provider.js", () => ({ createModel: vi.fn().mockReturnValue({}) }));
 
@@ -28,29 +28,29 @@ describe("quiz-content.service", () => {
   };
 
   it("generates a quiz with custom topic", async () => {
-    vi.mocked(generateObject).mockResolvedValue({ object: validQuiz } as any);
+    vi.mocked(generateJsonObject).mockResolvedValue(validQuiz as any);
 
     const config = { tempDir: "temp", outputDir: "out" };
     const quiz = await generateQuiz(config, "custom topic");
 
     expect(quiz).toEqual(validQuiz);
-    expect(generateObject).toHaveBeenCalled();
-    expect(vi.mocked(generateObject).mock.calls[0][0].prompt).toContain("custom topic");
+    expect(generateJsonObject).toHaveBeenCalled();
+    expect(vi.mocked(generateJsonObject).mock.calls[0][0].prompt).toContain("custom topic");
   });
 
   it("generates a quiz without custom topic", async () => {
-    vi.mocked(generateObject).mockResolvedValue({ object: validQuiz } as any);
+    vi.mocked(generateJsonObject).mockResolvedValue(validQuiz as any);
 
     const config = { tempDir: "temp", outputDir: "out" };
     const quiz = await generateQuiz(config);
 
     expect(quiz).toEqual(validQuiz);
-    expect(generateObject).toHaveBeenCalled();
+    expect(generateJsonObject).toHaveBeenCalled();
   });
 
   it("fills tema if absent in the LLM response", async () => {
     const quizWithoutTema = { ...validQuiz, tema: undefined };
-    vi.mocked(generateObject).mockResolvedValue({ object: quizWithoutTema } as any);
+    vi.mocked(generateJsonObject).mockResolvedValue(quizWithoutTema as any);
 
     const config = { tempDir: "temp", outputDir: "out" };
     const quiz = await generateQuiz(config, "custom topic");
@@ -58,16 +58,16 @@ describe("quiz-content.service", () => {
     expect(quiz.tema).toBe("custom topic");
   });
 
-  it("throws error if generateObject fails", async () => {
-    vi.mocked(generateObject).mockRejectedValue(new Error("LLM failure"));
+  it("throws error if generateJsonObject fails", async () => {
+    vi.mocked(generateJsonObject).mockRejectedValue(new Error("LLM failure"));
 
     const config = { tempDir: "temp", outputDir: "out" };
     await expect(generateQuiz(config, "custom topic")).rejects.toThrow("Falha na geração de conteúdo do quiz: LLM failure");
     expect(logger.error).toHaveBeenCalled();
   });
 
-  it("throws error if generateObject fails with non error object", async () => {
-    vi.mocked(generateObject).mockRejectedValue("string err");
+  it("throws error if generateJsonObject fails with non error object", async () => {
+    vi.mocked(generateJsonObject).mockRejectedValue("string err");
 
     const config = { tempDir: "temp", outputDir: "out" };
     await expect(generateQuiz(config, "custom topic")).rejects.toThrow("Falha na geração de conteúdo do quiz:");
