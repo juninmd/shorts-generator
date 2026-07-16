@@ -162,4 +162,35 @@ describe("Queue System", () => {
     await expect(processQueueUntilEmpty()).resolves.toBeUndefined();
     expect(mockQueuePromoteJobs).toHaveBeenCalledTimes(1);
   });
+
+  it("should handle worker error and failed events in processQueueUntilEmpty", async () => {
+    mockQueueGetWaitingCount.mockResolvedValueOnce(1).mockResolvedValueOnce(0);
+    mockQueueGetActiveCount.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+    mockQueueGetDelayedCount.mockResolvedValueOnce(0);
+
+    const promise = processQueueUntilEmpty();
+    await new Promise(r => setTimeout(r, 0));
+
+    workerHandlers.error?.(new Error("Worker connection error"));
+    workerHandlers.active?.();
+    await workerHandlers.failed?.({ id: "job-1" }, new Error("Job failed completely"));
+
+    await promise;
+  });
+
+  it("should timeout if queue processing takes too long", async () => {
+    vi.useFakeTimers();
+    mockQueueGetWaitingCount.mockResolvedValue(1); // Keeps it from finishing early
+    mockQueueGetActiveCount.mockResolvedValue(0);
+    mockQueueGetDelayedCount.mockResolvedValue(0);
+
+    const promise = processQueueUntilEmpty();
+    await vi.advanceTimersByTimeAsync(0);
+
+    await vi.advanceTimersByTimeAsync(600_000);
+
+    await promise;
+    expect(mockWorkerClose).toHaveBeenCalled();
+    vi.useRealTimers();
+  });
 });
