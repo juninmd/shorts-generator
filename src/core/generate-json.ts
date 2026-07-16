@@ -45,7 +45,7 @@ export interface GenerateJsonOptions {
 }
 
 /** One generateText call bounded by its own timeout, then parse + validate. */
-async function attempt<T>(opts: GenerateJsonOptions, timeoutMs: number): Promise<T> {
+async function attempt<T>(opts: GenerateJsonOptions, timeoutMs: number, attemptIndex: number): Promise<T> {
   const controller = new AbortController();
   const onExternalAbort = () => controller.abort();
   opts.abortSignal?.addEventListener("abort", onExternalAbort);
@@ -59,6 +59,10 @@ async function attempt<T>(opts: GenerateJsonOptions, timeoutMs: number): Promise
       reject(new Error(`generateText timed out after ${timeoutMs}ms`));
     }, timeoutMs);
   });
+  // litellm caches by prompt+model, so a retry with the identical prompt just
+  // replays a bad/empty cached response. Vary the prompt on retries to miss the
+  // cache and let the router pick a different backend.
+  const cacheBust = attemptIndex > 0 ? `\n\n<!-- retry ${attemptIndex} ${Date.now()} -->` : "";
   try {
     const generation = generateText({
       model: opts.model,
@@ -67,7 +71,7 @@ async function attempt<T>(opts: GenerateJsonOptions, timeoutMs: number): Promise
       maxOutputTokens: opts.maxOutputTokens,
       maxRetries: 0,
       abortSignal: controller.signal,
-      prompt: opts.prompt + JSON_INSTRUCTION,
+      prompt: opts.prompt + JSON_INSTRUCTION + cacheBust,
     });
     const { text } = await Promise.race([generation, timeout]);
     const raw = extractJson(text);
@@ -92,7 +96,7 @@ export async function generateJsonObject<T>(opts: GenerateJsonOptions): Promise<
   let lastError: unknown;
   for (let i = 0; i <= maxRetries; i++) {
     try {
-      return await attempt<T>(opts, timeoutMs);
+      return await attempt<T>(opts, timeoutMs, i);
     } catch (error) {
       lastError = error;
       if (opts.abortSignal?.aborted) throw error;
