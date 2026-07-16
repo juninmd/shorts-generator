@@ -354,8 +354,11 @@ async function runQuizManagedChannel(channelId: string, quizTopic?: string, base
   });
 
   try {
-    const result = await runQuizPipeline(config, (progress) => {
-      void runRepository.updateProgress(runId, progress as PipelineProgress);
+    const result = await runQuizPipeline(config, async (progress) => {
+      // Await so each stage is persisted in order before the next (often
+      // event-loop-blocking) step — otherwise the DB stage lags and a slow
+      // render looks like a hang at an earlier stage.
+      await runRepository.updateProgress(runId, progress as PipelineProgress).catch((e) => logger.warn({ e }, "progress update failed"));
       logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Quiz Pipeline status");
     }, quizTopic);
     await runRepository.completeRun(runId, []);
