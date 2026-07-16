@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { generateText } from "ai";
 import { nanoid } from "nanoid";
@@ -309,4 +309,3 @@ function getWordsInRange(words: TranscriptWord[], start: number, end: number): T
 
 
 
-/* v8 ignore stop */

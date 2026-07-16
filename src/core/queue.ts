@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
@@ -208,4 +208,3 @@ export async function closeQueueConnections(): Promise<void> {
 }
 
 
-/* v8 ignore stop */
