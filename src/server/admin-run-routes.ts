@@ -39,12 +39,12 @@ export function registerRunRoutes(admin: Hono, deps: AdminDeps): void {
     void (async () => {
       try {
         if (resolved.channel.channelType === "quiz") {
-          const result = await runQuizPipeline(configForRun, (progress) => {
-            void runRepository.updateProgress(runId, {
+          const result = await runQuizPipeline(configForRun, async (progress) => {
+            await runRepository.updateProgress(runId, {
               stage: progress.stage as any,
               progress: progress.progress,
               message: progress.message,
-            });
+            }).catch(() => {});
           });
           await runRepository.completeRun(runId, [mapQuizResultToPipeline(result, resolved.channel.name)]);
         } else {
