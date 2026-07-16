@@ -35,7 +35,9 @@ export const runFFmpeg = async (
   logger.info({ outputPath }, "🎥 Processando FFmpeg...");
 
   await new Promise<void>((resolve, reject) => {
-    const ff = spawn("ffmpeg", args);
+    // ignore stdin (never prompt/block) and stdout (video goes to a file, so an
+    // undrained stdout pipe could deadlock ffmpeg); keep stderr for progress.
+    const ff = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
     let lastPct = -1;
 
     const keepAlive = setInterval(() => {

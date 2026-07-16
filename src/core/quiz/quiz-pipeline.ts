@@ -38,13 +38,13 @@ export const buildYoutubeMetadata = (quiz: Quiz, watermarkText: string): { title
 
 export const runQuizPipeline = async (
   config: PipelineConfig,
-  onProgress?: (progress: { stage: string; progress: number; message: string }) => void,
+  onProgress?: (progress: { stage: string; progress: number; message: string }) => void | Promise<void>,
   quizTopic?: string
 ): Promise<any> => {
   logger.info({ quizTopic }, "🚀 Iniciando Pipeline de Quiz Shorts");
 
   // Step 1: Content Generation
-  onProgress?.({ stage: "generating_quiz", progress: 10, message: "Gerando perguntas do quiz usando IA..." });
+  await onProgress?.({ stage: "generating_quiz", progress: 10, message: "Gerando perguntas do quiz usando IA..." });
   const quiz = await generateQuiz(config, quizTopic);
   logger.info({ quiz }, "Quiz gerado com sucesso");
 
@@ -58,7 +58,7 @@ export const runQuizPipeline = async (
 
   try {
     // Step 2: Speech Generation (TTS) — one narration per question/reveal + outro
-    onProgress?.({ stage: "generating_tts", progress: 30, message: "Gerando narração via Text-to-Speech..." });
+    await onProgress?.({ stage: "generating_tts", progress: 30, message: "Gerando narração via Text-to-Speech..." });
     const narrationJobs = quiz.perguntas.flatMap((question, i) => [
       generateNarration(question.pergunta, `question_${i}`, jobWorkspace),
       generateNarration(buildRevealNarration(question), `answer_${i}`, jobWorkspace),
@@ -70,7 +70,7 @@ export const runQuizPipeline = async (
     const answerAudioPaths = results.filter((_, idx) => idx % 2 === 1).map((r) => r.audioPath);
 
     // Step 3: Video Rendering (FFmpeg assembly)
-    onProgress?.({ stage: "rendering", progress: 60, message: "Montando e renderizando vídeo via FFmpeg..." });
+    await onProgress?.({ stage: "rendering", progress: 60, message: "Montando e renderizando vídeo via FFmpeg..." });
     await assembleVideo(
       quiz,
       { questionAudioPaths, answerAudioPaths, outroAudioPath: outro.audioPath },
@@ -82,7 +82,7 @@ export const runQuizPipeline = async (
     // Step 4: Publish to Telegram
     let telegramSent = false;
     if (config.telegramBotToken && config.telegramChatId) {
-      onProgress?.({ stage: "publishing_telegram", progress: 80, message: "Publicando vídeo no Telegram..." });
+      await onProgress?.({ stage: "publishing_telegram", progress: 80, message: "Publicando vídeo no Telegram..." });
       try {
         const bot = new Bot(config.telegramBotToken);
         const caption = buildTelegramCaption(quiz, watermarkText);
@@ -106,7 +106,7 @@ export const runQuizPipeline = async (
     let youtubeUrl: string | null = null;
     const enableYouTube = process.env.ENABLE_YOUTUBE === "true";
     if (enableYouTube) {
-      onProgress?.({ stage: "publishing_youtube", progress: 90, message: "Fazendo upload para o YouTube Shorts..." });
+      await onProgress?.({ stage: "publishing_youtube", progress: 90, message: "Fazendo upload para o YouTube Shorts..." });
       const meta = buildYoutubeMetadata(quiz, watermarkText);
       const channelId = config.managedRun?.channelId || "global";
       if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
@@ -138,7 +138,7 @@ export const runQuizPipeline = async (
       fs.rmSync(jobWorkspace, { recursive: true, force: true });
     }
 
-    onProgress?.({ stage: "done", progress: 100, message: "Pipeline de Quiz finalizada com sucesso!" });
+    await onProgress?.({ stage: "done", progress: 100, message: "Pipeline de Quiz finalizada com sucesso!" });
 
     return {
       success: true,
