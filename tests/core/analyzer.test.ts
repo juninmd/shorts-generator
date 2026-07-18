@@ -86,6 +86,69 @@ describe("analyzer", () => {
     expect(clips).toHaveLength(0);
   });
 
+  it("should filter out clips below minViralScore", async () => {
+    const customConfig = { ...mockConfig, minViralScore: 7 };
+    const mockResponse = {
+      clips: [
+        {
+          title: "Low Score Clip",
+          description: "Desc",
+          startTime: 10,
+          endTime: 40,
+          viralScore: 5,
+          reason: "Reason",
+          hashtags: ["#test"],
+        },
+        {
+          title: "High Score Clip",
+          description: "Desc",
+          startTime: 40,
+          endTime: 70,
+          viralScore: 9,
+          reason: "Reason",
+          hashtags: ["#test"],
+        },
+      ],
+    };
+
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue(mockResponse as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", customConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("High Score Clip");
+  });
+
+  it("should filter out clips with duplicate titles", async () => {
+    const mockResponse = {
+      clips: [
+        {
+          title: "Duplicate Title",
+          description: "Desc 1",
+          startTime: 10,
+          endTime: 40,
+          viralScore: 9,
+          reason: "Reason",
+          hashtags: ["#test"],
+        },
+        {
+          title: "Duplicate Title", // same title
+          description: "Desc 2",
+          startTime: 40,
+          endTime: 70,
+          viralScore: 8,
+          reason: "Reason",
+          hashtags: ["#test"],
+        },
+      ],
+    };
+
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue(mockResponse as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].description).toBe("Desc 1"); // higher score kept
+  });
+
   it("should sort clips by viralScore in descending order", async () => {
     const mockResponse = {
       clips: [
@@ -175,6 +238,46 @@ describe("analyzer", () => {
     expect(clips).toHaveLength(0);
   });
 
+  it("should cover fallback generateText returning non-array single object", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: JSON.stringify({ title: "FB Clip 2", description: "D", startTime: 10, endTime: 40, viralScore: 8, reason: "R", hashtags: [] }),
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("FB Clip 2");
+  });
+
+  it("should parse fallback generateText with an item missing startTime/endTime but having start/end", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: JSON.stringify({ clips: [{ title: "FB Clip", description: "D", start: 10, end: 40, viralScore: 8, reason: "R", hashtags: [] }] }),
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("FB Clip");
+    expect(clips[0].duration).toBe(30); // 40 - 10
+  });
+
+  it("should parse fallback generateText with an item missing all timing info", async () => {
+    const customConfig = { ...mockConfig, minShortDuration: 0, maxShortDuration: 100 };
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: JSON.stringify({ clips: [{ title: "FB Clip", description: "D", viralScore: 8, reason: "R", hashtags: [] }] }),
+    } as any);
+
+    const transcriptZero = {
+        ...mockTranscript,
+        segments: [{ start: 0, end: 0, text: "Zero" }]
+    };
+
+    const clips = await analyzeTranscript(transcriptZero, "Title", "Channel", customConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].duration).toBe(0);
+  });
+
   it("should return empty array if AI resolves without clips array", async () => {
     vi.mocked(gjModule.generateJsonObject).mockResolvedValue({} as any); // missing clips
 
@@ -219,6 +322,22 @@ describe("analyzer", () => {
     expect(clips[0].title).toBe("Clip Chunks");
   });
 
+  it("should handle error formatting when unknown object is thrown in first pass", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue("String Error");
+    vi.mocked(aiModule.generateText).mockRejectedValue(new Error("fallback also failed"));
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
+  });
+
+  it("should handle error formatting when unknown object is thrown in fallback", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockRejectedValue("String Error Fallback");
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
+  });
+
   it("should log AbortError differently and still call fallback", async () => {
     const abortError = new Error("aborted");
     abortError.name = "AbortError";
@@ -229,9 +348,36 @@ describe("analyzer", () => {
     expect(clips).toHaveLength(0); // fallback also fails → []
   });
 
+  it("should trigger abort controller timeout function", async () => {
+    vi.useFakeTimers();
+
+    const generateJsonObjectMock = vi.fn().mockImplementation(async () => {
+        vi.advanceTimersByTime(300_001); // Trigger the timeout
+        throw new Error("simulated timeout abort"); // throw an error so it proceeds to fallback/catch blocks correctly
+    });
+
+    vi.mocked(gjModule.generateJsonObject).mockImplementation(generateJsonObjectMock);
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: "{clips:[]}" } as any);
+
+    const promise = analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    await promise;
+
+    vi.useRealTimers();
+  });
+
   it("should return empty array when fallback text has no JSON", async () => {
     vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("main failed"));
     vi.mocked(aiModule.generateText).mockResolvedValue({ text: "no json here at all" } as any);
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(0);
+  });
+
+  it("should return empty array when fallback text has a starting brace but no closing brace", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: "{ no closing brace here",
+    } as any);
+
     const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
     expect(clips).toHaveLength(0);
   });
