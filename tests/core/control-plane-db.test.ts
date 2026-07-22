@@ -68,6 +68,18 @@ describe("control-plane-db", () => {
       expect(client.release).toHaveBeenCalled();
     });
 
+    it("uses withTransaction method if available on db object", async () => {
+      const { withTransaction } = await import("../../src/core/control-plane-db.js");
+      const dbWithTransaction = {
+        withTransaction: vi.fn().mockImplementation(async (work) => work({}))
+      };
+
+      const result = await withTransaction(dbWithTransaction as any, async () => "ok");
+
+      expect(result).toBe("ok");
+      expect(dbWithTransaction.withTransaction).toHaveBeenCalled();
+    });
+
     it("rolls back and rethrows on error", async () => {
       const { withTransaction } = await import("../../src/core/control-plane-db.js");
       const client = { query: vi.fn().mockResolvedValue({}), release: vi.fn() };
@@ -96,6 +108,29 @@ describe("control-plane-db", () => {
       const { getOptionalPool } = await import("../../src/core/control-plane-db.js");
       expect(getOptionalPool()).toBeNull();
       if (orig !== undefined) process.env.DATABASE_URL = orig;
+    });
+
+    it("returns pool when DATABASE_URL is set", async () => {
+      const orig = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = "postgres://user:pass@host/db";
+      const { getOptionalPool } = await import("../../src/core/control-plane-db.js");
+      expect(getOptionalPool()).toBeDefined();
+      if (orig !== undefined) {
+        process.env.DATABASE_URL = orig;
+      } else {
+        delete process.env.DATABASE_URL;
+      }
+    });
+  });
+
+  describe("getControlPlanePool with sqlite", () => {
+    it("calls getLocalPool if url starts with sqlite:", async () => {
+      vi.mock("../../src/core/sqlite-db.js", () => ({
+        getLocalPool: vi.fn().mockReturnValue({ isSqlite: true }),
+      }));
+      const { getControlPlanePool } = await import("../../src/core/control-plane-db.js");
+      const pool = getControlPlanePool({ databaseUrl: "sqlite:test.db" });
+      expect(pool).toEqual({ isSqlite: true });
     });
   });
 });

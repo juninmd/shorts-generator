@@ -86,4 +86,33 @@ describe("generateJsonObject", () => {
     ).rejects.toThrow(/always stalled/);
     expect(aiModule.generateText).toHaveBeenCalledTimes(3);
   });
+
+  it("bubbles up abort errors immediately and does not retry", async () => {
+    const controller = new AbortController();
+    vi.mocked(aiModule.generateText).mockImplementation(async () => {
+      controller.abort();
+      throw new Error("aborted");
+    });
+    await expect(
+      generateJsonObject({ model: {} as any, schema, prompt: "p", maxRetries: 2, abortSignal: controller.signal }),
+    ).rejects.toThrow(/aborted/);
+    expect(aiModule.generateText).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles connection timeouts and aborts the internal controller", async () => {
+    vi.useFakeTimers();
+    vi.mocked(aiModule.generateText).mockImplementation(async () => {
+      return new Promise((resolve) => setTimeout(resolve, 100000));
+    });
+
+    const promise = generateJsonObject({ model: {} as any, schema, prompt: "p", maxRetries: 0, attemptTimeoutMs: 1000 });
+
+    // allow microtasks to run and set the timeout
+    await Promise.resolve();
+    vi.advanceTimersByTime(1500);
+
+    await expect(promise).rejects.toThrow(/generateText timed out/);
+
+    vi.useRealTimers();
+  });
 });
