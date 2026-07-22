@@ -101,3 +101,16 @@ describe("createAdminAuthMiddleware with empty allowedOrigins", () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe("isOriginAllowed", () => {
+  it("rejects when no origin header is provided", async () => {
+    const res = await createApp().request("/admin/channels", {
+      headers: {
+        authorization: "Bearer secret-admin-token",
+      },
+    });
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "Origin not allowed" });
+  });
+});
