@@ -85,4 +85,37 @@ describe("quiz-filters.service", () => {
     expect(filterComplex).not.toContain("aloop");
     expect(filterComplex).toContain("volume=1.0[aout]");
   });
+
+  it("handles image background and draws logo when provided", () => {
+    const assetsWithLogo: QuizFilterAssets = {
+      ...baseAssets,
+      bgVideo: "bg.jpg",
+      hasLogo: true,
+      logoPath: "logo.png"
+    };
+
+    const { filterComplex, ffmpegInputs } = generateFilters(quiz, timeline, assetsWithLogo);
+
+    expect(ffmpegInputs.join(" ")).toContain("-loop 1 -framerate 30 -i");
+    expect(filterComplex).toContain("overlay=40:40[vlogo]");
+    expect(filterComplex).toContain("x=200:y=100"); // Watermark shifted for logo
+  });
+
+  it("handles missing option text files gracefully", () => {
+    const quizMissingOpt: QuizFilterAssets = {
+      ...baseAssets,
+      textFiles: [
+        {
+          qTxtPath: "q0.txt",
+          optTxtPaths: { A: "optA.txt", B: "optB.txt", C: "", D: "optD.txt" } // C missing
+        },
+        ...baseAssets.textFiles.slice(1)
+      ]
+    };
+    const { filterComplex } = generateFilters(quiz, timeline, quizMissingOpt);
+    expect(filterComplex).toContain("optA.txt");
+    expect(filterComplex).toContain("optB.txt");
+    expect(filterComplex).toContain("optD.txt");
+    // Should process smoothly without throwing
+  });
 });

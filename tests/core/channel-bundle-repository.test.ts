@@ -161,5 +161,64 @@ describe("channel-bundle-repository", () => {
 
       await expect(repo.getBundle("ch1")).rejects.toThrow("Missing profile for channel ch1");
     });
+
+    it("should map snake_case snake_case fields correctly from db", async () => {
+      const repo = new ChannelBundleRepository({ query: vi.fn() });
+      const { queryRows } = await import("../../src/core/control-plane-db.js");
+      vi.mocked(queryRows).mockImplementation((db, query, params) => {
+        if ((query as string).includes("managed_channels")) {
+          return Promise.resolve([{ id: "ch1", channel_type: "cuts" }]);
+        }
+        if ((query as string).includes("channel_profiles")) {
+          return Promise.resolve([{ channel_id: "ch1" }]);
+        }
+        if ((query as string).includes("channel_focuses")) {
+          return Promise.resolve([{ channel_id: "ch1", focus_key: "k1", focus_label: "l1", id: "f1" }]);
+        }
+        if ((query as string).includes("source_targets")) {
+          return Promise.resolve([{ channel_id: "ch1", created_at: "2024-01-01", id: "s1" }]);
+        }
+        if ((query as string).includes("publishing_accounts")) {
+          return Promise.resolve([{ channel_id: "ch1", id: "a1", token_key_version: "tk1" }]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const bundle = await repo.getBundle("ch1");
+
+      expect(bundle?.focuses[0]?.key).toBe("k1");
+      expect(bundle?.focuses[0]?.label).toBe("l1");
+      expect(bundle?.sources[0]?.createdAt).toBe("2024-01-01");
+      expect(bundle?.publishingAccounts[0]?.encryptedToken.keyVersion).toBe("tk1");
+    });
+  });
+
+  describe("lookupByChannel", () => {
+    it("should return empty array if no channelIds are provided", async () => {
+      const db = { query: vi.fn() };
+      const repo = new ChannelBundleRepository(db);
+
+      const { queryRows } = await import("../../src/core/control-plane-db.js");
+      vi.mocked(queryRows).mockResolvedValue([]);
+
+      const bundles = await repo.listBundles();
+      expect(bundles).toEqual([]);
+    });
+  });
+
+  describe("updatePublishingAccount edge cases", () => {
+    it("should handle partial updates without encrypted token", async () => {
+      const mockQuery = vi.fn();
+      const repo = new ChannelBundleRepository({ query: mockQuery });
+
+      await repo.updatePublishingAccount("acc1", {
+        updatedAt: "now"
+      });
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        "UPDATE publishing_accounts SET updated_at = $2 WHERE id = $1",
+        ["acc1", "now"]
+      );
+    });
   });
 });
