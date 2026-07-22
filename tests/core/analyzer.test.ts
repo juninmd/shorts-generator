@@ -238,6 +238,17 @@ describe("analyzer", () => {
     expect(clips).toHaveLength(0);
   });
 
+  it("should safely filter out non-object items in fallback rawArray", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("main failed"));
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: JSON.stringify({ clips: [null, undefined, "string", { title: "FB Clip", description: "D", startTime: 10, endTime: 40, viralScore: 8, reason: "R", hashtags: [] }] }),
+    } as any);
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].title).toBe("FB Clip");
+  });
+
   it("should cover fallback generateText returning non-array single object", async () => {
     vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("main failed"));
     vi.mocked(aiModule.generateText).mockResolvedValue({
@@ -357,7 +368,10 @@ describe("analyzer", () => {
     });
 
     vi.mocked(gjModule.generateJsonObject).mockImplementation(generateJsonObjectMock);
-    vi.mocked(aiModule.generateText).mockResolvedValue({ text: "{clips:[]}" } as any);
+    vi.mocked(aiModule.generateText).mockImplementation(async () => {
+        vi.advanceTimersByTime(300_001); // Trigger the timeout
+        return { text: "{clips:[]}" } as any;
+    });
 
     const promise = analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
     await promise;
