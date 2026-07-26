@@ -10,4 +10,4 @@ permissions:
 
 jobs:
   gitleaks:
-    uses: juninmd/base-actions/.github/workflows/reusable-security-scan.yml@main
+    uses: juninmd/base-actions/.github/workflows/reusable-security-scan.yml@f23703faf50a6fa3740ef7ac046765a15a6e6c49
