@@ -5,6 +5,8 @@ export const ClipItemSchema = z.object({
   presenter: z.string().optional().describe("Nome (ou sobrenome) da pessoa que está falando/apresentando neste trecho, se identificável. Deixe vazio se desconhecido."),
   description: z.string().describe("Breve resumo do conteúdo deste clipe"),
   contentValue: z.string().describe("Explique o valor deste trecho (ex: uma oração, um ensinamento, uma reflexão profunda)"),
+  hookText: z.string().optional().describe("Primeira frase literal do corte"),
+  payoffText: z.string().optional().describe("Última frase literal do corte"),
   startTime: z.number().describe("Tempo de início em segundos"),
   endTime: z.number().describe("Tempo de fim em segundos"),
   viralScore: z.number().describe("Pontuação de relevância narrativa de 1 a 10"),

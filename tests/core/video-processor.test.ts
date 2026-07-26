@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { processClip, getVideoDuration, getFileStartTime } from "../../src/core/video-processor.js";
+import { processClip } from "../../src/core/video-processor.js";
 import type { DownloadedVideo, ShortClip, PipelineConfig } from "../../src/types.js";
 import fs from "node:fs";
 import { execFile } from "node:child_process";
-import ffmpegModule from "fluent-ffmpeg";
 
 vi.mock("node:child_process", () => ({
   execFile: vi.fn(),
@@ -80,35 +79,22 @@ describe("video-processor", () => {
     vi.clearAllMocks();
   });
 
-  describe("getVideoDuration", () => {
-    it("returns correct duration", async () => {
-      const duration = await getVideoDuration("test.mp4");
-      expect(duration).toBe(120);
-    });
-
-    it("handles errors", async () => {
-      vi.mocked(ffmpegModule.ffprobe).mockImplementationOnce((path, cb) => {
-        cb(new Error("ffprobe error"), null as any);
-      });
-      await expect(getVideoDuration("test.mp4")).rejects.toThrow("ffprobe error");
-    });
-
-    it("handles missing format duration", async () => {
-      vi.mocked(ffmpegModule.ffprobe).mockImplementationOnce((path, cb) => {
-        cb(null, {} as any);
-      });
-      const duration = await getVideoDuration("test.mp4");
-      expect(duration).toBe(0);
-    });
-  });
-
   describe("processClip", () => {
     it("should resolve and run ffmpeg with correct params", async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
 
       vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
         const cb = callback || options || args;
-        if (typeof cb === "function") cb(null, { stdout: "", stderr: "" });
+        const probe = {
+          format: { duration: "10" },
+          streams: [
+            { codec_type: "video", codec_name: "h264", width: 1080, height: 1920, r_frame_rate: "30/1" },
+            { codec_type: "audio", codec_name: "aac" },
+          ],
+        };
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? JSON.stringify(probe) : "", stderr: "" });
+        }
         return {} as any;
       });
 
@@ -146,27 +132,4 @@ describe("video-processor", () => {
     });
   });
 
-  describe("getFileStartTime", () => {
-    describe.each([
-      { desc: "correct start time", format: { start_time: "10.5" }, expected: 10.5 },
-      { desc: "NaN start time directly", format: { start_time: "invalid" }, expected: 0 },
-      { desc: "missing start time", format: {}, expected: 0 },
-    ])("handles $desc", ({ format, expected }) => {
-      it(`resolves to ${expected}`, async () => {
-        vi.mocked(ffmpegModule.ffprobe).mockImplementationOnce((path, cb) => {
-          cb(null, { format } as any);
-        });
-        const startTime = await getFileStartTime("test.mp4");
-        expect(startTime).toBe(expected);
-      });
-    });
-
-    it("handles errors", async () => {
-      vi.mocked(ffmpegModule.ffprobe).mockImplementationOnce((path, cb) => {
-        cb(new Error("ffprobe error"), null as any);
-      });
-      const startTime = await getFileStartTime("test.mp4");
-      expect(startTime).toBe(0);
-    });
-  });
 });

@@ -7,6 +7,8 @@ import ffmpeg from "fluent-ffmpeg";
 import type { PipelineConfig, ShortClip } from "../types.js";
 import { logger } from "./logger.js";
 import { CENTER_FOCUS, detectSpeakerFocusX } from "./face-framing.js";
+import { buildSpeechAudioFilter } from "./audio-polish.js";
+import { assertShortMediaQuality } from "./short-quality.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -46,7 +48,7 @@ export function buildSafeFramingFilter(
   // Gentle "breathing" punch-in (up to +7% over an 8s cycle): constant subtle
   // motion counters the static-pulpit retention drop without distracting from
   // the speaker. Applied before subtitles so caption text stays fixed.
-  const punchIn = `scale=w='ceil(iw*(1+0.07*pow(sin(PI*t/8),2))/2)*2':h=-2:eval=frame:flags=lanczos,crop=${width}:${height}`;
+  const punchIn = `scale=w='ceil(iw*(1+0.07*pow(sin(PI*t/8),2))/2)*2':h=-2:eval=frame:flags=lanczos,crop=${width}:${height}:(in_w-${width})/2:(in_h-${height})/2`;
   const baseVideo = `[0:v]scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos+accurate_rnd,crop=${width}:${height}:${cropX}:(in_h-${height})/2,${punchIn},hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1,ass='${assPath}'[base]`;
   if (!logoPath) {
     return `${baseVideo};[base]copy[v]`;
@@ -82,7 +84,7 @@ export async function renderShort(
     "-filter_complex", filter,
     "-map", "[v]",
     "-map", "0:a?",
-    "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
+    "-af", buildSpeechAudioFilter(clip.duration),
     "-t", String(clip.duration),
     "-c:v", config.videoEncoder,
     "-preset", isNvenc ? "p7" : "slow",
@@ -98,6 +100,11 @@ export async function renderShort(
     outputPath,
   ];
   await runFfmpeg(args, outputPath);
+  await assertShortMediaQuality(outputPath, {
+    duration: clip.duration,
+    width: config.verticalWidth,
+    height: config.verticalHeight,
+  });
 }
 
 async function runFfmpeg(args: string[], outputPath: string): Promise<void> {

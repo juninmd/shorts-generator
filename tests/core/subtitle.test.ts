@@ -9,7 +9,7 @@ describe("subtitle", () => {
     transcript: [],
   };
 
-  it("should generate segment-based subtitles if words array is empty", () => {
+  it("generates estimated karaoke subtitles if words array is empty", () => {
     const clip = {
       ...baseClip,
       transcript: [
@@ -19,7 +19,9 @@ describe("subtitle", () => {
 
     const result = generateASSSubtitles(clip);
     expect(result).toContain("[Script Info]");
-    expect(result).toContain("Dialogue: 0,0:00:00.00,0:00:02.00,Default,,0,0,0,,Hello world");
+    expect(result).toContain("{\\c&H00FFFF&\\b1}Hello{\\c&HFFFFFF&\\b0} world");
+    expect(result).toContain("Hello {\\c&H00FFFF&\\b1}world{\\c&HFFFFFF&\\b0}");
+    expect(result).toContain("0:00:02.00");
   });
 
   it("should generate word-by-word subtitles if words array exists", () => {
@@ -36,7 +38,51 @@ describe("subtitle", () => {
     expect(result).toContain("{\\c&H00FFFF&\\b1}world{\\c&HFFFFFF&\\b0}");
   });
 
-  it("should split long text into lines for segment events", () => {
+  it("keeps karaoke highlighting when only segment timestamps are available", () => {
+    const clip = {
+      ...baseClip,
+      transcript: [
+        { start: 0, end: 2, text: "A verdade liberta agora" },
+      ],
+    } as ShortClip;
+
+    const result = generateASSSubtitles(clip);
+    const highlights = result.match(/\{\\c&H00FFFF&\\b1\}/g) ?? [];
+
+    expect(highlights).toHaveLength(4);
+  });
+
+  it("starts a new caption phrase after a real speech pause", () => {
+    const clip = {
+      ...baseClip,
+      words: [
+        { start: 0.35, end: 0.77, word: "Não." },
+        { start: 2.77, end: 2.80, word: "A" },
+        { start: 2.80, end: 3.18, word: "verdade" },
+      ],
+    } as ShortClip;
+
+    const events = generateASSSubtitles(clip).match(/^Dialogue:.*$/gm) ?? [];
+
+    expect(events[0]).toContain("0:00:00.35,0:00:00.77");
+    expect(events[0]).not.toContain(" A ");
+  });
+
+  it("escapes ASS control characters from transcript text", () => {
+    const clip = {
+      ...baseClip,
+      transcript: [
+        { start: 0, end: 2, text: "Use {foco}\\N agora" },
+      ],
+    } as ShortClip;
+
+    const result = generateASSSubtitles(clip);
+
+    expect(result).toContain("\\{foco\\}\\\\N");
+    expect(result).not.toContain(",,Use {foco}\\N agora");
+  });
+
+  it("splits long segment fallback into timed caption phrases", () => {
     const longText = "This is a very very very long text that should be split into multiple lines to fit on the screen properly";
     const clip = {
       ...baseClip,
@@ -46,7 +92,26 @@ describe("subtitle", () => {
     } as ShortClip;
 
     const result = generateASSSubtitles(clip);
-    expect(result).toContain("\\N");
+    const events = result.match(/^Dialogue:.*$/gm) ?? [];
+    expect(events.length).toBeGreaterThan(1);
+    expect(events[0]).toContain("0:00:00.00");
+    expect(events.at(-1)).toContain("0:00:05.00");
+    expect(result).not.toContain(longText);
+  });
+
+  it("balances fallback phrases without one or two word tails", () => {
+    const clip = {
+      ...baseClip,
+      transcript: [
+        { start: 0, end: 5, text: "Não tenha medo do evangelho ele fere para curar agora" },
+      ],
+    } as ShortClip;
+
+    const events = generateASSSubtitles(clip).match(/^Dialogue:.*$/gm) ?? [];
+    const wordCounts = events.map((event) => event.split(",,").at(-1)!.split(" ").length);
+
+    expect(Math.min(...wordCounts)).toBeGreaterThanOrEqual(3);
+    expect(Math.max(...wordCounts)).toBeLessThanOrEqual(5);
   });
 
   it("should push remaining current into phrases if loop ends abruptly without phrase flush", () => {

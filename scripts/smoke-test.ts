@@ -32,23 +32,13 @@ async function checkFfprobe() {
 
 async function checkAI() {
   const config = loadConfig();
-  logger.info(`Checking AI Provider: ${config.aiProvider} (${config.aiModel})`);
-  
-  if (config.aiProvider === "openrouter") {
-    if (!config.openrouterApiKey) {
-      logger.error("❌ OPENROUTER_API_KEY is missing");
-      return false;
-    }
-    logger.info("✅ OpenRouter API Key is set");
-  } else if (config.aiProvider === "ollama") {
-    logger.info(`✅ Ollama base URL: ${config.ollamaBaseUrl}`);
-  }
+  logger.info(`Checking LiteLLM-compatible model configuration: ${config.aiModel}`);
 
   try {
     const model = createModel(config);
-    logger.info("✅ AI Model object created successfully");
+    logger.info(`✅ AI model configured at ${new URL(config.litellmBaseUrl).origin}`);
   } catch (err: any) {
-    logger.error("❌ Failed to create AI Model: " + err.message);
+    logger.error("❌ Failed to configure AI model: " + err.message);
     return false;
   }
   return true;
