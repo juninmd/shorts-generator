@@ -1,0 +1,2 @@
+# False positive: historical documentation used an explicit low-entropy API key placeholder.
+1b90dca694109dc6bc98fad99444c791bd80d6a4:SETUP_COMPLETE.md:generic-api-key:89
