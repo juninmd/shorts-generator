@@ -1,144 +1,13 @@
-/* v8 ignore start */
 import type { ShortClip, TranscriptWord } from "../types.js";
 
-/**
- * Generate ASS (Advanced SubStation Alpha) subtitle file content with
- * word-by-word highlight effect — similar to CapCut/TikTok style captions.
- */
-export function generateASSSubtitles(
-  clip: ShortClip,
-  width: number = 1080,
-  height: number = 1920,
-  watermarkText?: string,
-): string {
-  const playResX = width;
-  const playResY = height;
-
-  // Style definitions
-  const header = `[Script Info]
-Title: ${clip.title}
-ScriptType: v4.00+
-PlayResX: ${playResX}
-PlayResY: ${playResY}
-WrapStyle: 0
-ScaledBorderAndShadow: yes
-YCbCr Matrix: TV.709
-
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,sans-serif,${Math.round(height * 0.058)},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,${Math.round(height * 0.32)},1
-Style: Highlight,sans-serif,${Math.round(height * 0.058)},&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,${Math.round(height * 0.32)},1
-Style: Watermark,sans-serif,28,&H80FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,1,3,20,20,20,1
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-`;
-
-  const events = generateWordByWordEvents(clip);
-  const watermark = watermarkText
-    ? `Dialogue: 0,${formatASSTime(0)},${formatASSTime(clip.duration)},Watermark,,0,0,0,,${watermarkText}\n`
-    : "";
-  return header + watermark + events;
+function escapeAssText(text: string): string {
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/{/g, "\\{")
+    .replace(/}/g, "\\}")
+    .replace(/\r?\n/g, "\\N");
 }
 
-/**
- * Generate phrase-based subtitle events with word highlighting.
- * Groups words into readable phrases (3-6 words) and shows them
- * with the current word highlighted.
- */
-function generateWordByWordEvents(clip: ShortClip): string {
-  const words = clip.words;
-  if (words.length === 0) {
-    // Fallback to segment-based subtitles
-    return generateSegmentEvents(clip);
-  }
-
-  const phrases = groupWordsIntoPhrases(words, 4);
-  const lines: string[] = [];
-
-  for (const phrase of phrases) {
-    const phraseStart = phrase[0]!.start;
-    const phraseEnd = phrase[phrase.length - 1]!.end;
-
-    // Show phrase with word-by-word highlight
-    for (let i = 0; i < phrase.length; i++) {
-      const word = phrase[i]!;
-      const wordStart = word.start;
-      const wordEnd = i < phrase.length - 1 ? phrase[i + 1]!.start : phraseEnd;
-
-      // Build text with highlight on current word
-      const textParts = phrase.map((w, idx) => {
-        if (idx === i) {
-          return `{\\c&H00FFFF&\\b1}${w.word}{\\c&HFFFFFF&\\b0}`;
-        }
-        return w.word;
-      });
-
-      const text = textParts.join(" ");
-      const start = formatASSTime(wordStart);
-      const end = formatASSTime(wordEnd);
-
-      lines.push(`Dialogue: 0,${start},${end},Default,,0,0,0,,${text}`);
-    }
-  }
-
-  return lines.join("\n") + "\n";
-}
-
-/**
- * Fallback: generate subtitle events from transcript segments.
- */
-function generateSegmentEvents(clip: ShortClip): string {
-  const lines: string[] = [];
-
-  for (const seg of clip.transcript) {
-    const start = formatASSTime(seg.start);
-    const end = formatASSTime(seg.end);
-    // Split long segments into multiple lines
-    const text = seg.text.length > 40
-      ? splitIntoLines(seg.text, 35).join("\\N")
-      : seg.text;
-    lines.push(`Dialogue: 0,${start},${end},Default,,0,0,0,,${text}`);
-  }
-
-  return lines.join("\n") + "\n";
-}
-
-/**
- * Group words into readable phrases of approximately `size` words,
- * breaking at natural pause points when possible.
- */
-function groupWordsIntoPhrases(
-  words: TranscriptWord[],
-  targetSize: number,
-): TranscriptWord[][] {
-  const phrases: TranscriptWord[][] = [];
-  let current: TranscriptWord[] = [];
-
-  for (let i = 0; i < words.length; i++) {
-    current.push(words[i]!);
-
-    const isLast = i === words.length - 1;
-    const nextWord = words[i + 1];
-    const hasNaturalPause =
-      nextWord && nextWord.start - words[i]!.end > 0.3;
-
-    if (
-      isLast ||
-      (current.length >= targetSize && hasNaturalPause) ||
-      current.length >= targetSize + 2
-    ) {
-      phrases.push([...current]);
-      current = [];
-    }
-  }
-
-  return phrases;
-}
-
-/**
- * Format seconds to ASS timestamp: H:MM:SS.CC
- */
 function formatASSTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -147,24 +16,100 @@ function formatASSTime(seconds: number): string {
   return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
 }
 
-/**
- * Split text into lines of approximately maxChars length.
- */
-function splitIntoLines(text: string, maxChars: number): string[] {
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let current = "";
-
-  for (const word of words) {
-    if (current.length + word.length + 1 > maxChars && current.length > 0) {
-      lines.push(current.trim());
-      current = word;
-    } else {
-      current += (current ? " " : "") + word;
+function groupWords(words: TranscriptWord[], targetSize = 4): TranscriptWord[][] {
+  const phrases: TranscriptWord[][] = [];
+  let current: TranscriptWord[] = [];
+  for (let index = 0; index < words.length; index++) {
+    const word = words[index]!;
+    current.push(word);
+    const next = words[index + 1];
+    const gap = next ? next.start - word.end : 0;
+    const naturalPause = gap > 0.3;
+    const hardPause = gap > 0.65;
+    if (index === words.length - 1 || hardPause
+      || (current.length >= targetSize && naturalPause)
+      || current.length >= targetSize + 1) {
+      phrases.push(current);
+      current = [];
     }
   }
-
-  if (current) lines.push(current.trim());
-  return lines;
+  const tail = phrases.at(-1);
+  const previous = phrases.at(-2);
+  if (tail && previous && tail.length < 3
+    && tail[0]!.start - previous.at(-1)!.end <= 0.3) {
+    const combined = [...previous, ...tail];
+    const splitAt = Math.ceil(combined.length / 2);
+    phrases.splice(-2, 2, combined.slice(0, splitAt), combined.slice(splitAt));
+  }
+  return phrases;
 }
-/* v8 ignore stop */
+
+function wordEvents(words: TranscriptWord[]): string {
+  return groupWords(words).flatMap((phrase) => phrase.map((word, index) => {
+    const end = index < phrase.length - 1 ? phrase[index + 1]!.start : phrase.at(-1)!.end;
+    const text = phrase.map((item, itemIndex) => {
+      const safeWord = escapeAssText(item.word);
+      return itemIndex === index
+        ? `{\\c&H00FFFF&\\b1}${safeWord}{\\c&HFFFFFF&\\b0}`
+        : safeWord;
+    }).join(" ");
+    return `Dialogue: 0,${formatASSTime(word.start)},${formatASSTime(end)},Default,,0,0,0,,${text}`;
+  })).join("\n");
+}
+
+function speechWeight(word: string): number {
+  const vowelGroups = word.normalize("NFD").match(/[aeiouy]+/gi)?.length ?? 1;
+  const pause = /[.!?]["']?$/.test(word) ? 0.8 : /[,;:]["']?$/.test(word) ? 0.35 : 0;
+  return vowelGroups + pause;
+}
+
+function estimatedWords(clip: ShortClip): TranscriptWord[] {
+  return clip.transcript.flatMap((segment) => {
+    const words = segment.text.trim().split(/\s+/).filter(Boolean);
+    const weights = words.map(speechWeight);
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let consumedWeight = 0;
+    return words.map((word, index) => {
+      const start = segment.start
+        + (segment.end - segment.start) * (consumedWeight / totalWeight);
+      consumedWeight += weights[index]!;
+      const end = index === words.length - 1
+        ? segment.end
+        : segment.start + (segment.end - segment.start) * (consumedWeight / totalWeight);
+      return { word, start, end };
+    });
+  });
+}
+
+export function generateASSSubtitles(
+  clip: ShortClip,
+  width = 1080,
+  height = 1920,
+  watermarkText?: string,
+): string {
+  const fontSize = Math.round(height * 0.058);
+  const marginV = Math.round(height * 0.32);
+  const header = `[Script Info]
+Title: ${clip.title.replace(/\r?\n/g, " ")}
+ScriptType: v4.00+
+PlayResX: ${width}
+PlayResY: ${height}
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+YCbCr Matrix: TV.709
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,sans-serif,${fontSize},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,${marginV},1
+Style: Highlight,sans-serif,${fontSize},&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,40,40,${marginV},1
+Style: Watermark,sans-serif,28,&H80FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,1,3,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
+  const watermark = watermarkText
+    ? `Dialogue: 0,${formatASSTime(0)},${formatASSTime(clip.duration)},Watermark,,0,0,0,,${escapeAssText(watermarkText)}\n`
+    : "";
+  const events = wordEvents(clip.words.length > 0 ? clip.words : estimatedWords(clip));
+  return `${header}${watermark}${events}\n`;
+}

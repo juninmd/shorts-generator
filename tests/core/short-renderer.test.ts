@@ -19,6 +19,14 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
+const probeJson = JSON.stringify({
+  format: { duration: "10" },
+  streams: [
+    { codec_type: "video", codec_name: "h264", width: 1080, height: 1920, r_frame_rate: "30/1" },
+    { codec_type: "audio", codec_name: "aac", sample_rate: "44100", channels: 2 },
+  ],
+});
+
 describe("short-renderer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,6 +47,7 @@ describe("short-renderer", () => {
     const punchIn = filter.indexOf("pow(sin(PI*t/8),2)");
     expect(punchIn).toBeGreaterThan(-1);
     expect(filter).toContain("eval=frame");
+    expect(filter).toContain("crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2");
     // zoom happens before the subtitle burn so caption text stays fixed
     expect(punchIn).toBeLessThan(filter.indexOf("ass='"));
   });
@@ -69,7 +78,9 @@ describe("short-renderer", () => {
     beforeEach(() => {
       vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
         const cb = callback || options || args;
-        if (typeof cb === "function") cb(null, { stdout: "", stderr: "" });
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
+        }
         return {} as any;
       });
     });
@@ -111,7 +122,9 @@ describe("short-renderer", () => {
 
       vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
         const cb = callback || options || args;
-        if (typeof cb === "function") cb(null, { stdout: "", stderr: "Some info" });
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "Some info" });
+        }
         return {} as any;
       });
 
@@ -119,6 +132,17 @@ describe("short-renderer", () => {
         "in.mp4", "out.mp4", "sub.ass",
         { startTime: 0, duration: 10 } as any,
         { videoEncoder: "h264_nvenc", verticalWidth: 1080, verticalHeight: 1920 } as any
+      );
+    });
+
+    it("validates the rendered artifact with ffprobe", async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+
+      await callRenderShort();
+
+      expect(execFile).toHaveBeenCalledWith(
+        "ffprobe", expect.any(Array), expect.any(Object), expect.any(Function),
       );
     });
   });
