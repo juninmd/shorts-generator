@@ -33,15 +33,24 @@ describe("short media quality gate", () => {
     metadata.streams[0]!.width = 1920;
     metadata.streams[0]!.height = 1080;
 
-    expect(() => validateShortMetadata(metadata, expected))
+    expect(() => validateShortMetadata(metadata as any, expected))
       .toThrow("resolution 1920x1080; expected 1080x1920");
+  });
+
+  it("rejects when video stream is missing dimensions", () => {
+    const metadata = validMetadata();
+    metadata.streams[0]!.width = undefined as any;
+    metadata.streams[0]!.height = undefined as any;
+
+    expect(() => validateShortMetadata(metadata as any, expected))
+      .toThrow("resolution 0x0; expected 1080x1920");
   });
 
   it("rejects a rendered short without audio", () => {
     const metadata = validMetadata();
     metadata.streams = metadata.streams.filter((stream) => stream.codec_type !== "audio");
 
-    expect(() => validateShortMetadata(metadata, expected))
+    expect(() => validateShortMetadata(metadata as any, expected))
       .toThrow("audio stream missing");
   });
 
@@ -49,32 +58,72 @@ describe("short media quality gate", () => {
     const metadata = validMetadata();
     metadata.format.duration = "13.9";
 
-    expect(() => validateShortMetadata(metadata, expected))
+    expect(() => validateShortMetadata(metadata as any, expected))
       .toThrow("duration 13.900s; expected 15.000s");
+  });
+
+  it("rejects a short with invalid/missing duration", () => {
+    const metadata = validMetadata();
+    metadata.format.duration = undefined as any;
+
+    expect(() => validateShortMetadata(metadata as any, expected))
+      .toThrow("duration NaN");
   });
 
   it("rejects a short with an incompatible video codec", () => {
     const metadata = validMetadata();
     metadata.streams[0]!.codec_name = "mpeg4";
 
-    expect(() => validateShortMetadata(metadata, expected))
+    expect(() => validateShortMetadata(metadata as any, expected))
       .toThrow("video codec mpeg4; expected h264");
+  });
+
+  it("rejects a short with missing video codec", () => {
+    const metadata = validMetadata();
+    metadata.streams[0]!.codec_name = undefined as any;
+
+    expect(() => validateShortMetadata(metadata as any, expected))
+      .toThrow("video codec missing; expected h264");
   });
 
   it("rejects a short with an incompatible audio codec", () => {
     const metadata = validMetadata();
     metadata.streams[1]!.codec_name = "mp3";
 
-    expect(() => validateShortMetadata(metadata, expected))
+    expect(() => validateShortMetadata(metadata as any, expected))
       .toThrow("audio codec mp3; expected aac");
+  });
+
+  it("rejects a short with missing audio codec", () => {
+    const metadata = validMetadata();
+    metadata.streams[1]!.codec_name = undefined as any;
+
+    expect(() => validateShortMetadata(metadata as any, expected))
+      .toThrow("audio codec missing; expected aac");
   });
 
   it("rejects a short rendered below the 30 fps target", () => {
     const metadata = validMetadata();
     metadata.streams[0]!.r_frame_rate = "24/1";
 
-    expect(() => validateShortMetadata(metadata, expected))
+    expect(() => validateShortMetadata(metadata as any, expected))
       .toThrow("frame rate 24.000fps; expected 29-31fps");
+  });
+
+  it("rejects a short with missing frame rate", () => {
+    const metadata = validMetadata();
+    metadata.streams[0]!.r_frame_rate = undefined as any;
+
+    expect(() => validateShortMetadata(metadata as any, expected))
+      .toThrow("frame rate 0.000fps");
+  });
+
+  it("rejects a short with 0 denominator frame rate causing Infinity", () => {
+    const metadata = validMetadata();
+    metadata.streams[0]!.r_frame_rate = "30/0";
+
+    expect(() => validateShortMetadata(metadata as any, expected))
+      .toThrow("frame rate Infinityfps; expected 29-31fps");
   });
 
   it("probes the rendered file and accepts valid professional media", async () => {
