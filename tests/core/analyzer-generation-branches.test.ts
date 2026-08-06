@@ -3,6 +3,7 @@ import * as aiModule from "ai";
 import { analyzeSinglePass } from "../../src/core/analyzer-generation.js";
 import * as gjModule from "../../src/core/generate-json.js";
 import type { PipelineConfig } from "../../src/types.js";
+import { scheduleAbort } from "../../src/core/abort-timeout.js";
 
 vi.mock("ai", () => ({ generateText: vi.fn() }));
 vi.mock("../../src/core/generate-json.js", () => ({ generateJsonObject: vi.fn() }));
@@ -12,6 +13,9 @@ vi.mock("../../src/core/ai-provider.js", () => ({
 vi.mock("../../src/core/viral-feedback.js", () => ({
   getChannelFeedback: vi.fn(async () => []),
   formatFeedbackForPrompt: vi.fn(() => ""),
+}));
+vi.mock("../../src/core/abort-timeout.js", () => ({
+  scheduleAbort: vi.fn(() => 123 as any),
 }));
 
 const config = {
@@ -54,5 +58,51 @@ describe("analyzer generation fallback branches", () => {
     } as never);
     const result = await analyzeSinglePass("texto", "t", "c", config, 1, 2);
     expect(result[0]).toMatchObject({ startTime: 0, endTime: 0 });
+  });
+
+  it("handles fallback parsing empty arrays properly", async () => {
+    vi.mocked(aiModule.generateText).mockResolvedValue({
+      text: '[]',
+    } as never);
+    const result = await analyzeSinglePass("texto", "t", "c", config, 1, 2);
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array if fallback fails completely", async () => {
+    vi.mocked(aiModule.generateText).mockRejectedValue(new Error("fallback failed completely"));
+    const result = await analyzeSinglePass("texto", "t", "c", config, 1, 2);
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array if fallback text parsing fails", async () => {
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: 'invalid json {' } as never);
+    const result = await analyzeSinglePass("texto", "t", "c", config, 1, 2);
+    expect(result).toEqual([]);
+  });
+
+  it("uses aiTimeoutMs fallback", async () => {
+    const configWithoutTimeout = { ...config, aiTimeoutMs: undefined };
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: '[]' } as never);
+    const result = await analyzeSinglePass("texto", "t", "c", configWithoutTimeout, 1, 2);
+    expect(result).toEqual([]);
+    expect(scheduleAbort).toHaveBeenCalledWith(expect.any(AbortController), 300_000);
+  });
+
+  it("handles generateJsonObject success where clips is undefined by defaulting to []", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValueOnce({} as never);
+    const result = await analyzeSinglePass("texto", "t", "c", config, 1, 2);
+    expect(result).toEqual([]);
+  });
+
+  it("parses explicit missing format match properly from text in fallback", async () => {
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: 'just random text' } as never);
+    const result = await analyzeSinglePass("texto", "t", "c", config, 1, 2);
+    expect(result).toEqual([]);
+  });
+
+  it("handles fallback with object lacking clips property returning itself in an array", async () => {
+    vi.mocked(aiModule.generateText).mockResolvedValue({ text: '{"startTime": 1, "endTime": 2, "title": "test"}' } as never);
+    const result = await analyzeSinglePass("texto", "t", "c", config, 1, 2);
+    expect(result).toEqual([{ startTime: 1, endTime: 2, title: "test" }]);
   });
 });
