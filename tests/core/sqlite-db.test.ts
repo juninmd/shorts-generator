@@ -134,4 +134,111 @@ describe("sqlite-db", () => {
     const pool = getLocalPoolM({ databaseUrl: "sqlite://test.db" });
     await expect(pool.query("INSERT INTO t")).rejects.toThrow("unknown err");
   });
+
+  describe("error handling coverage", () => {
+    it("handles already exists error safely", async () => {
+      vi.resetModules();
+      const mockDb = {
+        prepare: vi.fn().mockImplementation(() => {
+          throw new Error("already exists");
+        })
+      };
+
+      vi.doMock("better-sqlite3", () => {
+        return {
+          default: class {
+            constructor() {
+              Object.assign(this, mockDb);
+            }
+          }
+        };
+      });
+
+      const { getLocalPool: getLocalPoolM } = await import("../../src/core/sqlite-db.js");
+
+      const pool = getLocalPoolM({ databaseUrl: "sqlite://test.db" });
+      const res1 = await pool.query("INSERT INTO t");
+      expect(res1).toEqual({ rows: [], rowCount: 0 });
+    });
+  });
+
+  describe("error handling coverage 2", () => {
+    it("handles multiple statements query", async () => {
+      vi.resetModules();
+      const mockDb = {
+        exec: vi.fn()
+      };
+
+      vi.doMock("better-sqlite3", () => {
+        return {
+          default: class {
+            constructor() {
+              Object.assign(this, mockDb);
+            }
+          }
+        };
+      });
+
+      const { getLocalPool: getLocalPoolM } = await import("../../src/core/sqlite-db.js");
+
+      const pool = getLocalPoolM({ databaseUrl: "sqlite://test.db" });
+      const res1 = await pool.query("INSERT INTO t; UPDATE t;");
+      expect(res1).toEqual({ rows: [], rowCount: 0 });
+    });
+  });
+
+  describe("error handling coverage 3", () => {
+    it("handles Array.isArray param logic properly", async () => {
+      vi.resetModules();
+      const mockDb = {
+        prepare: vi.fn().mockImplementation((sql) => ({
+            all: vi.fn().mockReturnValue([{ id: 1 }]),
+            run: vi.fn().mockReturnValue({ changes: 1 }),
+        })),
+      };
+
+      vi.doMock("better-sqlite3", () => {
+        return {
+          default: class {
+            constructor() {
+              Object.assign(this, mockDb);
+            }
+          }
+        };
+      });
+
+      const { getLocalPool: getLocalPoolM } = await import("../../src/core/sqlite-db.js");
+
+      const pool = getLocalPoolM({ databaseUrl: "sqlite://test.db" });
+      const res1 = await pool.query("INSERT INTO t", [Buffer.from("abc")]);
+      expect(res1).toEqual({ rows: [], rowCount: 1 });
+    });
+  });
+
+  describe("error handling coverage duplicate", () => {
+    it("handles already exists error safely by checking err message string directly", async () => {
+      vi.resetModules();
+      const mockDb = {
+        prepare: vi.fn().mockImplementation(() => {
+          throw { message: "already exists" };
+        })
+      };
+
+      vi.doMock("better-sqlite3", () => {
+        return {
+          default: class {
+            constructor() {
+              Object.assign(this, mockDb);
+            }
+          }
+        };
+      });
+
+      const { getLocalPool: getLocalPoolM } = await import("../../src/core/sqlite-db.js");
+
+      const pool = getLocalPoolM({ databaseUrl: "sqlite://test.db" });
+      const res1 = await pool.query("INSERT INTO t");
+      expect(res1).toEqual({ rows: [], rowCount: 0 });
+    });
+  });
 });

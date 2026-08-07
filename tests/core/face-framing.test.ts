@@ -61,4 +61,13 @@ describe("detectSpeakerFocusX", () => {
     mockExec({ stdout: "1.9" });
     expect(await detectSpeakerFocusX("in.mp4", clip)).toBe(1);
   });
+
+  it("handles string error thrown during exec", async () => {
+    vi.mocked(execFile).mockImplementation((_f: any, _a: any, _o: any, cb?: any) => {
+      const done = cb || _o;
+      done("string error", { stdout: "", stderr: "" });
+      return {} as any;
+    });
+    expect(await detectSpeakerFocusX("in.mp4", clip)).toBe(CENTER_FOCUS);
+  });
 });

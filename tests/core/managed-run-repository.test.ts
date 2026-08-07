@@ -103,4 +103,99 @@ describe("ManagedRunRepository", () => {
     expect(result?.createdAt).toBe("2024-01-01");
     expect(result?.errorMessage).toBeNull();
   });
+
+  describe("ManagedRunRepository empty result", () => {
+    it("listRuns with channelId correctly fetches and maps result when rows are empty", async () => {
+      const pool = makePool([]);
+      const repo = new ManagedRunRepository(pool as any);
+      const runs = await repo.listRuns("ch-1");
+      expect(runs).toHaveLength(0);
+      const [sql] = pool.query.mock.calls[0];
+      expect(sql).toContain("channel_id = $1");
+    });
+  });
+
+  describe("ManagedRunRepository coverage gap mapRunRow 13", () => {
+    it("getRun handles a row missing fields differently", async () => {
+      const pool = makePool([{ id: "r1" }]);
+      const repo = new ManagedRunRepository(pool as any);
+      const result = await repo.getRun("r1");
+      expect(result?.channelId).toBeUndefined();
+      expect(result?.requestedBy).toBeUndefined();
+      expect(result?.status).toBeUndefined();
+      expect(result?.progress).toBeUndefined();
+      expect(result?.results).toBeUndefined();
+      expect(result?.errorMessage).toBeUndefined();
+      expect(result?.createdAt).toBeUndefined();
+      expect(result?.updatedAt).toBeUndefined();
+    });
+  });
+
+  describe("limit and offset 2", () => {
+    it("listRuns with channelId correctly forwards limit and offset", async () => {
+      const pool = makePool([]);
+      const repo = new ManagedRunRepository(pool as any);
+      await repo.listRuns("ch-1", 10, 5);
+      const [sql, params] = pool.query.mock.calls[0];
+      expect(sql).toContain("channel_id = $1");
+      expect(params[1]).toBe(10);
+      expect(params[2]).toBe(5);
+    });
+
+    it("listRuns without channelId correctly forwards limit and offset", async () => {
+      const pool = makePool([]);
+      const repo = new ManagedRunRepository(pool as any);
+      await repo.listRuns(undefined, 10, 5);
+      const [sql, params] = pool.query.mock.calls[0];
+      expect(sql).not.toContain("channel_id = $1");
+      expect(params[0]).toBe(10);
+      expect(params[1]).toBe(5);
+    });
+  });
+
+  describe("mapRunRow coverage 2", () => {
+    it("getRun handles a row that has no fields", async () => {
+      const pool = makePool([{}]);
+      const repo = new ManagedRunRepository(pool as any);
+      const result = await repo.getRun("missing-id-3");
+      expect(result).toBeDefined();
+    });
+
+    it("listRuns empty results array mapping correctly handles null", async () => {
+      const row = { id: "r1", channel_id: "ch-1", requested_by: "sys", status: "processing", progress: null, results: null as any, error_message: null, created_at: "2024-01-01", updated_at: "2024-01-02" };
+      const pool = makePool([row]);
+      const repo = new ManagedRunRepository(pool as any);
+      const result = await repo.listRuns();
+      expect(result[0]?.results).toBeNull();
+    });
+  });
+
+  describe("mapRunRow coverage branch", () => {
+    it("getRun handles a row with undefined results", async () => {
+      const row = { id: "r1", channel_id: "ch-1", requested_by: "sys", status: "processing", progress: null, results: undefined as any, error_message: null, created_at: "2024-01-01", updated_at: "2024-01-02" };
+      const pool = makePool([row]);
+      const repo = new ManagedRunRepository(pool as any);
+      const result = await repo.getRun("r1");
+      expect(result?.results).toBeUndefined();
+    });
+
+    it("getRun handles a row with undefined optional values", async () => {
+      const row = { id: "r1", channel_id: undefined as any, requested_by: undefined as any, status: undefined as any, progress: undefined as any, results: undefined as any, error_message: undefined as any, created_at: undefined as any, updated_at: undefined as any };
+      const pool = makePool([row]);
+      const repo = new ManagedRunRepository(pool as any);
+      const result = await repo.getRun("r1");
+      expect(result?.channelId).toBeUndefined();
+      expect(result?.results).toBeUndefined();
+    });
+  });
+
+  describe("ManagedRunRepository coverage gap mapRunRow 18", () => {
+    it("getRun safely parses non array results missing fields", async () => {
+      const row = { id: "r1", channel_id: "ch-1", requested_by: "sys", status: "processing", progress: null, results: null as any, error_message: null, created_at: "2024-01-01", updated_at: "2024-01-02" };
+      const pool = makePool([row]);
+      const repo = new ManagedRunRepository(pool as any);
+      const result = await repo.getRun("r1");
+      expect(result?.results).toBeNull();
+    });
+  });
 });

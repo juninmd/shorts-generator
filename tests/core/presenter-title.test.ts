@@ -28,3 +28,8 @@ describe("buildPresenterTitle", () => {
     expect(buildPresenterTitle("Semana de oração", "Ana")).toBe("Ana: Semana de oração");
   });
 });
+
+  it("handles null or undefined title", () => {
+    expect(buildPresenterTitle(undefined as any, "Presenter")).toBe("Presenter: ");
+    expect(buildPresenterTitle(null as any, "Presenter")).toBe("Presenter: ");
+  });
