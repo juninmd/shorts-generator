@@ -133,4 +133,44 @@ describe("control-plane-db", () => {
       expect(pool).toEqual({ isSqlite: true });
     });
   });
+
+  describe("getControlPlanePool coverage gaps", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.resetModules();
+    });
+    it("returns existing pool if already initialized", async () => {
+      const { getControlPlanePool } = await import("../../src/core/control-plane-db.js");
+      const p1 = getControlPlanePool({ databaseUrl: "postgres://user:pass@host/db" });
+      const p2 = getControlPlanePool({ databaseUrl: "postgres://user:pass@host/db" });
+      expect(p1).toBe(p2);
+    });
+  });
+
+  describe("redactDatabaseUrl", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.resetModules();
+    });
+    it("redacts valid urls", async () => {
+        const { getControlPlanePool } = await import("../../src/core/control-plane-db.js");
+        const { logger } = await import("../../src/core/logger.js");
+        vi.mocked(logger.info).mockClear();
+        getControlPlanePool({ databaseUrl: "postgres://user:password@host/db" });
+        expect(logger.info).toHaveBeenCalledWith(
+          expect.objectContaining({ databaseUrl: "postgres://user:***@host/db" }),
+          expect.any(String),
+        );
+    });
+    it("handles urls without password", async () => {
+        const { getControlPlanePool } = await import("../../src/core/control-plane-db.js");
+        const { logger } = await import("../../src/core/logger.js");
+        vi.mocked(logger.info).mockClear();
+        getControlPlanePool({ databaseUrl: "postgres://user@host/db" });
+        expect(logger.info).toHaveBeenCalledWith(
+          expect.objectContaining({ databaseUrl: "postgres://user@host/db" }),
+          expect.any(String),
+        );
+    });
+  });
 });

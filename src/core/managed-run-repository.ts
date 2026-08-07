@@ -68,7 +68,8 @@ export class ManagedRunRepository {
 
   async getRun(runId: string): Promise<ManagedRunRecord | null> {
     const rows = await queryRows<RunRow>(this.db, "SELECT * FROM pipeline_runs WHERE id = $1", [runId]);
-    return rows[0] ? mapRunRow(rows[0]) : null;
+    if (rows.length === 0) return null;
+    return mapRunRow(rows[0]);
   }
 }
 

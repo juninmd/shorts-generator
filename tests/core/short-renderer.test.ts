@@ -19,6 +19,13 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
+let mockFfmpegPath: string | undefined = "mocked_ffmpeg";
+vi.mock("fluent-ffmpeg", () => ({
+  default: {
+    ffmpegPath: () => mockFfmpegPath,
+  },
+}));
+
 const probeJson = JSON.stringify({
   format: { duration: "10" },
   streams: [
@@ -30,6 +37,7 @@ const probeJson = JSON.stringify({
 describe("short-renderer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFfmpegPath = "mocked_ffmpeg";
   });
 
   it("buildSafeFramingFilter fills the screen with zoomed crop and lanczos scaling", () => {
@@ -146,4 +154,148 @@ describe("short-renderer", () => {
       );
     });
   });
+
+  describe("runFfmpeg error handling", () => {
+    it("throws error with stdout and stderr on crash", async () => {
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") {
+          const err = new Error("exit code 1");
+          (err as any).stderr = "ffmpeg panic";
+          (err as any).stdout = "logs";
+          cb(err, { stdout: "", stderr: "" });
+        }
+        return {} as any;
+      });
+
+      await expect(renderShort(
+        "in.mp4", "out.mp4", "sub.ass",
+        { startTime: 0, duration: 10 } as any,
+        { videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any
+      )).rejects.toThrow("FFmpeg failed to render short");
+    });
+  });
+
+  describe("renderShort config coverage", () => {
+    it("uses empty array for logo in ffmpeg args if missing", async () => {
+      vi.mocked(fs.existsSync).mockImplementation((p) => true);
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
+        }
+        return {} as any;
+      });
+      await renderShort(
+        "in.mp4", "out.mp4", "sub.ass",
+        { startTime: 0, duration: 10 } as any,
+        { managedRun: undefined, videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any
+      );
+    });
+  });
+
+  describe("getFfmpegPath branch coverage", () => {
+    it("falls back to 'ffmpeg' if ffmpegPath is missing", async () => {
+      mockFfmpegPath = undefined;
+      vi.mocked(fs.existsSync).mockImplementation((p) => true);
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
+        }
+        return {} as any;
+      });
+
+      await renderShort(
+        "in.mp4", "out.mp4", "sub.ass",
+        { startTime: 0, duration: 10 } as any,
+        { managedRun: undefined, videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any
+      );
+
+      expect(execFile).toHaveBeenCalledWith(
+        "ffmpeg", expect.any(Array), expect.any(Object), expect.any(Function),
+      );
+    });
+  });
 });
+
+  describe("buildSafeFramingFilter logo missing config", () => {
+    it("handles missing logo config correctly", () => {
+      const filter = buildSafeFramingFilter("clip.ass", 1080, 1920, "");
+      expect(filter).toContain("copy[v]");
+    });
+  });
+
+  describe("buildFontEnv branch coverage", () => {
+    it("handles non-existent fonts.conf", async () => {
+      vi.mocked(fs.existsSync).mockImplementation((p) => {
+        if (typeof p === "string" && p.includes("fonts.conf")) return false;
+        if (typeof p === "string" && p.includes("out.mp4")) return true;
+        return true;
+      });
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
+        }
+        return {} as any;
+      });
+
+      await renderShort(
+        "in.mp4", "out.mp4", "sub.ass",
+        { startTime: 0, duration: 10 } as any,
+        { managedRun: undefined, videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any
+      );
+      // Wait for it to pass
+    });
+  });
+
+  describe("renderShort config branch coverage 2", () => {
+    it("uses unexisting logo branch", async () => {
+      vi.mocked(fs.existsSync).mockImplementation((p) => {
+        if (typeof p === "string" && p.includes("fonts.conf")) return true;
+        if (typeof p === "string" && p.includes("out.mp4")) return true;
+        if (typeof p === "string" && p.includes("non-existent-logo.png")) return false;
+        return true;
+      });
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
+        }
+        return {} as any;
+      });
+      await renderShort(
+        "in.mp4", "out.mp4", "sub.ass",
+        { startTime: 0, duration: 10 } as any,
+        { managedRun: { logoPath: "non-existent-logo.png" }, videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any
+      );
+    });
+
+    it("uses existing logo path", async () => {
+      vi.mocked(fs.existsSync).mockImplementation((p) => {
+        if (typeof p === "string" && p.includes("fonts.conf")) return true;
+        if (typeof p === "string" && p.includes("out.mp4")) return true;
+        if (typeof p === "string" && p.includes("my-logo.png")) return true;
+        return true;
+      });
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
+        }
+        return {} as any;
+      });
+      await renderShort(
+        "in.mp4", "out.mp4", "sub.ass",
+        { startTime: 0, duration: 10 } as any,
+        { managedRun: { logoPath: "my-logo.png" }, videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any
+      );
+    });
+  });

@@ -45,4 +45,17 @@ describe("full-video-metadata", () => {
     expect(tags).toContain("label2");
     expect(tags).toContain("viral");
   });
+
+  describe("deriveChannelTags edge cases", () => {
+    it("handles single word channel names", () => {
+      const v = { ...mockVideo, channelName: "Teste" };
+      const tags = buildFullVideoTags(v, mockConfig);
+      expect(tags).toContain("teste");
+    });
+
+    it("handles no config labels", () => {
+      const tags = buildFullVideoTags(mockVideo, {} as any);
+      expect(tags).toContain("viral");
+    });
+  });
 });

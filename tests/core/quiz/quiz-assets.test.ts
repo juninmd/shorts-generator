@@ -162,4 +162,17 @@ describe("quiz-assets.service", () => {
           expect(utils.esc("C:/a")).toBe(utils.rel("C:/a").replace(/:/g, "\\:"));
       });
   });
+
+  describe("ensureFont edge cases", () => {
+    beforeEach(() => { vi.resetAllMocks() });
+    it("handles failure when tryCopy completely throws across platforms", () => {
+        vi.spyOn(fs, "existsSync").mockImplementation((p) => p === "C:/Windows/Fonts/arialbd.ttf");
+        vi.spyOn(fs, "copyFileSync").mockImplementation(() => { throw new Error("Copy error"); });
+        const originalPlatform = process.platform;
+        Object.defineProperty(process, 'platform', { value: 'win32' });
+        ensureFont();
+        expect(logger.warn).toHaveBeenCalledWith(expect.anything(), "Falha ao copiar a fonte");
+        Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+  });
 });
