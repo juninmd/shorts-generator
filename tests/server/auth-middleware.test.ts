@@ -62,6 +62,67 @@ describe("createAdminAuthMiddleware", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
   });
+
+  describe("createAdminAuthMiddleware with empty allowedOrigins", () => {
+    it("rejects all origins when allowedOrigins is empty", async () => {
+      const emptyConfig = {
+        adminToken: "token",
+        allowedOrigins: [],
+        databaseUrl: "postgres://x",
+        encryptionKey: Buffer.alloc(32),
+        encryptionKeyVersion: "v1",
+      } as const;
+      const app = new Hono();
+      app.use("/admin/*", createAdminAuthMiddleware(emptyConfig));
+      app.get("/admin/test", (c) => c.json({ ok: true }));
+
+      const res = await app.request("/admin/test", {
+        headers: { origin: "http://localhost:5173", authorization: "Bearer token" },
+      });
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("isOriginAllowed", () => {
+    it("rejects when no origin header is provided", async () => {
+      const res = await createApp().request("/admin/channels", {
+        headers: {
+          authorization: "Bearer secret-admin-token",
+        },
+      });
+
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ error: "Origin not allowed" });
+    });
+  });
+
+  describe("tokensMatch length mismatch", () => {
+    it("rejects token with different length but matching prefix", async () => {
+      const res = await createApp().request("/admin/channels", {
+        headers: {
+          origin: "http://localhost:5173",
+          authorization: "Bearer secret-admin-token-extra",
+        },
+      });
+
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "Unauthorized" });
+    });
+  });
+
+  describe("isOriginAllowed empty origin coverage", () => {
+    it("rejects when origin is empty string", async () => {
+      const res = await createApp().request("/admin/channels", {
+        headers: {
+          origin: "",
+          authorization: "Bearer secret-admin-token",
+        },
+      });
+
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ error: "Origin not allowed" });
+    });
+  });
 });
 
 describe("extractBearerToken", () => {
@@ -79,38 +140,5 @@ describe("extractBearerToken", () => {
 
   it("returns the token for valid Bearer header", () => {
     expect(extractBearerToken("Bearer my-token")).toBe("my-token");
-  });
-});
-
-describe("createAdminAuthMiddleware with empty allowedOrigins", () => {
-  it("rejects all origins when allowedOrigins is empty", async () => {
-    const emptyConfig = {
-      adminToken: "token",
-      allowedOrigins: [],
-      databaseUrl: "postgres://x",
-      encryptionKey: Buffer.alloc(32),
-      encryptionKeyVersion: "v1",
-    } as const;
-    const app = new Hono();
-    app.use("/admin/*", createAdminAuthMiddleware(emptyConfig));
-    app.get("/admin/test", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/admin/test", {
-      headers: { origin: "http://localhost:5173", authorization: "Bearer token" },
-    });
-    expect(res.status).toBe(403);
-  });
-});
-
-describe("isOriginAllowed", () => {
-  it("rejects when no origin header is provided", async () => {
-    const res = await createApp().request("/admin/channels", {
-      headers: {
-        authorization: "Bearer secret-admin-token",
-      },
-    });
-
-    expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: "Origin not allowed" });
   });
 });
