@@ -1,0 +1,837 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/app[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mChannel updated[39m
+    [35madminId[39m: "system"
+    [35mchannelId[39m: "canal-1"
+    [35maction[39m: "update"
+[01:02:22] [33mWARN[39m: [36mUnauthorized admin request[39m
+    [35morigin[39m: "http://localhost:5173"
+    [35mpath[39m: "/api/admin/channels"
+ [32m✓[39m tests/server/admin-routes.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 2309[2mms[22m[39m
+     [33m[2m✓[22m[39m rejects unauthenticated requests [33m 1995[2mms[22m[39m
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mChannel updated[39m
+    [35madminId[39m: "system"
+    [35mchannelId[39m: "canal-1"
+    [35maction[39m: "delete"
+[01:02:22] [33mWARN[39m: [36mAdmin mutation failed[39m
+    [35mchannelId[39m: "canal-1"
+    [35maction[39m: "save"
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mChannel updated[39m
+    [35madminId[39m: "system"
+    [35mchannelId[39m: "canal-1"
+    [35maction[39m: "run"
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+[01:02:22] [32mINFO[39m: [36mProtected admin routes registered[39m
+    [35mallowedOrigins[39m: [
+      "http://localhost:5173"
+    ]
+ [32m✓[39m tests/server/index.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 2100[2mms[22m[39m
+     [33m[2m✓[22m[39m should start the server when startServer is called [33m 1953[2mms[22m[39m
+ [32m✓[39m tests/server/index-error.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1801[2mms[22m[39m
+         [33m[2m✓[22m[39m throws "Invalid PORT value: abc" before starting the server [33m 1661[2mms[22m[39m
+ [32m✓[39m tests/core/youtube.service.test.ts [2m([22m[2m38 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+[01:02:29] [31mERROR[39m: [36mJob failed[39m
+    [35mjobId[39m: "test-job-id"
+    error: {
+      "name": "Error",
+      "message": "Pipeline failed",
+      "stack":
+          Error: Pipeline failed
+              at /app/tests/server/routes.test.ts:122:48
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:29] [31mERROR[39m: [36mJob failed[39m
+    [35mjobId[39m: "test-job-id"
+    error: "String error"
+ [32m✓[39m tests/server/routes.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 84[2mms[22m[39m
+ [32m✓[39m tests/server/job-api-flow.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+ [32m✓[39m tests/server/auth-middleware.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 54[2mms[22m[39m
+[01:02:32] [33mWARN[39m: [36mUnauthorized admin request[39m
+    [35morigin[39m: "http://localhost:5173"
+    [35mpath[39m: "/admin/channels"
+[01:02:32] [33mWARN[39m: [36mUnauthorized admin request[39m
+    [35morigin[39m: "http://evil.example"
+    [35mpath[39m: "/admin/channels"
+[01:02:32] [33mWARN[39m: [36mUnauthorized admin request[39m
+    [35morigin[39m: "http://localhost:5173"
+    [35mpath[39m: "/admin/channels"
+[01:02:32] [33mWARN[39m: [36mUnauthorized admin request[39m
+    [35morigin[39m: "http://localhost:5173"
+    [35mpath[39m: "/admin/test"
+[01:02:32] [33mWARN[39m: [36mUnauthorized admin request[39m
+    [35mpath[39m: "/admin/channels"
+ [32m✓[39m tests/core/quiz/quiz-pipeline.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m tests/core/telegram.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+[01:02:35] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:35] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+    error: {
+      "name": "Error",
+      "message": "AI Error",
+      "stack":
+          Error: AI Error
+              at /app/tests/core/analyzer-fallback.test.ts:20:62
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [31mERROR[39m: [36mFalha no fallback do LLM[39m
+    error: {
+      "name": "Error",
+      "message": "AI Fallback Error",
+      "stack":
+          Error: AI Fallback Error
+              at /app/tests/core/analyzer-fallback.test.ts:21:56
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 0
+    [35mvalid[39m: 0
+    [35mselected[39m: 0
+[01:02:35] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 0
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 0
+    [35mapproved[39m: 0
+    [35melapsedSec[39m: "0.0"
+[01:02:35] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:35] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+    error: {
+      "name": "AbortError",
+      "message": "aborted",
+      "stack":
+          AbortError: aborted
+              at /app/tests/core/analyzer-fallback.test.ts:27:24
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [31mERROR[39m: [36mFalha no fallback do LLM[39m
+    error: {
+      "name": "Error",
+      "message": "fallback also failed",
+      "stack":
+          Error: fallback also failed
+              at /app/tests/core/analyzer-fallback.test.ts:30:56
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 0
+    [35mvalid[39m: 0
+    [35mselected[39m: 0
+[01:02:35] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 0
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 0
+    [35mapproved[39m: 0
+    [35melapsedSec[39m: "0.0"
+[01:02:35] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:35] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+    error: {
+      "name": "Error",
+      "message": "main failed",
+      "stack":
+          Error: main failed
+              at /app/tests/core/analyzer-fallback.test.ts:36:62
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 0
+    [35mvalid[39m: 0
+    [35mselected[39m: 0
+[01:02:35] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 0
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 0
+    [35mapproved[39m: 0
+    [35melapsedSec[39m: "0.0"
+[01:02:35] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:35] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+    error: {
+      "name": "Error",
+      "message": "main failed",
+      "stack":
+          Error: main failed
+              at /app/tests/core/analyzer-fallback.test.ts:43:62
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:02:35] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 1
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 1
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+[01:02:35] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:35] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+    error: {
+      "name": "Error",
+      "message": "main failed",
+      "stack":
+          Error: main failed
+              at /app/tests/core/analyzer-fallback.test.ts:60:62
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:02:35] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 1
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 1
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+ [32m✓[39m tests/core/analyzer-fallback.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: [
+      "channel1"
+    ]
+    [35murls[39m: [
+      "url1"
+    ]
+    [35mvideoQuery[39m: "none"
+[01:02:35] [32mINFO[39m: [36mSelected valid video[39m
+    [35mvideoId[39m: "vid1"
+    [35mtitle[39m: "Vid"
+[01:02:35] [32mINFO[39m: [36mStarting pipeline[39m
+    [35mvideoCount[39m: 2
+[01:02:35] [32mINFO[39m: [36mPipeline completed[39m
+    [35mshortsCount[39m: 2
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: [
+      "channel1"
+    ]
+    [35murls[39m: [
+      "url1"
+    ]
+    [35mvideoQuery[39m: "none"
+[01:02:35] [33mWARN[39m: [36mSkipping video: exceeds size limit[39m
+    [35mvideoId[39m: "vid1"
+[01:02:35] [33mWARN[39m: [36mSkipping video: exceeds size limit[39m
+    [35mvideoId[39m: "vid1"
+[01:02:35] [33mWARN[39m: [36mNo videos found to process[39m
+[01:02:35] [33mWARN[39m: [36mTranscrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.[39m
+    [35mvideoId[39m: "vid1"
+    [35mvideoTitle[39m: "Vid"
+[01:02:35] [31mERROR[39m: [36mFatal video error[39m
+    [35mvideoId[39m: "vid1"
+    error: {
+      "name": "Error",
+      "message": "Transcribe failed",
+      "stack":
+          Error: Transcribe failed
+              at /app/tests/core/pipeline.test.ts:150:62
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: [
+      "channel1"
+    ]
+    [35murls[39m: [
+      "url1"
+    ]
+    [35mvideoQuery[39m: "none"
+[01:02:35] [33mWARN[39m: [36mSkipping video: exceeds size limit[39m
+    [35mvideoId[39m: "vid1"
+[01:02:35] [33mWARN[39m: [36mSkipping video: exceeds size limit[39m
+    [35mvideoId[39m: "vid1"
+[01:02:35] [33mWARN[39m: [36mNo videos found to process[39m
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: [
+      "channel1"
+    ]
+    [35murls[39m: [
+      "url1"
+    ]
+    [35mvideoQuery[39m: "none"
+[01:02:35] [33mWARN[39m: [36mSkipping video: too long[39m
+    [35mvideoId[39m: "vid1"
+    [35mmaxVideoDurationSec[39m: 3600
+[01:02:35] [33mWARN[39m: [36mNo videos found to process[39m
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: []
+    [35murls[39m: []
+    [35mvideoQuery[39m: "none"
+[01:02:35] [33mWARN[39m: [36mNo videos found to process[39m
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: []
+    [35murls[39m: [
+      "url1"
+    ]
+    [35mvideoQuery[39m: "none"
+[01:02:35] [32mINFO[39m: [36mStarting pipeline[39m
+    [35mvideoCount[39m: 1
+[01:02:35] [32mINFO[39m: [36mPipeline completed[39m
+    [35mshortsCount[39m: 2
+[01:02:35] [31mERROR[39m: [36mFailed to send generated short[39m
+    [35mclipId[39m: "clip1"
+    [35mstage[39m: "telegram"
+    error: {
+      "name": "Error",
+      "message": "Telegram failed",
+      "stack":
+          Error: Telegram failed
+              at /app/tests/core/pipeline.test.ts:239:58
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: []
+    [35murls[39m: [
+      "url1",
+      "url2"
+    ]
+    [35mvideoQuery[39m: "none"
+[01:02:35] [32mINFO[39m: [36mStarting pipeline[39m
+    [35mvideoCount[39m: 2
+[01:02:35] [32mINFO[39m: [36mTarget de shorts alcançado; finalizando pipeline[39m
+    [35mtargetShorts[39m: 1
+[01:02:35] [32mINFO[39m: [36mPipeline completed[39m
+    [35mshortsCount[39m: 1
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: [
+      "channel1"
+    ]
+    [35murls[39m: []
+    [35mvideoQuery[39m: "evangelho"
+[01:02:35] [32mINFO[39m: [36mSelected valid video[39m
+    [35mvideoId[39m: "v1"
+    [35mtitle[39m: "Evangelho do Dia - Reflexão"
+[01:02:35] [32mINFO[39m: [36mStarting pipeline[39m
+    [35mvideoCount[39m: 1
+[01:02:35] [32mINFO[39m: [36mPipeline completed[39m
+    [35mshortsCount[39m: 1
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: [
+      "channel1"
+    ]
+    [35murls[39m: []
+    [35mvideoQuery[39m: "none"
+[01:02:35] [32mINFO[39m: [36mSelected valid video[39m
+    [35mvideoId[39m: "v1"
+    [35mtitle[39m: "Video A"
+[01:02:35] [32mINFO[39m: [36mSelected valid video[39m
+    [35mvideoId[39m: "v2"
+    [35mtitle[39m: "Video B"
+[01:02:35] [32mINFO[39m: [36mStarting pipeline[39m
+    [35mvideoCount[39m: 2
+[01:02:35] [32mINFO[39m: [36mPipeline completed[39m
+    [35mshortsCount[39m: 2
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: []
+    [35murls[39m: [
+      "url1"
+    ]
+    [35mvideoQuery[39m: "homilia"
+[01:02:35] [32mINFO[39m: [36mStarting pipeline[39m
+    [35mvideoCount[39m: 1
+[01:02:35] [32mINFO[39m: [36mPipeline completed[39m
+    [35mshortsCount[39m: 1
+[01:02:35] [32mINFO[39m: [36mPipeline starting[39m
+    [35mchannels[39m: []
+    [35murls[39m: [
+      "url1"
+    ]
+    [35mvideoQuery[39m: "evangelho"
+[01:02:35] [33mWARN[39m: [36mNo videos found to process[39m
+ [32m✓[39m tests/core/pipeline.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+[01:02:37] [32mINFO[39m: [36mReauth alert sent to Telegram[39m
+    [35mchannelId[39m: "ch1"
+ [32m✓[39m tests/core/youtube-reauth.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32m✓[39m tests/core/channel-bundle-repository.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m tests/core/control-plane-db.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-generation-branches.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m tests/core/sqlite-db.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32m✓[39m tests/cli-interactive.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m tests/core/state.test.ts [2m([22m[2m30 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m tests/core/short-renderer.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32m✓[39m tests/core/generate-json.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m tests/core/youtube.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+[01:02:41] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 4
+    [35mmaxCuts[39m: 6
+    [35mcandidateMax[39m: 12
+ [32m✓[39m tests/core/analyzer-chunking.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 21[2mms[22m[39m
+[01:02:41] [32mINFO[39m: [36m📦 Transcrição grande — analisando em chunks[39m
+    [35mvideoId[39m: "vid1"
+    [35mchunkCount[39m: 5
+    [35mtotalSegments[39m: 600
+[01:02:41] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+    [35mchunk[39m: 1
+    [35mof[39m: 5
+    [35msegments[39m: 139
+    [35mchars[39m: 31861
+[01:02:41] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+    [35mchunk[39m: 2
+    [35mof[39m: 5
+    [35msegments[39m: 139
+    [35mchars[39m: 31969
+[01:02:41] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+    [35mchunk[39m: 3
+    [35mof[39m: 5
+    [35msegments[39m: 139
+    [35mchars[39m: 31969
+[01:02:41] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+    [35mchunk[39m: 4
+    [35mof[39m: 5
+    [35msegments[39m: 138
+    [35mchars[39m: 31838
+[01:02:41] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+    [35mchunk[39m: 5
+    [35mof[39m: 5
+    [35msegments[39m: 53
+    [35mchars[39m: 12295
+[01:02:41] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:02:41] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 1
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 1
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+ [32m✓[39m tests/core/queue.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m tests/server/job-store.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m tests/core/channel-config-resolver.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/core/video-processor.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-assets.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+[01:02:43] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:43] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:02:43] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 1
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 1
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+[01:02:43] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:43] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 2
+    [35mvalid[39m: 2
+    [35mselected[39m: 2
+[01:02:43] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 2
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 2
+    [35mapproved[39m: 2
+    [35melapsedSec[39m: "0.0"
+[01:02:43] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:43] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 0
+    [35mvalid[39m: 0
+    [35mselected[39m: 0
+[01:02:43] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 0
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 0
+    [35mapproved[39m: 0
+    [35melapsedSec[39m: "0.0"
+[01:02:43] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:43] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 0
+    [35mvalid[39m: 0
+    [35mselected[39m: 0
+[01:02:43] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 0
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 0
+    [35mapproved[39m: 0
+    [35melapsedSec[39m: "0.0"
+ [32m✓[39m tests/core/pipeline-smoke.test.ts [2m([22m[2m6 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 18[2mms[22m[39m
+[01:02:44] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "video-1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+ [32m✓[39m tests/core/analyzer-quality.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+[01:02:44] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "A história que pode mudar sua disciplina hoje"
+    [35mreview[39m: {
+      "candidateIndex": 0,
+      "editorialScore": 5,
+      "hookScore": 4,
+      "standaloneScore": 8,
+      "payoffScore": 8,
+      "approved": false,
+      "reason": "Começa com introdução."
+    }
+[01:02:44] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 0
+    [35mvalid[39m: 0
+    [35mselected[39m: 0
+[01:02:44] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 0
+    [35mvalid[39m: 0
+    [35mselected[39m: 0
+[01:02:44] [32mINFO[39m: [36mClip repair pass completed[39m
+    [35mrepairedCandidates[39m: 0
+    [35mapprovedRepairs[39m: 0
+[01:02:44] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "video-1"
+    [35mrawCandidates[39m: 1
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 1
+    [35mapproved[39m: 0
+    [35melapsedSec[39m: "0.0"
+[01:02:44] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "video-2"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 1
+    [35mcandidateMax[39m: 2
+[01:02:44] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 0
+    [35mselected[39m: 0
+[01:02:44] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:02:44] [32mINFO[39m: [36mClip repair pass completed[39m
+    [35mrepairedCandidates[39m: 1
+    [35mapprovedRepairs[39m: 1
+[01:02:44] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "video-2"
+    [35mrawCandidates[39m: 1
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 1
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+ [32m✓[39m tests/server/health-check.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m tests/core/transcriber.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-generation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m tests/core/clip-quality.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+[01:02:47] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "full-scan"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 3
+    [35mcandidateMax[39m: 6
+ [32m✓[39m tests/core/analyzer-candidate-pool.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 16[2mms[22m[39m
+[01:02:47] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 0"
+[01:02:47] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 1"
+[01:02:47] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 2"
+[01:02:47] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 3"
+[01:02:47] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 4"
+[01:02:47] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 5"
+[01:02:47] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:02:47] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "full-scan"
+    [35mrawCandidates[39m: 6
+    [35mdiscoveredCandidates[39m: 1
+    [35muniqueCandidates[39m: 7
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+ [32m✓[39m tests/core/short-quality.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m tests/core/config.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-video.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-ffmpeg.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/retry-backoff.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-tts.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m tests/core/secret-store.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-filtering.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+[01:02:49] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:49] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 2
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:02:49] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 4
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 2
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+[01:02:49] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "vid1"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 2
+    [35mcandidateMax[39m: 4
+[01:02:49] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:02:49] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "vid1"
+    [35mrawCandidates[39m: 1
+    [35mdiscoveredCandidates[39m: 0
+    [35muniqueCandidates[39m: 1
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+ [32m✓[39m tests/core/clip-repair.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-domain.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/core/managed-run-repository.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m tests/core/audio-chunker.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-chunks.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/core/presenter-title.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-filters.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-content.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m tests/core/clip-quality-branches.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/subtitle.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-schema.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/control-plane-migrations.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/control-plane-config.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/video-metadata.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/clip-processing-branches.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/clip-processing.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/clip-boundary.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/face-framing.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/full-video-metadata.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/abort-timeout.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/candidate-discovery-branches.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/viral-feedback.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-pipeline-helpers.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/core/candidate-discovery.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/core/ai-provider.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/core/logger.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-prompt.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/core/audio-polish.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/core/llm-analysis.integration.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+
+[2m Test Files [22m [1m[32m71 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (72)[39m
+[2m      Tests [22m [1m[32m535 passed[39m[22m[2m | [22m[33m2 skipped[39m[90m (537)[39m
+[2m   Start at [22m 01:02:20
+[2m   Duration [22m 39.44s[2m (transform 1.71s, setup 0ms, import 15.31s, tests 7.55s, environment 14ms)[22m
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+-------------------|---------|----------|---------|---------|-------------------
+All files          |     100 |     97.9 |     100 |     100 |
+ core              |     100 |     98.2 |     100 |     100 |
+  abort-timeout.ts |     100 |      100 |     100 |     100 |
+  ai-provider.ts   |     100 |      100 |     100 |     100 |
+  ...zer-chunks.ts |     100 |      100 |     100 |     100 |
+  ...generation.ts |     100 |      100 |     100 |     100 |
+  ...zer-prompt.ts |     100 |      100 |     100 |     100 |
+  ...zer-schema.ts |     100 |      100 |     100 |     100 |
+  analyzer.ts      |     100 |      100 |     100 |     100 |
+  audio-chunker.ts |     100 |      100 |     100 |     100 |
+  audio-polish.ts  |     100 |      100 |     100 |     100 |
+  ...-discovery.ts |     100 |      100 |     100 |     100 |
+  ...repository.ts |     100 |    96.42 |     100 |     100 | 69
+  ...g-resolver.ts |     100 |      100 |     100 |     100 |
+  clip-boundary.ts |     100 |      100 |     100 |     100 |
+  ...processing.ts |     100 |      100 |     100 |     100 |
+  clip-quality.ts  |     100 |      100 |     100 |     100 |
+  clip-repair.ts   |     100 |      100 |     100 |     100 |
+  config.ts        |     100 |      100 |     100 |     100 |
+  ...ane-config.ts |     100 |      100 |     100 |     100 |
+  ...l-plane-db.ts |     100 |      100 |     100 |     100 |
+  ...migrations.ts |     100 |      100 |     100 |     100 |
+  face-framing.ts  |     100 |       90 |     100 |     100 | 46
+  ...o-metadata.ts |     100 |    85.71 |     100 |     100 | 11,44
+  generate-json.ts |     100 |      100 |     100 |     100 |
+  logger.ts        |     100 |      100 |     100 |     100 |
+  ...repository.ts |     100 |      100 |     100 |     100 |
+  ...nter-title.ts |     100 |     87.5 |     100 |     100 | 9
+  retry-backoff.ts |     100 |      100 |     100 |     100 |
+  secret-store.ts  |     100 |      100 |     100 |     100 |
+  short-quality.ts |     100 |      100 |     100 |     100 |
+  ...t-renderer.ts |     100 |       88 |     100 |     100 | 66,82
+  sqlite-db.ts     |     100 |    96.66 |     100 |     100 | 41
+  state.ts         |     100 |      100 |     100 |     100 |
+ core/quiz         |     100 |    96.66 |     100 |     100 |
+  ...ts.service.ts |     100 |       96 |     100 |     100 | 19
+  ...nt.service.ts |     100 |    88.88 |     100 |     100 | 15
+  ...eg.service.ts |     100 |    88.88 |     100 |     100 | 7,62
+  ...rs.service.ts |     100 |      100 |     100 |     100 |
+  quiz-pipeline.ts |     100 |    96.55 |     100 |     100 | 151
+  ...ts.service.ts |     100 |      100 |     100 |     100 |
+  ...eo.service.ts |     100 |      100 |     100 |     100 |
+ server            |     100 |      100 |     100 |     100 |
+  ...middleware.ts |     100 |      100 |     100 |     100 |
+-------------------|---------|----------|---------|---------|-------------------
