@@ -12,7 +12,7 @@ export const generateQuiz = async (config: PipelineConfig, customTopic?: string)
     "futebol brasileiro", "conhecimentos gerais", "bandeiras e capitais",
     "filmes e séries", "história do Brasil", "bíblia", "ciência", "animes",
   ];
-  const topic = customTopic || topics[Math.floor(Math.random() * topics.length)] || "conhecimentos gerais";
+  const topic = customTopic || topics[Math.floor(Math.random() * topics.length)]!;
 
   const systemPrompt = `Você é um criador de quizzes virais para YouTube Shorts, rigoroso com fatos.
     O tema selecionado é: ${topic}.

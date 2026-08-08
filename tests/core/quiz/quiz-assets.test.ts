@@ -18,6 +18,16 @@ describe("quiz-assets.service", () => {
       expect(wrapText("abc def ghi", 20)).toBe("abc def ghi");
       expect(wrapText("", 4)).toBe("");
     });
+    it("handles words strictly longer than maxLen", () => {
+      expect(wrapText("abcdefghijkl", 4)).toBe("\nabcdefghijkl");
+    });
+    it("handles words with trailing spaces gracefully", () => {
+      // Testing internal if block behavior when currentLine evaluates to truthy
+      expect(wrapText("a b c", 1)).toBe("a\nb\nc");
+    });
+    it("hits branch where currentLine is truthy at start of loop iteration", () => {
+      expect(wrapText("a b", 2)).toBe("a\nb");
+    });
   });
 
   describe("ensureFont", () => {
@@ -44,6 +54,20 @@ describe("quiz-assets.service", () => {
       Object.defineProperty(process, 'platform', { value: originalPlatform });
     });
 
+    it("fails gracefully on win32 when copy fails", () => {
+      vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+        if (p === "assets/fonts/arialbd.ttf") return false;
+        if (p === "C:/Windows/Fonts/arialbd.ttf") return true;
+        return false;
+      });
+      vi.spyOn(fs, "copyFileSync").mockImplementation(() => { throw new Error("Copy error"); });
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      ensureFont();
+      expect(logger.warn).toHaveBeenCalledWith(expect.anything(), "Falha ao copiar a fonte");
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
     it("copies font on linux", () => {
       vi.spyOn(fs, "existsSync").mockImplementation((p) => {
         if (p === "assets/fonts/arialbd.ttf") return false;
@@ -67,6 +91,31 @@ describe("quiz-assets.service", () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
       ensureFont();
       expect(fs.copyFileSync).toHaveBeenCalledWith("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "assets/fonts/arialbd.ttf");
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
+    it("tries the second alternative on linux", () => {
+      vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+        if (p === "assets/fonts/arialbd.ttf") return false;
+        if (p === "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf") return true;
+        return false;
+      });
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      ensureFont();
+      expect(fs.copyFileSync).toHaveBeenCalledWith("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", "assets/fonts/arialbd.ttf");
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
+    it("fails when all alternatives on linux fail", () => {
+      vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+        if (p === "assets/fonts/arialbd.ttf") return false;
+        return false; // all candidates fail
+      });
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      ensureFont();
+      expect(logger.warn).toHaveBeenCalledWith("Não foi possível copiar automaticamente a fonte Arial.");
       Object.defineProperty(process, 'platform', { value: originalPlatform });
     });
 
@@ -130,6 +179,19 @@ describe("quiz-assets.service", () => {
         expect(bg.endsWith("bg_default.jpg")).toBe(true);
         expect(child_process.spawnSync).toHaveBeenCalledTimes(2); // First gradient, second fallback image
     });
+
+    it("renders gradient video and returns it using Math.random mock", () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.99); // hit last color gradient
+      vi.spyOn(child_process, "spawnSync").mockReturnValue({ status: 0, stderr: Buffer.from(""), stdout: Buffer.from(""), pid: 1, signal: null, output: [] });
+      vi.spyOn(fs, "existsSync").mockImplementation((p) => {
+          if (p.toString().endsWith("bg_gradient.mp4")) return true;
+          return false;
+      });
+      const bg = prepareBackground("temp", 60);
+      expect(bg.endsWith("bg_gradient.mp4")).toBe(true);
+      expect(child_process.spawnSync).toHaveBeenCalled();
+      vi.restoreAllMocks();
+    });
   });
 
   describe("prepareTextFiles", () => {
@@ -161,18 +223,5 @@ describe("quiz-assets.service", () => {
       it("escapes path", () => {
           expect(utils.esc("C:/a")).toBe(utils.rel("C:/a").replace(/:/g, "\\:"));
       });
-  });
-
-  describe("ensureFont edge cases", () => {
-    beforeEach(() => { vi.resetAllMocks() });
-    it("handles failure when tryCopy completely throws across platforms", () => {
-        vi.spyOn(fs, "existsSync").mockImplementation((p) => p === "C:/Windows/Fonts/arialbd.ttf");
-        vi.spyOn(fs, "copyFileSync").mockImplementation(() => { throw new Error("Copy error"); });
-        const originalPlatform = process.platform;
-        Object.defineProperty(process, 'platform', { value: 'win32' });
-        ensureFont();
-        expect(logger.warn).toHaveBeenCalledWith(expect.anything(), "Falha ao copiar a fonte");
-        Object.defineProperty(process, 'platform', { value: originalPlatform });
-    });
   });
 });

@@ -66,7 +66,7 @@ export class ChannelBundleRepository {
     if (channels.length === 0) {
       return null;
     }
-    return (await this.loadBundles([channelId], channels))[0] ?? null;
+    return ((await this.loadBundles([channelId], channels))[0]) ?? null;
   }
 
   async saveBundle(bundle: ManagedChannelBundle): Promise<void> {
