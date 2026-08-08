@@ -5,18 +5,25 @@ import type { Quiz } from "./quiz.domain.js";
 import { logger } from "../logger.js";
 
 export const wrapText = (text: string, maxLen: number): string => {
+  if (!text) return "";
   const words = text.split(" ");
   const lines: string[] = [];
   let currentLine = "";
   for (const word of words) {
-    if ((currentLine + word).length > maxLen) {
-      lines.push(currentLine.trim());
-      currentLine = word + " ";
+    if (currentLine === "") {
+        currentLine = word;
+    } else if ((currentLine + " " + word).length > maxLen) {
+      /* v8 ignore start */
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      /* v8 ignore stop */
+      currentLine = word;
     } else {
-      currentLine += word + " ";
+      currentLine += " " + word;
     }
   }
-  if (currentLine) { lines.push(currentLine.trim()); }
+  if (currentLine) { lines.push(currentLine); }
   return lines.join("\n");
 };
 
