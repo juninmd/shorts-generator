@@ -19,8 +19,10 @@ describe("quiz-ffmpeg.service", () => {
     const promise = runFFmpeg(["-i", "input.mp4"], "filter", "out.mp4", 100);
 
     mockProcess.stderr.emit("data", Buffer.from("Duration: 00:01:40.00\n"));
+    mockProcess.stderr.emit("data", Buffer.from("time=00:00:00.00\n")); // 0%
+    mockProcess.stderr.emit("data", Buffer.from("time=00:00:00.00\n")); // 0% again to trigger if (pct !== lastPct) branch false
     mockProcess.stderr.emit("data", Buffer.from("time=00:00:10.00\n")); // 10%
-    mockProcess.stderr.emit("data", Buffer.from("time=00:00:50.00\n")); // 50%
+    mockProcess.stderr.emit("data", Buffer.from("time=01:20:30.00\n")); // >100%
 
     mockProcess.emit("close", 0);
 

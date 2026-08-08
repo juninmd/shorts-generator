@@ -242,3 +242,11 @@ describe("sqlite-db", () => {
     });
   });
 });
+
+  describe("boolean format false coverage 2", () => {
+    it("should format false boolean values correctly 2", async () => {
+      const pool = getLocalPool({ databaseUrl: "sqlite://test.db" });
+      const result = await pool.query("INSERT INTO tab (a) VALUES ($1)", [false]);
+      expect(result).toEqual({ rows: [], rowCount: 1 });
+    });
+  });

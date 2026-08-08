@@ -148,7 +148,7 @@ export const runQuizPipeline = async (
       youtubeUrl,
     };
   } catch (error: any) {
-    logger.error({ error: error.message || error }, "❌ Falha crítica no pipeline do quiz");
+    logger.error({ error: String(error) }, "❌ Falha crítica no pipeline do quiz");
     // Cleanup workspace on failure
     try {
       fs.rmSync(jobWorkspace, { recursive: true, force: true });
