@@ -244,7 +244,7 @@ describe("quiz-pipeline", () => {
     await expect(runQuizPipeline(config, vi.fn())).rejects.toThrow("Custom Error");
   });
 
-  /* v8 ignore start */
+
   it("handles when fs.rmSync fails with any error gracefully when keeping workspace on fail", async () => {
     vi.mocked(content.generateQuiz).mockRejectedValue(new Error("Fail"));
     // Try to throw error in rmSync, the outer catch block catches it but discards
@@ -269,5 +269,5 @@ describe("quiz-pipeline", () => {
 
     await expect(runQuizPipeline(config, vi.fn())).rejects.toThrow("Fail outer");
   });
-  /* v8 ignore stop */
+
 });
