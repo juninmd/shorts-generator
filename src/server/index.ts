@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { serve } from "@hono/node-server";
 import { config as dotenvConfig } from "dotenv";
@@ -123,4 +123,3 @@ if (isMain) {
 
 
 
-/* v8 ignore stop */
