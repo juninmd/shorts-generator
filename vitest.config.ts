@@ -32,7 +32,7 @@ export default defineConfig({
         'src/server/youtube-oauth-routes.ts',
         'src/server/routes.ts',
         'src/server/job-store.ts',
-        'src/server/index.ts',
+
         'src/server/admin-schemas.ts',
         'src/server/admin-run-routes.ts',
         'src/server/admin-routes.ts',
