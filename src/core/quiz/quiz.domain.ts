@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { z } from "zod";
 
 /** Seconds of countdown between the question narration and the reveal. */
@@ -61,4 +61,3 @@ export function buildTimeline(questionDurs: number[], answerDurs: number[], outr
   return { questions, outroStart: t, total: t + outroDur + OUTRO_TAIL_SECONDS };
 }
 
-/* v8 ignore stop */

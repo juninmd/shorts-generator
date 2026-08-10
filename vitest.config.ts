@@ -47,7 +47,7 @@ export default defineConfig({
         'src/core/youtube-channel.ts',
         'src/core/youtube.service.ts',
         'src/core/viral-feedback.ts',
-        'src/core/quiz/quiz.domain.ts',
+
         'src/types/better-sqlite3.d.ts',
       ],
       all: true,
