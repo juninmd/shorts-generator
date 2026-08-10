@@ -20,6 +20,19 @@ describe("quiz.domain", () => {
       expect(() => buildTimeline([3], [], 5)).toThrow(/mismatch/);
       expect(() => buildTimeline([], [], 5)).toThrow(/mismatch/);
     });
+
+    it("handles undefined array elements by defaulting to 0", () => {
+      // Create an array with a "hole" (undefined) to test the `?? 0` fallback
+      const qDurs = new Array(1);
+      const aDurs = new Array(1);
+
+      const timeline = buildTimeline(qDurs, aDurs, 5);
+
+      expect(timeline.questions).toHaveLength(1);
+      const q0 = timeline.questions[0];
+      expect(q0!.timerStart).toBe(q0!.qStart + 0);
+      expect(q0!.revealEnd).toBe(q0!.revealStart + 0);
+    });
   });
 
   describe("quizSchema", () => {
