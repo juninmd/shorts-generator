@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { google } from "googleapis";
 import { Bot, InlineKeyboard } from "grammy";
@@ -72,4 +72,3 @@ export async function sendReauthAlert(
 }
 
 
-/* v8 ignore stop */
