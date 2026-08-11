@@ -41,12 +41,10 @@ export default defineConfig({
         'src/server/admin-channel-routes.ts',
         'src/core/youtube-ytdlp.ts',
         'src/core/youtube-section.ts',
-        'src/core/youtube-reauth.ts',
         'src/core/youtube-info.ts',
         'src/core/youtube-download.ts',
         'src/core/youtube-channel.ts',
         'src/core/youtube.service.ts',
-        'src/core/viral-feedback.ts',
 
         'src/types/better-sqlite3.d.ts',
       ],
