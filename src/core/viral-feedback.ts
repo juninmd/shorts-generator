@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -65,7 +65,7 @@ export async function getChannelFeedback(config: PipelineConfig): Promise<Channe
 
     if (rows.length >= 10) {
       const sorted = [...rows].sort((a, b) => b.views - a.views);
-      const median = sorted[Math.floor(sorted.length / 2)]?.views ?? 0;
+      const median = sorted[Math.floor(sorted.length / 2)].views;
       data = {
         topTitles: sorted.slice(0, 8).filter((r) => r.views > median).map((r) => `${r.title} (${r.views} views)`),
         flopTitles: sorted.slice(-8).map((r) => r.title),
@@ -94,4 +94,3 @@ ${feedback.flopTitles.map((t) => `- ${t}`).join("\n")}
 }
 
 
-/* v8 ignore stop */
