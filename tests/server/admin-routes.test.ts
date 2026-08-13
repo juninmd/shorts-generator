@@ -56,6 +56,7 @@ vi.mock("../../src/core/channel-bundle-repository.js", () => ({
     async getBundle(channelId: string) { return channelId === repositoryState.bundle.channel.id ? repositoryState.bundle : null; }
     async saveBundle(bundle: typeof repositoryState.bundle) { repositoryState.bundle = bundle; }
     async deleteBundle() { repositoryState.bundle = null as any; }
+    async updatePublishingAccount() {}
   },
 }));
 
@@ -104,6 +105,21 @@ vi.mock("../../src/core/channel-config-resolver.js", () => ({
 vi.mock("../../src/core/pipeline.js", () => ({
   runPipeline: vi.fn(async () => []),
 }));
+
+vi.mock("googleapis", () => {
+  return {
+    google: {
+      auth: {
+        OAuth2: class {
+          getAccessToken = vi.fn().mockResolvedValue({ token: "test-access-token" });
+          setCredentials = vi.fn();
+          generateAuthUrl = vi.fn().mockReturnValue("https://accounts.google.com/o/oauth2/v2/auth...");
+          getToken = vi.fn().mockResolvedValue({ tokens: { refresh_token: "new-refresh-token" } });
+        }
+      }
+    }
+  };
+});
 
 describe("admin routes", () => {
   const originalEnv = process.env;
@@ -217,6 +233,26 @@ describe("admin routes", () => {
     expect(body.status).toBe("deleted");
   });
 
+  it("PUT /channels/:channelId rejects missing token for new publishing account", async () => {
+    const payload = {
+      slug: "canal-1", name: "Canal 1 Updated", description: "desc", status: "active",
+      watermarkText: "Canal", logoPath: null,
+      profile: { videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, aiProvider: "ollama", aiModel: "gemma3:1b", sortByViews: false },
+      focuses: [], sources: [],
+      publishingAccounts: [{
+        provider: "youtube", label: "YT", status: "active", accountIdentifier: "ch@example.com"
+      }],
+    };
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", payload);
+            expect(res.status).toBe(500);
+  });
+
+  it("POST /channels/:channelId/runs creates a quiz run", async () => {
+    repositoryState.bundle.channel.channelType = "quiz" as any;
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
+    expect(res.status).toBe(202);
+  });
+
   it("GET /runs returns run list", async () => {
     const res = await makeAuthedRequest("/api/admin/runs");
     expect(res.status).toBe(200);
@@ -231,6 +267,63 @@ describe("admin routes", () => {
     runState.run = { id: "run-1", status: "completed" };
     const res = await makeAuthedRequest("/api/admin/runs/run-1");
     expect(res.status).toBe(200);
+  });
+
+  it("GET /oauth/callback handles errors", async () => {
+    const res = await makeAuthedRequest("/api/admin/oauth/callback?error=access_denied");
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /oauth/callback handles missing code", async () => {
+    const res = await makeAuthedRequest("/api/admin/oauth/callback");
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /oauth/callback handles invalid state", async () => {
+    const res = await makeAuthedRequest("/api/admin/oauth/callback?code=123&state=invalid");
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /oauth/callback handles valid state but no bundle", async () => {
+    const state = Buffer.from(JSON.stringify({ channelId: "unknown", accountId: "acc1", redirectUri: "uri" })).toString("base64url");
+    const res = await makeAuthedRequest("/api/admin/oauth/callback?code=123&state=" + state);
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /oauth/callback handles valid state with no youtube account", async () => {
+    repositoryState.bundle.publishingAccounts = [];
+    const state = Buffer.from(JSON.stringify({ channelId: "canal-1", accountId: "acc1", redirectUri: "uri" })).toString("base64url");
+    const res = await makeAuthedRequest("/api/admin/oauth/callback?code=123&state=" + state);
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /oauth/callback returns 200 on success", async () => {
+    repositoryState.bundle.publishingAccounts = [{
+      id: "acc1", channelId: "canal-1", provider: "youtube", label: "YT",
+      status: "active", accountIdentifier: "ch@example.com",
+      clientId: "cid", clientSecret: "cs",
+      encryptedToken: { keyVersion: "v1", iv: "iv", authTag: "t", ciphertext: "c" },
+      createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z",
+    }] as any;
+
+    repositoryState.bundle.publishingAccounts.push({
+      id: "acc2", channelId: "canal-1", provider: "telegram", label: "TG",
+      status: "active", accountIdentifier: "chat123",
+      encryptedToken: { keyVersion: "v1", iv: "iv", authTag: "t", ciphertext: "c" },
+      createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z",
+    } as any);
+
+    const { ChannelConfigResolver } = await import("../../src/core/channel-config-resolver.js");
+    const mockResolve = vi.spyOn(ChannelConfigResolver.prototype, "resolveRunConfig").mockResolvedValue({
+      channel: repositoryState.bundle.channel,
+      telegramAccount: { token: "bot-token", accountIdentifier: "chat123" }
+    } as any);
+
+    const state = Buffer.from(JSON.stringify({ channelId: "canal-1", accountId: "acc1", redirectUri: "uri" })).toString("base64url");
+    const res = await makeAuthedRequest("/api/admin/oauth/callback?code=123&state=" + state);
+    expect(res.status).toBe(200);
+
+    mockResolve.mockRestore();
   });
 
   it("GET /channels includes publishingAccounts array when non-empty", async () => {
@@ -261,5 +354,40 @@ describe("admin routes", () => {
     repositoryState.bundle.channel.channelType = "quiz" as any;
     const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
     expect(res.status).toBe(409);
+  });
+
+  it("POST /channels/:channelId/test-connection returns 200 for valid token", async () => {
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1/test-connection", "POST");
+    expect(res.status).toBe(200);
+    const body = await res.json() as any;
+    expect(body.status).toBe("ok");
+  });
+
+  it("POST /channels/:channelId/test-connection returns 400 for invalid connection", async () => {
+    const { ChannelConfigResolver } = await import("../../src/core/channel-config-resolver.js");
+    const mockResolve = vi.spyOn(ChannelConfigResolver.prototype, "resolveRunConfig").mockRejectedValueOnce(new Error("Token invalid"));
+
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1/test-connection", "POST");
+    expect(res.status).toBe(400);
+    const body = await res.json() as any;
+    expect(body.error).toBe("Connection test failed");
+
+    mockResolve.mockRestore();
+  });
+
+  it("GET /channels/:channelId/youtube/auth-url returns authUrl", async () => {
+    repositoryState.bundle.publishingAccounts = [{
+      id: "acc-1", channelId: "canal-1", provider: "youtube", label: "YT",
+      status: "active", accountIdentifier: "ch@example.com",
+      clientId: "cid", clientSecret: "cs",
+      encryptedToken: { keyVersion: "v1", iv: "iv", authTag: "t", ciphertext: "c" },
+      createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z",
+    }] as any;
+
+    const res = await makeAuthedRequest("/api/admin/channels/canal-1/youtube/auth-url");
+    expect(res.status).toBe(200);
+    const body = await res.json() as any;
+    expect(body.authUrl).toBe("https://accounts.google.com/o/oauth2/v2/auth...");
+    expect(body.state).toBeTruthy();
   });
 });
