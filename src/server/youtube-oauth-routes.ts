@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { Hono } from "hono";
 import { google } from "googleapis";
@@ -133,4 +133,3 @@ export function registerYoutubeOAuthRoutes(app: Hono): void {
 }
 
 
-/* v8 ignore stop */

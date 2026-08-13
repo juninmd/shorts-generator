@@ -32,13 +32,13 @@ export default defineConfig({
         'src/server/youtube-oauth-routes.ts',
         'src/server/routes.ts',
         'src/server/job-store.ts',
-
         'src/server/admin-schemas.ts',
         'src/server/admin-run-routes.ts',
         'src/server/admin-routes.ts',
         'src/server/admin-oauth-routes.ts',
         'src/server/admin-helpers.ts',
         'src/server/admin-channel-routes.ts',
+
         'src/core/youtube-ytdlp.ts',
         'src/core/youtube-section.ts',
         'src/core/youtube-info.ts',

@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import type { ApiGenerateResponse, PipelineProgress, PipelineResult } from "../types.js";
 import { getOptionalPool, queryRows } from "../core/control-plane-db.js";
@@ -200,4 +200,3 @@ function flattenShorts(results: readonly PipelineResult[]) {
 
 
 
-/* v8 ignore stop */
