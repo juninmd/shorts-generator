@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import type { Hono } from "hono";
 import { google } from "googleapis";
 import { randomUUID } from "node:crypto";
@@ -100,4 +100,3 @@ export function registerChannelRoutes(admin: Hono, deps: AdminDeps): void {
   });
 }
 
-/* v8 ignore stop */
