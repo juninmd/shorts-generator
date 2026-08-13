@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
@@ -115,4 +115,3 @@ export function isCutsOnlyMode(): boolean {
 
 
 
-/* v8 ignore stop */

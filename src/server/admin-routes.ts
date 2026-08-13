@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { Hono } from "hono";
 import { ChannelBundleRepository } from "../core/channel-bundle-repository.js";
@@ -41,4 +41,3 @@ export function registerAdminRoutes(app: Hono): void {
 
 
 
-/* v8 ignore stop */
