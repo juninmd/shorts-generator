@@ -15,7 +15,6 @@ export default defineConfig({
         'src/types.ts',
         'src/cli.ts',
         'src/cli-interactive.ts',
-        // Entire files wrapped in /* v8 ignore */ — require real system tools (ffmpeg, yt-dlp, whisper, telegram)
         'src/core/pipeline.ts',
         'src/core/pipeline-video-processor.ts',
         'src/core/pipeline-filters.ts',
@@ -25,10 +24,8 @@ export default defineConfig({
         'src/core/subtitle.ts',
         'src/core/video-processor.ts',
         'src/core/queue.ts',
-        // Type-only file — no runtime code
         'src/core/channel-domain.ts',
 
-        // Excluded files with 0 coverage that need tests
         'src/server/youtube-oauth-routes.ts',
         'src/server/routes.ts',
         'src/server/job-store.ts',
@@ -49,8 +46,6 @@ export default defineConfig({
         'src/types/better-sqlite3.d.ts',
       ],
       all: true,
-      // Enforced floor (ratchet). Raise these as coverage improves; never lower
-      // without justification. Reflects the current real coverage of the suite.
       thresholds: {
         lines: 100,
         functions: 100,
