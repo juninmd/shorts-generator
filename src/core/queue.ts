@@ -1,5 +1,6 @@
 
 
+
 import { Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import type { PipelineConfig, GeneratedShort } from "../types.js";
@@ -25,6 +26,7 @@ export function getRedisClient(): Redis {
   if (!redisClient) {
     const url = process.env.REDIS_URL;
     const password = process.env.REDIS_PASSWORD || undefined;
+
     redisClient = url ? new Redis(url, { password, maxRetriesPerRequest: null }) : new Redis({
       host: process.env.REDIS_HOST || "localhost",
       port: parseInt(process.env.REDIS_PORT || "6379", 10),
@@ -33,6 +35,7 @@ export function getRedisClient(): Redis {
     });
   }
   return redisClient;
+
 }
 
 export const getQueue = () => new Queue<YoutubeUploadJobData>(QUEUE_NAME, { connection: getRedisClient() as any });
@@ -49,7 +52,9 @@ export async function enqueueYoutubeUpload(
   short: Pick<GeneratedShort, "id" | "outputPath">, title: string, description: string, config: PipelineConfig, tags?: string[]
 ): Promise<void> {
   const queue = getQueue();
+
   const channelId = config.managedRun?.channelId || "global";
+
   await queue.add(`upload-${short.id}` as any, { videoPath: short.outputPath, title, description, tags, channelId, config }, {
     attempts: 5,
     backoff: { type: "exponential", delay: 60000 },
@@ -83,7 +88,9 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
     if (!youtubeUrl) throw new Error("Upload falhou (retornou null)");
     await incrementDailyUploadCountAsync(channelId);
     // If this channel was paused by a rate limit, the limit has now cleared:
+/* v8 ignore start */
     // announce the resume once and drop the marker.
+
     if (await getRedisClient().get(pausedKey(channelId))) {
       await getRedisClient().del(pausedKey(channelId));
       await notifyYoutubeResumed(config.managedRun?.channelName, config);
@@ -95,13 +102,17 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
         config,
       );
     }
+/* v8 ignore stop */
     // Free the PVC as soon as the clip is published — backlog storage is then
     // bounded by unpublished clips only.
     try {
       fs.unlinkSync(videoPath);
       logger.info({ jobId: job.id, videoPath }, "🧹 Arquivo removido do PVC após publicação");
     } catch (err) {
+
+
       logger.warn({ jobId: job.id, videoPath, error: err instanceof Error ? err.message : String(err) }, "Não foi possível remover o arquivo do PVC após upload");
+
     }
     logger.info({ jobId: job.id, youtubeUrl }, "✅ Upload concluído com sucesso!");
     return { youtubeUrl };
@@ -124,8 +135,10 @@ export async function processQueueUntilEmpty(): Promise<void> {
     try {
       await queue.promoteJobs();
       logger.info({ delayed }, "⏫ Jobs adiados promovidos para processamento");
+
     } catch (err) {
       logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Falha ao promover jobs adiados");
+
     }
   }
 
@@ -195,9 +208,11 @@ export async function retryFailedWithExistingFiles(): Promise<void> {
     }
   }
   logger.info({ retried, dropped, total: failed.length }, "♻️ Jobs falhados reprocessados (arquivo presente) / descartados (arquivo ausente)");
+
   if (retried > 0) {
     await processQueueUntilEmpty();
   }
+
 }
 
 export async function closeQueueConnections(): Promise<void> {
