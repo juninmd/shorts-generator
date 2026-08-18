@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import type { PipelineConfig, VideoInfo } from "../types.js";
 import { getVideoFileSize } from "./youtube.js";
 import { generateText } from "ai";
@@ -85,4 +85,3 @@ export function matchesVideoQuery(video: VideoInfo, config: PipelineConfig): boo
   }
   return match;
 }
-/* v8 ignore stop */
