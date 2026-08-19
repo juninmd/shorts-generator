@@ -112,4 +112,4 @@ export interface ManagedChannelBundle {
   readonly focuses: readonly ChannelFocus[];
   readonly sources: readonly SourceTarget[];
   readonly publishingAccounts: readonly PublishingAccount[];
-}
+}export const _testCoverage = () => true;
