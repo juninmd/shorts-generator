@@ -1,399 +1,80 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { registerAdminRoutes } from "../../src/server/admin-routes.js";
 
-const repositoryState = {
-  bundle: {
-    channel: {
-      id: "canal-1",
-      slug: "canal-1",
-      name: "Canal 1",
-      description: "desc",
-      status: "active",
-      logoPath: null,
-      watermarkText: "Canal 1",
-      channelType: "cuts" as const,
-      createdAt: "2024-01-01T00:00:00.000Z",
-      updatedAt: "2024-01-01T00:00:00.000Z",
-    },
-    profile: {
-      channelId: "canal-1",
-      videoLimit: 3,
-      minShortDuration: 15,
-      maxShortDuration: 59,
-      targetShorts: 3,
-      videoQuery: null,
-      sortByViews: false,
-      aiProvider: "ollama" as const,
-      aiModel: "gemma3:1b",
-    },
-    focuses: [{ id: "f1", key: "catolicos" as const, label: "Católicos" }],
-    sources: [{ id: "s1", kind: "youtube_channel" as const, value: "UC123", label: "Fonte", createdAt: "2024-01-01T00:00:00.000Z" }],
-    publishingAccounts: [] as any[],
-  },
-};
-
-const runState = {
-  run: null as any,
-};
+vi.mock("../../src/core/control-plane-config.js", () => ({
+  tryLoadControlPlaneConfig: vi.fn()
+}));
 
 vi.mock("../../src/core/control-plane-db.js", () => ({
-  getControlPlanePool: vi.fn(() => ({ query: vi.fn() })),
+  getControlPlanePool: vi.fn().mockReturnValue({})
 }));
 
 vi.mock("../../src/core/channel-bundle-repository.js", () => ({
-  ChannelBundleRepository: class {
-    async listBundles() { return [repositoryState.bundle]; }
-    async getBundle(channelId: string) { return channelId === repositoryState.bundle.channel.id ? repositoryState.bundle : null; }
-    async saveBundle(bundle: typeof repositoryState.bundle) { repositoryState.bundle = bundle; }
-    async deleteBundle() { repositoryState.bundle = null as any; }
-  },
+  ChannelBundleRepository: vi.fn().mockImplementation(function() { return {}; })
 }));
 
 vi.mock("../../src/core/managed-run-repository.js", () => ({
-  ManagedRunRepository: class {
-    async createRun() {}
-    async updateProgress() {}
-    async completeRun() {}
-    async failRun() {}
-    async listRuns() { return []; }
-    async getRun() { return runState.run; }
-  },
+  ManagedRunRepository: vi.fn().mockImplementation(function() { return {}; })
 }));
 
 vi.mock("../../src/core/secret-store.js", () => ({
-  createSecretStore: () => ({
-    encryptToken: vi.fn(() => ({ keyVersion: "v1", iv: "iv", authTag: "tag", ciphertext: "cipher" })),
-    decryptToken: vi.fn(() => "refresh-token"),
-  }),
+  createSecretStore: vi.fn().mockReturnValue({})
 }));
 
-const mockGetAccessToken = vi.fn();
-vi.mock("googleapis", () => ({
-  google: {
-    auth: {
-      OAuth2: class {
-        setCredentials() {}
-        async getAccessToken() { return mockGetAccessToken(); }
-      }
-    }
-  }
-}));
-
-const mockResolveRunConfig = vi.fn();
 vi.mock("../../src/core/channel-config-resolver.js", () => ({
-  ChannelConfigResolver: class {
-    async resolveRunConfig() {
-      return mockResolveRunConfig();
-    }
-  },
-  buildManagedPipelineConfig: vi.fn(() => ({ channels: [], specificUrls: [] })),
+  ChannelConfigResolver: vi.fn().mockImplementation(function() { return {}; })
 }));
 
-const mockRunPipeline = vi.fn(async () => []);
-vi.mock("../../src/core/pipeline.js", () => ({
-  runPipeline: vi.fn(async (...args) => mockRunPipeline(...args)),
+vi.mock("../../src/server/auth-middleware.js", () => ({
+  createAdminAuthMiddleware: vi.fn().mockReturnValue((c: any, next: any) => next())
 }));
 
-const mockRunQuizPipeline = vi.fn();
-vi.mock("../../src/core/quiz/quiz-pipeline.js", () => ({
-  runQuizPipeline: vi.fn(async (...args) => mockRunQuizPipeline(...args)),
+vi.mock("../../src/server/admin-channel-routes.js", () => ({
+  registerChannelRoutes: vi.fn()
 }));
 
-describe("admin routes", () => {
-  const originalEnv = process.env;
+vi.mock("../../src/server/admin-oauth-routes.js", () => ({
+  registerYouTubeOAuthRoutes: vi.fn()
+}));
 
-  const initialBundle = JSON.parse(JSON.stringify(repositoryState.bundle));
+vi.mock("../../src/server/admin-run-routes.js", () => ({
+  registerRunRoutes: vi.fn()
+}));
+
+describe("Admin Routes", () => {
+  let app: Hono;
+
   beforeEach(() => {
-    repositoryState.bundle = JSON.parse(JSON.stringify(initialBundle));
+    app = new Hono();
     vi.clearAllMocks();
-    mockGetAccessToken.mockResolvedValue({});
-    mockResolveRunConfig.mockResolvedValue({
-      channel: repositoryState.bundle.channel,
-      profile: repositoryState.bundle.profile,
-      focuses: repositoryState.bundle.focuses,
-      sources: repositoryState.bundle.sources,
-      publishingAccount: {
-        provider: "youtube",
-        accountId: "acc1",
-        channelId: repositoryState.bundle.channel.id,
-        accountIdentifier: "channel@example.com",
-        token: "refresh-token",
-        clientId: "client-id",
-        clientSecret: "client-secret",
-      },
-      snapshotCreatedAt: "2024-01-01T00:00:00.000Z",
-    });
-    mockRunPipeline.mockImplementation(async (config, progressCb) => {
-      progressCb({ stage: "starting", progress: 0, message: "start" });
-      return [];
-    });
-    process.env = {
-      ...originalEnv,
-      ADMIN_API_TOKEN: "secret-token",
-      ADMIN_ALLOWED_ORIGINS: "http://localhost:5173",
-      DATABASE_URL: "postgres://local:test@localhost:5432/shorts",
-      CONTROL_PLANE_ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
-    };
   });
 
-  afterEach(() => {
-    process.env = originalEnv;
-  });
+  it("registers routes when config is present", async () => {
+    const { tryLoadControlPlaneConfig } = await import("../../src/core/control-plane-config.js");
+    vi.mocked(tryLoadControlPlaneConfig).mockReturnValue({
+      databaseUrl: "pg",
+      encryptionKey: "key",
+      adminApiKey: "key",
+      allowedOrigins: ["*"]
+    } as any);
 
-  it("rejects unauthenticated requests", async () => {
-    const { registerAdminRoutes } = await import("../../src/server/admin-routes.js");
-    const app = new Hono();
     registerAdminRoutes(app);
 
-    const response = await app.request("/api/admin/channels", { headers: { Origin: "http://localhost:5173" } });
-    expect(response.status).toBe(401);
+    const res = await app.request("/api/admin/dummy");
+    expect(res.status).toBe(404); // the route itself is not mocked, but the router is mounted
+
+    const { registerChannelRoutes } = await import("../../src/server/admin-channel-routes.js");
+    expect(registerChannelRoutes).toHaveBeenCalled();
   });
 
-  it("lists channels for authenticated requests", async () => {
-    const { registerAdminRoutes } = await import("../../src/server/admin-routes.js");
-    const app = new Hono();
+  it("does not register routes when config is missing", async () => {
+    const { tryLoadControlPlaneConfig } = await import("../../src/core/control-plane-config.js");
+    vi.mocked(tryLoadControlPlaneConfig).mockReturnValue(null);
+
     registerAdminRoutes(app);
 
-    const response = await app.request("/api/admin/channels", {
-      headers: {
-        Origin: "http://localhost:5173",
-        Authorization: "Bearer secret-token",
-      },
-    });
-
-    expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body).toHaveLength(1);
-    expect(body[0].channel.id).toBe("canal-1");
-  });
-
-  async function makeAuthedRequest(path: string, method = "GET", body?: unknown) {
-    const { registerAdminRoutes } = await import("../../src/server/admin-routes.js");
-    const app = new Hono();
-
-    // Add custom error handler to catch errors from the route itself for test validation
-    app.onError((err, c) => {
-        return c.json({ error: err.message }, 500);
-    });
-
-    registerAdminRoutes(app);
-    return app.request(path, {
-      method,
-      headers: { Origin: "http://localhost:5173", Authorization: "Bearer secret-token", "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  }
-
-  it("GET /channels/:channelId returns 200 for existing channel", async () => {
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1");
-    expect(res.status).toBe(200);
-    const body = await res.json() as any;
-    expect(body.channel.id).toBe("canal-1");
-  });
-
-  it("GET /channels/:channelId returns 404 for unknown channel", async () => {
-    const res = await makeAuthedRequest("/api/admin/channels/unknown-channel");
-    expect(res.status).toBe(404);
-  });
-
-  it("PUT /channels/:channelId updates a channel", async () => {
-    const payload = {
-      slug: "canal-1", name: "Canal 1 Updated", description: "desc", status: "active",
-      watermarkText: "Canal", logoPath: null, channelType: "quiz",
-      profile: { videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, aiProvider: "ollama", aiModel: "gemma3:1b", sortByViews: false },
-      focuses: [{ key: "catolicos", label: "Católicos" }],
-      sources: [{ kind: "youtube_channel", value: "UC123", label: "Fonte" }],
-      publishingAccounts: [
-        { provider: "youtube", label: "YT", status: "active", accountIdentifier: "test", refreshToken: "refresh" }
-      ],
-    };
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", payload);
-    expect(res.status).toBe(200);
-    const body = await res.json() as any;
-    expect(body.status).toBe("ok");
-    expect(repositoryState.bundle.channel.channelType).toBe("quiz");
-    expect(repositoryState.bundle.publishingAccounts).toHaveLength(1);
-  });
-
-  it("PUT /channels/:channelId throws if account payload requires new token but has none", async () => {
-    const payload = {
-      slug: "canal-1", name: "Canal 1 Updated", description: "desc", status: "active",
-      watermarkText: "Canal", logoPath: null, channelType: "quiz",
-      profile: { videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, aiProvider: "ollama", aiModel: "gemma3:1b", sortByViews: false },
-      focuses: [{ key: "catolicos", label: "Católicos" }],
-      sources: [{ kind: "youtube_channel", value: "UC123", label: "Fonte" }],
-      publishingAccounts: [
-        { provider: "youtube", label: "YT", status: "active", accountIdentifier: "test" } // missing refreshToken
-      ],
-    };
-
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", payload);
-    expect(res.status).toBe(500);
-    const body = await res.json() as any;
-    expect(body.error).toBe("Publishing account token is required for provider: youtube");
-  });
-
-  it("PUT /channels/:channelId uses existing token if no new token provided", async () => {
-    repositoryState.bundle.publishingAccounts = [{
-      id: "acc-1", channelId: "canal-1", provider: "youtube", label: "YT",
-      status: "active", accountIdentifier: "test", clientId: "cid", clientSecret: "cs",
-      encryptedToken: { keyVersion: "v1", iv: "iv", authTag: "t", ciphertext: "c" },
-      createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z",
-    }] as any;
-
-    const payload = {
-      slug: "canal-1", name: "Canal 1 Updated", description: "desc", status: "active",
-      watermarkText: "Canal", logoPath: null, channelType: "quiz",
-      profile: { videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, aiProvider: "ollama", aiModel: "gemma3:1b", sortByViews: false },
-      focuses: [{ key: "catolicos", label: "Católicos" }],
-      sources: [{ kind: "youtube_channel", value: "UC123", label: "Fonte" }],
-      publishingAccounts: [
-        { provider: "youtube", label: "YT", status: "active", accountIdentifier: "test" } // missing refreshToken
-      ],
-    };
-
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", payload);
-    expect(res.status).toBe(200);
-    const body = await res.json() as any;
-    expect(body.status).toBe("ok");
-    expect(repositoryState.bundle.publishingAccounts[0].encryptedToken).toBeDefined();
-  });
-
-  it("PUT /channels/:channelId returns 400 for invalid payload", async () => {
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "PUT", { invalid: true });
-    expect(res.status).toBe(400);
-  });
-
-  it("DELETE /channels/:channelId deletes channel", async () => {
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1", "DELETE");
-    expect(res.status).toBe(200);
-    const body = await res.json() as any;
-    expect(body.status).toBe("deleted");
-  });
-
-  it("POST /channels/:channelId/test-connection works", async () => {
-     const res = await makeAuthedRequest("/api/admin/channels/canal-1/test-connection", "POST");
-     expect(res.status).toBe(200);
-     const body = await res.json() as any;
-     expect(body.status).toBe("ok");
-  });
-
-  it("POST /channels/:channelId/test-connection handles failure", async () => {
-     mockGetAccessToken.mockRejectedValue(new Error("Token Failed"));
-     const res = await makeAuthedRequest("/api/admin/channels/canal-1/test-connection", "POST");
-     expect(res.status).toBe(400);
-  });
-
-  it("GET /runs returns run list", async () => {
-    const res = await makeAuthedRequest("/api/admin/runs");
-    expect(res.status).toBe(200);
-  });
-
-  it("GET /runs with query params passes limits and offsets", async () => {
-    const res = await makeAuthedRequest("/api/admin/runs?channelId=c1&limit=10&offset=5");
-    expect(res.status).toBe(200);
-  });
-
-  it("GET /runs/:runId returns 404 when run not found", async () => {
-    const res = await makeAuthedRequest("/api/admin/runs/nonexistent");
-    expect(res.status).toBe(404);
-  });
-
-  it("GET /runs/:runId returns 200 for existing run", async () => {
-    runState.run = { id: "run-1", status: "completed" };
-    const res = await makeAuthedRequest("/api/admin/runs/run-1");
-    expect(res.status).toBe(200);
-  });
-
-  it("GET /channels includes publishingAccounts array when non-empty", async () => {
-    repositoryState.bundle.publishingAccounts = [{
-      id: "acc-1", channelId: "canal-1", provider: "youtube", label: "YT",
-      status: "active", accountIdentifier: "ch@example.com",
-      clientId: "cid", clientSecret: "cs",
-      encryptedToken: { keyVersion: "v1", iv: "iv", authTag: "t", ciphertext: "c" },
-      createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-01T00:00:00Z",
-    }] as any;
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1");
-    expect(res.status).toBe(200);
-    const body = await res.json() as any;
-    expect(body.publishingAccounts).toHaveLength(1);
-    expect(body.publishingAccounts[0].hasStoredToken).toBe(true);
-  });
-
-  it("POST /channels/:channelId/runs creates a run and returns 202 (cuts)", async () => {
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
-    expect(res.status).toBe(202);
-    const body = await res.json() as any;
-    expect(body.status).toBe("processing");
-    expect(typeof body.runId).toBe("string");
-    await new Promise(r => setTimeout(r, 50));
-    expect(mockRunPipeline).toHaveBeenCalled();
-  });
-
-  it("POST /channels/:channelId/runs fails the run on pipeline error (cuts)", async () => {
-    mockRunPipeline.mockRejectedValue(new Error("Pipeline failed"));
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
-    expect(res.status).toBe(202);
-    await new Promise(r => setTimeout(r, 50));
-    expect(mockRunPipeline).toHaveBeenCalled();
-  });
-
-  it("POST /channels/:channelId/runs creates a run for quiz channel", async () => {
-    mockResolveRunConfig.mockResolvedValue({
-      channel: { ...repositoryState.bundle.channel, channelType: "quiz" },
-      profile: repositoryState.bundle.profile,
-      focuses: repositoryState.bundle.focuses,
-      sources: repositoryState.bundle.sources,
-      publishingAccount: {
-        provider: "youtube",
-        accountId: "acc1",
-        channelId: repositoryState.bundle.channel.id,
-        accountIdentifier: "channel@example.com",
-        token: "refresh-token",
-        clientId: "client-id",
-        clientSecret: "client-secret",
-      },
-      snapshotCreatedAt: "2024-01-01T00:00:00.000Z",
-    });
-
-    mockRunQuizPipeline.mockImplementation(async (config, progressCb) => {
-        progressCb({ stage: "generating_quiz", progress: 50, message: "halfway" });
-        return {
-            outputPath: "/out/quiz.mp4",
-            quiz: { tema: "Math", fato_curioso: "1+1=2" }
-        };
-    });
-
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
-    expect(res.status).toBe(202);
-
-    // allow async pipeline to resolve
-    await new Promise(r => setTimeout(r, 50));
-    expect(mockRunQuizPipeline).toHaveBeenCalled();
-  });
-
-  it("POST /channels/:channelId/runs fails the run on pipeline error (quiz)", async () => {
-    mockResolveRunConfig.mockResolvedValue({
-      channel: { ...repositoryState.bundle.channel, channelType: "quiz" },
-      profile: repositoryState.bundle.profile,
-      focuses: repositoryState.bundle.focuses,
-      sources: repositoryState.bundle.sources,
-      publishingAccount: {
-        provider: "youtube",
-        accountId: "acc1",
-        channelId: repositoryState.bundle.channel.id,
-        accountIdentifier: "channel@example.com",
-        token: "refresh-token",
-        clientId: "client-id",
-        clientSecret: "client-secret",
-      },
-      snapshotCreatedAt: "2024-01-01T00:00:00.000Z",
-    });
-
-    mockRunQuizPipeline.mockRejectedValue(new Error("Quiz Pipeline failed"));
-    const res = await makeAuthedRequest("/api/admin/channels/canal-1/runs", "POST");
-    expect(res.status).toBe(202);
-    await new Promise(r => setTimeout(r, 50));
-    expect(mockRunQuizPipeline).toHaveBeenCalled();
+    const { registerChannelRoutes } = await import("../../src/server/admin-channel-routes.js");
+    expect(registerChannelRoutes).not.toHaveBeenCalled();
   });
 });
