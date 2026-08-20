@@ -157,7 +157,7 @@ describe("ChannelBundleRepository", () => {
       vi.mocked(withTransaction).mockImplementation(async (db, cb) => cb(mockClient as any));
 
       const bundle: ManagedChannelBundle = {
-        channel: { id: "ch1" } as any,
+        channel: { id: "ch1", channelType: "" } as any,
         profile: { channelId: "ch1" } as any,
         focuses: [],
         sources: [],
