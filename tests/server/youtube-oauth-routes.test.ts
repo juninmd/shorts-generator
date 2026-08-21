@@ -211,3 +211,76 @@ describe("youtube-oauth-routes", () => {
     });
   });
 });
+
+describe("additional branches 2", () => {
+    let app: any;
+    beforeEach(() => {
+        app = new Hono();
+        registerYoutubeOAuthRoutes(app);
+        process.env.YOUTUBE_CLIENT_ID = "clientId";
+        process.env.YOUTUBE_CLIENT_SECRET = "clientSecret";
+        process.env.SERVER_PUBLIC_URL = "http://localhost:3000";
+        vi.mocked(controlPlaneConfig.tryLoadControlPlaneConfig).mockReturnValue({} as any);
+        mockGetToken.mockResolvedValue({ tokens: { refresh_token: "refresh" } });
+    });
+    it("handles bot token and chat id from env safely when telegram account lacks it", async () => {
+        mockList.mockResolvedValueOnce({ data: { items: [{ snippet: { title: "Auth Channel" }, id: "auth1" }] } });
+
+        const mockBundle = {
+          channel: { name: "Bundle Channel" },
+          publishingAccounts: [{ provider: "telegram", id: "tg1", encryptedToken: "encTg", accountIdentifier: "channel-chat" }],
+        };
+        mockGetBundle.mockResolvedValueOnce(mockBundle);
+
+        process.env.TELEGRAM_BOT_TOKEN = "global-token";
+        process.env.TELEGRAM_CHAT_ID = "global-chat";
+        (secretStore as any).__mockStore.decryptToken.mockReturnValueOnce(undefined);
+
+        const res = await app.request("/api/youtube/callback?code=123&state=channel1");
+        expect(res.status).toBe(200);
+    });
+
+    it("covers the missing error branches", async () => {
+        mockList.mockRejectedValueOnce(new Error("fetch error"));
+        const mockBundle = {
+          channel: { name: "Bundle Channel" },
+          publishingAccounts: [
+              { provider: "youtube", id: "existing1", encryptedToken: "old" },
+              { provider: "telegram", id: "tg1", encryptedToken: "encTg", accountIdentifier: "channel-chat" }
+          ],
+        };
+        mockGetBundle.mockResolvedValueOnce(mockBundle);
+
+        (secretStore as any).__mockStore.decryptToken.mockImplementationOnce(() => { throw "string error"; });
+
+        const res = await app.request("/api/youtube/callback?code=123&state=channel1");
+        expect(res.status).toBe(200);
+    });
+});
+
+describe("additional branches 4", () => {
+    let app: any;
+    beforeEach(() => {
+        app = new Hono();
+        registerYoutubeOAuthRoutes(app);
+        process.env.YOUTUBE_CLIENT_ID = "clientId";
+        process.env.YOUTUBE_CLIENT_SECRET = "clientSecret";
+        process.env.SERVER_PUBLIC_URL = "http://localhost:3000";
+        vi.mocked(controlPlaneConfig.tryLoadControlPlaneConfig).mockReturnValue({} as any);
+        mockGetToken.mockResolvedValue({ tokens: { refresh_token: "refresh" } });
+    });
+
+    it("covers the missing string error from youtube api", async () => {
+        mockList.mockRejectedValueOnce("string error");
+        const mockBundle = {
+          channel: { name: "Bundle Channel" },
+          publishingAccounts: [
+              { provider: "youtube", id: "existing1", encryptedToken: "old" }
+          ],
+        };
+        mockGetBundle.mockResolvedValueOnce(mockBundle);
+
+        const res = await app.request("/api/youtube/callback?code=123&state=channel1");
+        expect(res.status).toBe(200);
+    });
+});
