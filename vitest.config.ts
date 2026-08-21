@@ -23,9 +23,7 @@ export default defineConfig({
         'src/core/subtitle.ts',
         'src/core/video-processor.ts',
 
-        'src/server/youtube-oauth-routes.ts',
         'src/server/routes.ts',
-        'src/server/job-store.ts',
 
         'src/core/youtube-ytdlp.ts',
         'src/core/youtube-section.ts',
