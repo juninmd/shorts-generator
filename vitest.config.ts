@@ -20,7 +20,6 @@ export default defineConfig({
         'src/core/telegram.ts',
         'src/core/transcriber.ts',
         'src/core/youtube.ts',
-        'src/core/subtitle.ts',
         'src/core/video-processor.ts',
 
         'src/server/routes.ts',
