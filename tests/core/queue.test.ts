@@ -225,6 +225,9 @@ describe("Queue System", () => {
         { data: { videoPath: "/path/to/missing.mp4" }, retry: mockRetry, remove: mockRemove },
       ]);
 
+      const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
+      vi.mocked(notifyYoutubeRateLimited).mockResolvedValue(undefined);
+
       const fs = await import("node:fs");
       vi.mocked(fs.existsSync).mockImplementation((path) => path === "/path/to/existing.mp4");
 
@@ -279,7 +282,7 @@ describe("Queue System", () => {
     it("should upload to youtube and cleanup", async () => {
       const { isDailyLimitReachedAsync, getDailyUploadCountAsync } = await import("../../src/core/state.js");
       vi.mocked(isDailyLimitReachedAsync).mockResolvedValue(false);
-      vi.mocked(getDailyUploadCountAsync).mockResolvedValue(5);
+      vi.mocked(getDailyUploadCountAsync).mockResolvedValue(4);
 
       const { uploadToYouTube } = await import("../../src/core/youtube.service.js");
       vi.mocked(uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/test");
@@ -296,6 +299,7 @@ describe("Queue System", () => {
       expect(res).toEqual({ youtubeUrl: "https://youtube.com/shorts/test" });
       expect(fs.unlinkSync).toHaveBeenCalledWith("vid.mp4");
       expect(redis.del).toHaveBeenCalled();
+      const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
     });
 
     it("should handle fs.unlinkSync error", async () => {
@@ -367,6 +371,8 @@ describe("Queue System", () => {
 
       expect(res).toEqual({ youtubeUrl: "https://youtube.com/shorts/test" });
       expect(redis.del).toHaveBeenCalled(); // Should clear pause key
+      const { notifyYoutubeResumed } = await import("../../src/core/telegram.js");
+      expect(notifyYoutubeResumed).toHaveBeenCalled();
     });
 
     it("should processQueueUntilEmpty if retried > 0", async () => {
@@ -427,6 +433,44 @@ describe("Queue System", () => {
 
       await retryFailedWithExistingFiles();
       expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("queue daily upload limit equals notify", () => {
+    it("should notify exactly once when daily cap reached", async () => {
+      const { isDailyLimitReachedAsync, getDailyUploadCountAsync } = await import("../../src/core/state.js");
+      vi.mocked(isDailyLimitReachedAsync).mockResolvedValue(false);
+      vi.mocked(getDailyUploadCountAsync).mockResolvedValue(5);
+
+      const { uploadToYouTube } = await import("../../src/core/youtube.service.js");
+      vi.mocked(uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/test");
+
+      const fs = await import("node:fs");
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+
+      const redis = getRedisClient();
+      vi.mocked(redis.get).mockResolvedValue(null);
+
+      const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
+      vi.mocked(notifyYoutubeRateLimited).mockResolvedValue(undefined);
+
+      createWorker();
+      await mockProcessFn({
+        id: "j1",
+        data: {
+          videoPath: "vid.mp4",
+          title: "t",
+          description: "d",
+          config: { dailyUploadLimit: 5, managedRun: { channelName: "ch1" } },
+          channelId: "ch1"
+        }
+      });
+
+      expect(notifyYoutubeRateLimited).toHaveBeenCalledWith({
+        channelName: "ch1",
+        reason: "daily-cap",
+        limit: 5
+      }, expect.any(Object));
     });
   });
 
