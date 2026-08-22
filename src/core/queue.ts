@@ -88,7 +88,7 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
     if (!youtubeUrl) throw new Error("Upload falhou (retornou null)");
     await incrementDailyUploadCountAsync(channelId);
     // If this channel was paused by a rate limit, the limit has now cleared:
-/* v8 ignore start */
+
     // announce the resume once and drop the marker.
 
     if (await getRedisClient().get(pausedKey(channelId))) {
@@ -102,7 +102,7 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
         config,
       );
     }
-/* v8 ignore stop */
+
     // Free the PVC as soon as the clip is published — backlog storage is then
     // bounded by unpublished clips only.
     try {
