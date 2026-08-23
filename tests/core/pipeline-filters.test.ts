@@ -103,3 +103,9 @@ describe("pipeline-filters", () => {
     });
   });
 });
+
+  it('handles error in isMusicVideoByTitle (error branch)', async () => {
+    vi.mocked(generateText).mockRejectedValueOnce(new Error('llm err'));
+    const result = await isMusicVideoByTitle('Song', 'Channel', {} as any);
+    expect(result).toBe(false);
+  });
