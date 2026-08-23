@@ -13,17 +13,15 @@ export const wrapText = (text: string, maxLen: number): string => {
     if (currentLine === "") {
         currentLine = word;
     } else if ((currentLine + " " + word).length > maxLen) {
-      /* v8 ignore start */
-      if (currentLine) {
-        lines.push(currentLine);
-      }
-      /* v8 ignore stop */
+
+      lines.push(currentLine);
+
       currentLine = word;
     } else {
       currentLine += " " + word;
     }
   }
-  if (currentLine) { lines.push(currentLine); }
+  if (currentLine.length > 0) { lines.push(currentLine); }
   return lines.join("\n");
 };
 
