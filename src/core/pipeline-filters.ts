@@ -32,7 +32,7 @@ Responda APENAS "sim" se for música/clipe musical, ou "não" se for conteúdo f
     return isMusic;
   } catch (error) {
     logger.warn({ error, title }, "LLM music check failed — assuming not music");
-    /* v8 ignore next 2 */
+
     return false;
   }
 }

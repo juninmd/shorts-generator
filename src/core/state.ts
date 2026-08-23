@@ -16,7 +16,7 @@ export async function getPostedTopVideosAsync(channelId?: string): Promise<strin
     const rows = await queryRows<{ video_id: string }>(db, sql, params);
     return rows.map((row) => row.video_id);
   }
-  /* v8 ignore start */
+
   try {
     if (fs.existsSync(STATE_FILE_PATH)) {
       const data = fs.readFileSync(STATE_FILE_PATH, "utf-8");
@@ -26,7 +26,7 @@ export async function getPostedTopVideosAsync(channelId?: string): Promise<strin
     logger.error({ error }, "Failed to read posted top videos state");
   }
   return [];
-  /* v8 ignore stop */
+
 }
 
 export async function markVideoAsPostedAsync(videoId: string, channelId = "global"): Promise<void> {
@@ -39,7 +39,7 @@ export async function markVideoAsPostedAsync(videoId: string, channelId = "globa
     logger.info({ videoId, channelId }, "Durable posted video state saved");
     return;
   }
-  /* v8 ignore start */
+
   try {
     const posted = new Set(await getPostedTopVideosAsync(channelId));
     posted.add(videoId);
@@ -48,7 +48,7 @@ export async function markVideoAsPostedAsync(videoId: string, channelId = "globa
   } catch (error) {
     logger.error({ error }, "Failed to save posted top videos state");
   }
-  /* v8 ignore stop */
+
 }
 
 // ─── Daily YouTube upload tracking ───────────────────────────────────────────
@@ -63,7 +63,7 @@ function todayISO(): string {
 }
 
 function readDailyState(): DailyUploadState {
-  /* v8 ignore start */
+
   try {
     if (fs.existsSync(DAILY_UPLOADS_PATH)) {
       const data = JSON.parse(fs.readFileSync(DAILY_UPLOADS_PATH, "utf-8")) as DailyUploadState;
@@ -73,7 +73,7 @@ function readDailyState(): DailyUploadState {
     // ignore, fall through to default
   }
   return { date: todayISO(), count: 0 };
-  /* v8 ignore stop */
+
 }
 
 export function getDailyUploadCount(): number {
@@ -102,7 +102,7 @@ export function isDailyLimitReached(limit: number): boolean {
 }
 
 export function incrementDailyUploadCount(): void {
-  /* v8 ignore start */
+
   try {
     const state = readDailyState();
     state.count += 1;
@@ -111,7 +111,7 @@ export function incrementDailyUploadCount(): void {
   } catch (error) {
     logger.error({ error }, "Failed to update daily upload count");
   }
-  /* v8 ignore stop */
+
 }
 
 export async function incrementDailyUploadCountAsync(channelId = "global"): Promise<void> {
@@ -127,7 +127,7 @@ export async function incrementDailyUploadCountAsync(channelId = "global"): Prom
     logger.info({ channelId }, "Durable state write complete");
     return;
   }
-  /* v8 ignore start */
+
   try {
     const state = readDailyState();
     state.count += 1;
@@ -136,7 +136,7 @@ export async function incrementDailyUploadCountAsync(channelId = "global"): Prom
   } catch (error) {
     logger.error({ error }, "Failed to update daily upload count");
   }
-  /* v8 ignore stop */
+
 }
 
 export async function setDailyLimitReachedAsync(channelId = "global"): Promise<void> {
@@ -152,7 +152,7 @@ export async function setDailyLimitReachedAsync(channelId = "global"): Promise<v
     logger.info({ channelId }, "Durable state daily limit reached set");
     return;
   }
-  /* v8 ignore start */
+
   try {
     const state = readDailyState();
     state.count = 9999;
@@ -161,7 +161,7 @@ export async function setDailyLimitReachedAsync(channelId = "global"): Promise<v
   } catch (error) {
     logger.error({ error }, "Failed to set daily upload count to maximum");
   }
-  /* v8 ignore stop */
+
 }
 
 
