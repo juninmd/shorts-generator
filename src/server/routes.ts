@@ -65,7 +65,7 @@ app.post("/api/generate", async (c) => {
       logger.error({ jobId, error: err }, "Job failed");
       await failJob(jobId, err);
     }
-  })().catch(/* v8 ignore next */(err) => {
+  })().catch((err) => {
     logger.error({ jobId, error: err }, "Unhandled error in job runner");
     void failJob(jobId, err);
   });
