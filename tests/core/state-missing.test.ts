@@ -29,6 +29,13 @@ describe('state.ts edge cases', () => {
     await getPostedTopVideosAsync();
   });
 
+  it('handles markVideoAsPostedAsync throwing', async () => {
+    vi.mocked(getOptionalPool).mockReturnValue(null);
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.writeFileSync).mockImplementation(() => { throw new Error('foo'); });
+    await markVideoAsPostedAsync('vid1');
+  });
+
   it('handles incrementDailyUploadCount exceptions', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockImplementation(() => { throw new Error('foo'); });
