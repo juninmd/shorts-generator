@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import type { PipelineConfig, PipelineResult, VideoInfo } from "../types.js";
 import { getChannelVideos, getTopChannelVideos, getVideoInfo, downloadAudioOnly, downloadVideoSection, cleanupVideo } from "./youtube.js";
 import { getPostedTopVideosAsync, markVideoAsPostedAsync } from "./state.js";
@@ -129,4 +129,3 @@ export async function processUrl(
   const videoInfo = await getVideoInfo(url);
   return videoInfo ? processVideo(videoInfo, config, onProgress) : null;
 }
-/* v8 ignore stop */
