@@ -162,9 +162,9 @@ describe("Pipeline smoke test", () => {
     expect(results).toHaveLength(0);
   });
 
-  it.skip("runPipeline propagates YouTube access check failure", async () => {
-    const { verifyYoutubeAccess } = await import("../../src/core/youtube.js");
-    vi.mocked(verifyYoutubeAccess).mockRejectedValueOnce(new Error("Bot detected"));
+  it("runPipeline propagates YouTube access check failure", async () => {
+    const { getVideoInfo } = await import("../../src/core/youtube.js");
+    vi.mocked(getVideoInfo).mockRejectedValueOnce(new Error("Bot detected"));
 
     await expect(runPipeline(makeConfig())).rejects.toThrow("Bot detected");
   });
