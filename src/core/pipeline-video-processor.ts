@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import type { PipelineConfig, PipelineProgress, PipelineResult, VideoInfo, GeneratedShort } from "../types.js";
 import { downloadAudioOnly, downloadVideoSection, cleanupVideo } from "./youtube.js";
 import { transcribeVideo } from "./transcriber.js";
@@ -163,4 +163,3 @@ export async function processVideo(
 
   return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts, errors, processingTimeMs: Date.now() - startTime };
 }
-/* v8 ignore stop */
