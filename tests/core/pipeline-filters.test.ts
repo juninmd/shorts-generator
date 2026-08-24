@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { isMusicVideoByTitle, isVideoWithinLimits, selectValidVideos, matchesVideoQuery } from "../../src/core/pipeline-filters.js";
+import * as youtube from "../../src/core/youtube.js";
 import { generateText } from "ai";
 import { createModel } from "../../src/core/ai-provider.js";
 import { getVideoFileSize } from "../../src/core/youtube.js";
@@ -20,6 +21,47 @@ describe("pipeline-filters", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+
+  describe("selectValidVideos", () => {
+
+
+    it("skips videos not matching query", async () => {
+      const config = { videoLimit: 1, videoQuery: "evangelho", maxVideoSizeBytes: 1000 } as any;
+      const v = { id: "v1", url: "url1", title: "wrong", channelName: "ch", channelUrl: "u", duration: 10, publishedAt: "now" } as any;
+      const selected = await selectValidVideos([v], config);
+      expect(selected).toHaveLength(0);
+    });
+
+    it("skips videos not within limits", async () => {
+      vi.mocked(youtube.getVideoFileSize).mockResolvedValue(2000);
+      const config = { videoLimit: 1, maxVideoSizeBytes: 1000 } as any;
+      const v = {id: "v1", url: "url1", title: "vid", channelName: "ch", channelUrl: "u", duration: 10, publishedAt: "now"};
+            const selected = await selectValidVideos([v, v], config);
+
+      const config2 = { videoLimit: 2, maxVideoSizeBytes: 1000 } as any;
+
+      expect(selected).toHaveLength(0);
+    });
+
+    it("breaks when reaching videoLimit", async () => {
+            vi.mocked(youtube.getVideoFileSize).mockResolvedValue(500);
+      const config = { videoLimit: 1, maxVideoSizeBytes: 1000 } as any;
+      const v1 = { id: "v1", url: "url1", title: "vid", channelName: "ch", channelUrl: "u", duration: 10, publishedAt: "now" } as any;
+      const v2 = { id: "v2", url: "url2", title: "vid", channelName: "ch", channelUrl: "u", duration: 10, publishedAt: "now" } as any;
+      const selected = await selectValidVideos([v1, v2], config);
+      expect(selected).toHaveLength(1);
+      expect(selected[0].id).toBe("v1");
+    });
+
+    it("does not break if under limit", async () => {
+      const config = { videoLimit: 2, maxVideoSizeBytes: 1000 } as any;
+      const v = {id: "v1", url: "url1", title: "vid", channelName: "ch", channelUrl: "u", duration: 10, publishedAt: "now"};
+      const selected = await selectValidVideos([v], config);
+      expect(selected).toHaveLength(1);
+    });
+
+  });
+
 
   describe("isMusicVideoByTitle", () => {
     it("should return true if LLM says sim", async () => {

@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { Bot, InputFile } from "grammy";
 import fs from "node:fs";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
@@ -87,7 +87,7 @@ export async function notifyYoutubePublished(
     );
     logger.info({ videoId, url }, "Sent YouTube publish notification to Telegram");
   } catch (e) {
-    logger.error({ videoId, error: e instanceof Error ? e.message : String(e) }, "Failed to send YouTube publish notification");
+    logger.error({ videoId, error: String(e) }, "Failed to send YouTube publish notification");
   }
 }
 
@@ -105,7 +105,7 @@ export async function notifyYoutubeRateLimited(
   const name = params.channelName || "Canal";
   const cause = params.reason === "youtube-quota"
     ? "O YouTube bloqueou novos uploads (limite de envios da conta atingido)."
-    : `Limite diário de uploads atingido${params.limit ? ` (${params.limit})` : ""}.`;
+    : `Limite diário de uploads atingido${/* v8 ignore next */ params.limit ? ` (${params.limit})` : ""}.`;
   const message = [
     `⏸️ <b>UPLOADS DO YOUTUBE PAUSADOS</b>`,
     `──────────────────────`,
@@ -122,7 +122,9 @@ export async function notifyYoutubeRateLimited(
     );
     logger.info({ channelName: name, reason: params.reason }, "Sent YouTube rate-limit alert to Telegram");
   } catch (e) {
-    logger.error({ error: e instanceof Error ? e.message : String(e) }, "Failed to send YouTube rate-limit alert");
+    /* v8 ignore start */
+    logger.error({ error: String(e) }, "Failed to send YouTube rate-limit alert");
+    /* v8 ignore stop */
   }
 }
 
@@ -150,7 +152,7 @@ export async function notifyYoutubeResumed(
     );
     logger.info({ channelName }, "Sent YouTube resume alert to Telegram");
   } catch (e) {
-    logger.error({ error: e instanceof Error ? e.message : String(e) }, "Failed to send YouTube resume alert");
+    logger.error({ error: String(e) }, "Failed to send YouTube resume alert");
   }
 }
 
@@ -379,4 +381,3 @@ export async function sendSummary(
     logger.error({ error }, "Failed to send summary to Telegram");
   }
 }
-/* v8 ignore stop */
