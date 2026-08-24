@@ -15,9 +15,9 @@ export default defineConfig({
         'src/types.ts',
         'src/cli.ts',
         'src/cli-interactive.ts',
-        'src/core/pipeline.ts',
+
         'src/core/pipeline-video-processor.ts',
-        'src/core/telegram.ts',
+
         'src/core/transcriber.ts',
         'src/core/youtube.ts',
         'src/core/video-processor.ts',
