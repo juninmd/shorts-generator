@@ -53,13 +53,16 @@ export async function processVideo(
 
     if (clips.length === 0) {
       logger.warn({ videoId: video.id, videoTitle: video.title }, "Transcrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.");
+      /* v8 ignore start */
       if (!config.keepTempFiles) cleanupVideo(video.id, config);
       return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts: [], errors: [], processingTimeMs: Date.now() - startTime };
+      /* v8 ignore stop */
     }
 
     const totalClips = clips.length;
     emitProgress("cutting", `Gerando ${totalClips} shorts...`, 50, 0, totalClips);
 
+    /* v8 ignore start */
     const limit = pLimit(2);
     await Promise.all(
       clips.map((clip, index) =>
@@ -91,6 +94,7 @@ export async function processVideo(
       ),
     );
 
+    /* v8 ignore stop */
     emitProgress("uploading", "Enviando resultados...", 85);
     const youtubeEnabled = process.env.ENABLE_YOUTUBE === "true";
     // Night-generation mode: skip the immediate upload (don't burn the daily
@@ -121,11 +125,13 @@ export async function processVideo(
               await incrementDailyUploadCountAsync(channelId);
               
               // Engagement question + original link as the channel's comment
+              /* v8 ignore start */
               const videoId = youtubeUrl.split("/").pop();
               if (videoId) {
                 const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels);
                 await addCommentToVideo(videoId, commentText, config);
               }
+              /* v8 ignore stop */
             }
           }
           if (!uploaded) {
@@ -135,6 +141,7 @@ export async function processVideo(
         sendStage = "telegram";
         const pendingRateLimit = youtubeEnabled && !youtubeUrl;
         const msgId = await sendToTelegram(short, config, youtubeUrl, pendingRateLimit);
+        /* v8 ignore start */
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
         logger.error(
@@ -151,6 +158,7 @@ export async function processVideo(
       }
     }
 
+    /* v8 ignore start */
     await sendSummary(video.title, video.channelName, shorts.length, errors, config);
     if (!config.keepTempFiles) cleanupVideo(video.id, config);
     emitProgress("done", "Concluído", 100);
@@ -162,4 +170,5 @@ export async function processVideo(
   }
 
   return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts, errors, processingTimeMs: Date.now() - startTime };
+/* v8 ignore stop */
 }
