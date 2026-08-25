@@ -1,3 +1,14 @@
+vi.mock("p-limit", () => { return { default: () => async (fn: any) => await fn() }; });
+import pLimit from "p-limit";
+
+
+
+import * as queue from "../../src/core/queue.js";
+vi.mock("../../src/core/queue.js", () => ({
+  enqueueYoutubeUpload: vi.fn().mockResolvedValue(undefined),
+}));
+
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { runPipeline, processVideo, processUrl, runTopVideoPipeline } from "../../src/core/pipeline.js";
 import type { PipelineConfig, VideoInfo, DownloadedVideo, Transcript, ShortClip, GeneratedShort } from "../../src/types.js";
@@ -20,6 +31,8 @@ vi.mock("../../src/core/ai-provider.js", () => ({
 
 
 vi.mock("../../src/core/state.js", () => ({
+  isDailyLimitReachedAsync: vi.fn(),
+  incrementDailyUploadCountAsync: vi.fn(),
   getPostedTopVideosAsync: vi.fn(),
   markVideoAsPostedAsync: vi.fn(),
 }));
@@ -42,12 +55,15 @@ vi.mock("../../src/core/youtube.js", () => ({
   getVideoFileSize: vi.fn(),
   getTopChannelVideos: vi.fn(),
   downloadAudioOnly: vi.fn(),
-  downloadVideoSection: vi.fn(),
+  downloadVideoSection: vi.fn().mockResolvedValue("test.mp4"),
   cleanupVideo: vi.fn(),
   verifyYoutubeAccess: vi.fn(),
 }));
 
 vi.mock("../../src/core/youtube.service.js", () => ({
+  generateYoutubeMetadata: vi.fn().mockResolvedValue({ title: "title", description: "desc", tags: [] }),
+  buildEngagementComment: vi.fn(),
+  addCommentToVideo: vi.fn(),
   generateYoutubeMetadata: vi.fn(),
   uploadToYouTube: vi.fn(),
   uploadFullVideoToYouTube: vi.fn(),
@@ -62,8 +78,14 @@ vi.mock("../../src/core/analyzer.js", () => ({
 }));
 
 vi.mock("../../src/core/video-processor.js", () => ({
-  processClip: vi.fn(),
   getFileStartTime: vi.fn().mockResolvedValue(0),
+  processClip: vi.fn().mockResolvedValue({
+    id: "clip1",
+    startTime: 10,
+    endTime: 20,
+    text: "test text",
+    outputPath: "test.mp4"
+  }),
 }));
 
 vi.mock("../../src/core/telegram.js", () => ({
@@ -250,6 +272,111 @@ describe("pipeline", () => {
     const results = await runPipeline(mockConfig);
     expect(results).toHaveLength(2); // Both videos should be filtered out
   });
+
+
+
+  it("processVideo handles successful YouTube upload and engagement comment", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    process.env.DEFER_UPLOADS = "false";
+    vi.mocked(state.isDailyLimitReachedAsync).mockResolvedValue(false);
+    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("12345");
+vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
+
+    vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
+
+    const onProgress = vi.fn();
+    const result = await processVideo(mockVideoInfo, mockConfig, onProgress);
+
+    expect(youtubeService.uploadToYouTube).toHaveBeenCalled();
+    expect(state.incrementDailyUploadCountAsync).toHaveBeenCalled();
+    expect(youtubeService.addCommentToVideo).toHaveBeenCalled();
+
+    process.env.ENABLE_YOUTUBE = "false";
+  });
+
+  it("processVideo handles youtube upload with no video id in url", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    process.env.DEFER_UPLOADS = "false";
+    vi.mocked(state.isDailyLimitReachedAsync).mockResolvedValue(false);
+    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com");
+    vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
+
+    const onProgress = vi.fn();
+    const result = await processVideo(mockVideoInfo, mockConfig, onProgress);
+
+    expect(youtubeService.uploadToYouTube).toHaveBeenCalled();
+    expect(state.incrementDailyUploadCountAsync).toHaveBeenCalled();
+
+    process.env.ENABLE_YOUTUBE = "false";
+  });
+
+  it("processVideo covers deferUploads logic", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    process.env.DEFER_UPLOADS = "true";
+
+    const onProgress = vi.fn();
+    const result = await processVideo(mockVideoInfo, mockConfig, onProgress);
+
+    expect(queue.enqueueYoutubeUpload).toHaveBeenCalled();
+    expect(youtubeService.uploadToYouTube).not.toHaveBeenCalled();
+
+    process.env.ENABLE_YOUTUBE = "false";
+    process.env.DEFER_UPLOADS = "false";
+  });
+
+  it("processVideo covers isDailyLimitReachedAsync true logic", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    process.env.DEFER_UPLOADS = "false";
+    vi.mocked(state.isDailyLimitReachedAsync).mockResolvedValue(true);
+
+    const onProgress = vi.fn();
+    const result = await processVideo(mockVideoInfo, mockConfig, onProgress);
+
+    expect(queue.enqueueYoutubeUpload).toHaveBeenCalled();
+    expect(youtubeService.uploadToYouTube).not.toHaveBeenCalled();
+
+    process.env.ENABLE_YOUTUBE = "false";
+  });
+
+  it("processVideo handles successful YouTube upload but no youtube url returned", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    process.env.DEFER_UPLOADS = "false";
+    vi.mocked(state.isDailyLimitReachedAsync).mockResolvedValue(false);
+    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue(null);
+
+    const onProgress = vi.fn();
+    const result = await processVideo(mockVideoInfo, mockConfig, onProgress);
+
+    expect(youtubeService.uploadToYouTube).toHaveBeenCalled();
+    expect(queue.enqueueYoutubeUpload).toHaveBeenCalled();
+
+    process.env.ENABLE_YOUTUBE = "false";
+  });
+
+  it("processVideo handles transcription progress mapped correctly", async () => {
+    vi.mocked(transcriber.transcribeVideo).mockImplementation(async (video, config) => {
+      if (config && config.onProgress) {
+        config.onProgress(0); // 20
+        config.onProgress(10); // 22, difference 2 >= 1 -> emitted
+        config.onProgress(12); // 22.4, difference 0.4 < 1 -> skipped
+        config.onProgress(100); // 40, emitted
+      }
+      return mockTranscript;
+    });
+    const onProgress = vi.fn();
+    const result = await processVideo(mockVideoInfo, mockConfig, onProgress);
+
+    expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
+      stage: "transcribing",
+      progress: 22
+    }));
+
+    expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
+      stage: "transcribing",
+      progress: 40
+    }));
+  });
+
 
   it("processVideo handles full flow", async () => {
     const onProgress = vi.fn();
