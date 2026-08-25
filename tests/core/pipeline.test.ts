@@ -71,7 +71,6 @@ vi.mock("../../src/core/telegram.js", () => ({
   sendFullVideoToTelegram: vi.fn(),
   sendToTelegram: vi.fn(),
   sendSummary: vi.fn(),
-  sendFullVideoToTelegram: vi.fn(),
 }));
 
 
