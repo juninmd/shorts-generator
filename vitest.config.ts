@@ -15,22 +15,16 @@ export default defineConfig({
         'src/types.ts',
         'src/cli.ts',
         'src/cli-interactive.ts',
-
-        'src/core/pipeline-video-processor.ts',
-
         'src/core/transcriber.ts',
         'src/core/youtube.ts',
         'src/core/video-processor.ts',
-
         'src/server/routes.ts',
-
         'src/core/youtube-ytdlp.ts',
         'src/core/youtube-section.ts',
         'src/core/youtube-info.ts',
         'src/core/youtube-download.ts',
         'src/core/youtube-channel.ts',
         'src/core/youtube.service.ts',
-
         'src/types/better-sqlite3.d.ts',
       ],
       all: true,
