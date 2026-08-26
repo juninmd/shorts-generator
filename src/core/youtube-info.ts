@@ -51,7 +51,7 @@ export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void>
       }
 
       const lines = msg.split("\n");
-      const errorLine = lines.find((l: string) => l.includes("ERROR:")) || lines[0];
+      const errorLine = lines.find((l: string) => l.includes("ERROR:")) || msg;
       throw new Error(`YouTube access check failed: ${errorLine}`);
     }
   });
