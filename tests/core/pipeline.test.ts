@@ -64,7 +64,6 @@ vi.mock("../../src/core/youtube.service.js", () => ({
   generateYoutubeMetadata: vi.fn().mockResolvedValue({ title: "title", description: "desc", tags: [] }),
   buildEngagementComment: vi.fn(),
   addCommentToVideo: vi.fn(),
-  generateYoutubeMetadata: vi.fn(),
   uploadToYouTube: vi.fn(),
   uploadFullVideoToYouTube: vi.fn(),
 }));
