@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { verifyYoutubeAccess, getVideoInfo } from '../../src/core/youtube.js';
-import { getConfig } from '../../src/core/config.js';
+import { loadConfig } from '../../src/core/config.js';
 import { logger } from '../../src/core/logger.js';
 
 describe('YouTube Health Check', { timeout: 60_000 }, () => {
-  let config: ReturnType<typeof getConfig>;
+  let config: ReturnType<typeof loadConfig>;
 
   beforeAll(() => {
-    config = getConfig();
+    config = loadConfig();
   });
 
   it('should verify YouTube access is working', async () => {
@@ -35,7 +35,7 @@ describe('YouTube Health Check', { timeout: 60_000 }, () => {
 
   it('should handle YouTube blocking gracefully', async () => {
     // This test verifies error handling, not that blocking occurs
-    const config = getConfig();
+    const config = loadConfig();
 
     // Override with intentionally bad player client to trigger error paths
     const badConfig = {

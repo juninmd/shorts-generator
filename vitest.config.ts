@@ -5,7 +5,7 @@ export default defineConfig({
     pool: 'forks',
     fileParallelism: false,
     testTimeout: 20000,
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.health.ts'],
     exclude: ['web/**'],
     coverage: {
       provider: 'v8',
