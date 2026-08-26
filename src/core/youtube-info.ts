@@ -82,7 +82,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         const trimmed = line.trim();
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
           try {
-            raw = JSON.parse(trimmed.replace(/[:,]\s*NA\b/g, ':null'));
+            raw = JSON.parse(trimmed.replace(/([:,]\s*)NA\b/g, '$1null'));
             break;
           } catch { }
         }
