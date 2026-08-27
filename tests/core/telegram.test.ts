@@ -408,6 +408,14 @@ describe("telegram", () => {
     await notifyYoutubePublished({ videoId: "v", url: "u", title: "t", isShort: true }, { ...mockConfig, retryBaseDelayMs: 1, retryMaxAttempts: 1 } as any);
   });
 
+  it("should handle notifyYoutubeRateLimited with a provided limit", async () => {
+    mockSendMessage.mockResolvedValue({ message_id: 112 });
+    const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
+    await notifyYoutubeRateLimited({ channelName: "Test Channel", reason: "daily-cap", limit: 5 }, { ...mockConfig, telegramBotToken: "token", telegramChatId: "chat_id" } as any);
+    expect(mockSendMessage).toHaveBeenCalledTimes(1);
+    expect(mockSendMessage.mock.calls[0][1]).toContain("Limite diário de uploads atingido (5).");
+  });
+
   it("should handle notifyYoutubeRateLimited with missing limit", async () => {
     mockSendMessage.mockResolvedValue({ message_id: 111 });
     const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
