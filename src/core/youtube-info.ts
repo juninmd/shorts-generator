@@ -12,7 +12,7 @@ export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void>
   logger.info("Performing YouTube access sanity check...");
 
   // Use Big Buck Bunny - very standard video for tests
-  const testUrl = "https://www.youtube.com/watch?v=aqz-KE-bpKQ";
+  const testUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
   return withCookies(config, async (tempCookiePath) => {
     try {
