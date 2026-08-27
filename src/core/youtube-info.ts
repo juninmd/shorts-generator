@@ -12,7 +12,7 @@ export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void>
   logger.info("Performing YouTube access sanity check...");
 
   // Use Big Buck Bunny - very standard video for tests
-  const testUrl = "https://www.youtube.com/watch?v=aqz-KE-bpKQ";
+  const testUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
   return withCookies(config, async (tempCookiePath) => {
     try {
@@ -82,7 +82,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         const trimmed = line.trim();
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
           try {
-            raw = JSON.parse(trimmed.replace(/([:,]\s*)NA\b/g, '$1null'));
+            raw = JSON.parse(trimmed.replace(/(?:[:,]\s*)NA\b/g, ':null'));
             break;
           } catch { }
         }

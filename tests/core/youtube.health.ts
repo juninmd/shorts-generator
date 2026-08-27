@@ -23,12 +23,12 @@ describe('YouTube Health Check', { timeout: 60_000 }, () => {
 
   it('should fetch metadata from public test video', async () => {
     // Big Buck Bunny - widely available public video
-    const testUrl = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
+    const testUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
     const info = await getVideoInfo(testUrl);
 
     expect(info).not.toBeNull();
-    expect(info?.id).toBe('aqz-KE-bpKQ');
+    expect(info?.id).toBe('dQw4w9WgXcQ');
     expect(info?.duration).toBeGreaterThan(0);
     expect(info?.title).toMatch(/[a-zA-Z0-9]/);
   });
