@@ -105,7 +105,7 @@ export async function notifyYoutubeRateLimited(
   const name = params.channelName || "Canal";
   const cause = params.reason === "youtube-quota"
     ? "O YouTube bloqueou novos uploads (limite de envios da conta atingido)."
-    : `Limite diário de uploads atingido${ /* v8 ignore next */ params.limit ? ` (${params.limit})` : ""}.`;
+    : `Limite diário de uploads atingido${  params.limit ? ` (${params.limit})` : ""}.`;
   const message = [
     `⏸️ <b>UPLOADS DO YOUTUBE PAUSADOS</b>`,
     `──────────────────────`,
@@ -122,9 +122,9 @@ export async function notifyYoutubeRateLimited(
     );
     logger.info({ channelName: name, reason: params.reason }, "Sent YouTube rate-limit alert to Telegram");
   } catch (e) {
-    /* v8 ignore start */
+
     logger.error({ error: String(e) }, "Failed to send YouTube rate-limit alert");
-    /* v8 ignore stop */
+
   }
 }
 

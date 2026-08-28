@@ -14,7 +14,7 @@ import { renderShort } from "./short-renderer.js";
 /**
  * Process a single clip: cut, convert to vertical, apply subtitles.
  */
- /* v8 ignore start */
+
 export async function processClip(
   video: DownloadedVideo,
   clip: ShortClip,
@@ -73,7 +73,7 @@ export async function processClip(
 /**
  * Get the duration of a video file in seconds.
  */
- /* v8 ignore stop */
+
 export function getVideoDuration(filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, metadata) => {
@@ -97,4 +97,3 @@ export function getFileStartTime(filePath: string): Promise<number> {
     });
   });
 }
-/* v8 ignore stop */
