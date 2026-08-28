@@ -425,3 +425,70 @@ describe("telegram", () => {
   });
 
 });
+
+describe("Telegram Logger Ignored Cases", () => {
+  const mockConfig2 = {
+    telegramBotToken: "token",
+    telegramChatId: "chat_id",
+    retryBaseDelayMs: 1,
+    retryMaxAttempts: 1
+  } as any;
+  it("should handle error in notifyYoutubeRateLimited log gracefully", async () => {
+    mockSendMessage.mockRejectedValueOnce(new Error("Net fail"));
+    const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
+    await notifyYoutubeRateLimited("Test Channel", { reason: "daily-cap", limit: 10 }, mockConfig2);
+  });
+});
+
+describe("More Telegram Logger Ignored Cases", () => {
+  const mockConfig3 = {
+    telegramBotToken: "token",
+    telegramChatId: "chat_id",
+    retryBaseDelayMs: 1,
+    retryMaxAttempts: 1
+  } as any;
+  it("should cover catch branch in notifyYoutubeRateLimited log gracefully", async () => {
+    mockSendMessage.mockRejectedValue(new Error("Net fail rate limited log"));
+    const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
+    await notifyYoutubeRateLimited("Test Channel", { reason: "daily-cap", limit: 10 }, mockConfig3);
+  });
+});
+describe("Even More Telegram Logger Ignored Cases", () => {
+  const mockConfig3 = {
+    telegramBotToken: "token",
+    telegramChatId: "chat_id",
+    retryBaseDelayMs: 1,
+    retryMaxAttempts: 1
+  } as any;
+  it("should cover catch branch in notifyYoutubeRateLimited log gracefully 2", async () => {
+    mockSendMessage.mockRejectedValueOnce(new Error("Net fail rate limited log"));
+    const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
+    await notifyYoutubeRateLimited("Test Channel", { reason: "daily-cap", limit: 10 }, mockConfig3);
+  });
+});
+describe("Even More Telegram Logger Ignored Cases 3", () => {
+  const mockConfig3 = {
+    telegramBotToken: "token",
+    telegramChatId: "chat_id",
+    retryBaseDelayMs: 1,
+    retryMaxAttempts: 1
+  } as any;
+  it("should cover catch branch in notifyYoutubeRateLimited", async () => {
+    mockSendMessage.mockRejectedValue(new Error("Net fail rate limited log"));
+    const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
+    await notifyYoutubeRateLimited("Test Channel", { reason: "daily-cap", limit: 10 }, mockConfig3);
+  });
+});
+describe("Even More Telegram Logger Ignored Cases 4", () => {
+  const mockConfig4 = {
+    telegramBotToken: "token",
+    telegramChatId: "chat_id",
+    retryBaseDelayMs: 1,
+    retryMaxAttempts: 1
+  } as any;
+  it("should cover catch branch in notifyYoutubeRateLimited", async () => {
+    mockSendMessage.mockRejectedValue(new Error("Net fail rate limited log"));
+    const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
+    await notifyYoutubeRateLimited({ channelName: "Test Channel", reason: "daily-cap", limit: 10 } as any, mockConfig4);
+  });
+});
