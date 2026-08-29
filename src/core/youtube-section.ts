@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import path from "node:path";
 import fs from "node:fs";
@@ -75,4 +75,3 @@ export function cleanupVideo(videoId: string, config: PipelineConfig): void {
 }
 
 
-/* v8 ignore stop */
