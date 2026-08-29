@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { execFile, type ExecFileOptions } from "node:child_process";
 import { promisify } from "node:util";
@@ -152,4 +152,3 @@ export function diagnoseAudioDownloadFailure(stderr: string): string {
 }
 
 
-/* v8 ignore stop */
