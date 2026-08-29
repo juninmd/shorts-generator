@@ -11,12 +11,7 @@ vi.mock("../../src/core/youtube-ytdlp.js", () => ({
 }));
 
 vi.mock("../../src/core/logger.js", () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn()
-  }
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }));
 
 vi.mock("node:fs", () => ({
@@ -29,68 +24,57 @@ vi.mock("node:fs", () => ({
 }));
 
 describe("youtube-section", () => {
+  const mockVideo = {
+    id: "vid1", title: "Title", url: "url", channelName: "channel",
+    channelUrl: "curl", duration: 120, publishedAt: "20230101",
+  };
+  const tempDirConfig = { tempDir: "/tmp" } as any;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  const mockVideo = {
-    id: "vid1",
-    title: "Title",
-    url: "url",
-    channelName: "channel",
-    channelUrl: "curl",
-    duration: 120,
-    publishedAt: "20230101",
-  };
+  describe("downloadVideoSection", () => {
+    it.each([
+      { desc: "resolves successfully", rejectYt: false, fileExists: true, createsDir: false },
+      { desc: "creates output dir if missing", rejectYt: false, fileExists: true, createsDir: true },
+      { desc: "handles failure", rejectYt: true, fileExists: true, createsDir: false },
+      { desc: "throws if downloaded file is missing or empty", rejectYt: false, fileExists: false, createsDir: false },
+    ])("$desc", async ({ rejectYt, fileExists, createsDir }) => {
+      if (rejectYt) {
+        vi.mocked(execYtDlp).mockRejectedValue(new Error("Fail"));
+      } else {
+        vi.mocked(execYtDlp).mockResolvedValue({ stdout: "Done", stderr: "" });
+      }
+      vi.mocked(fs.existsSync).mockReturnValue(fileExists);
+      vi.mocked(fs.statSync).mockReturnValue({ size: 1024 } as any);
 
-  it("downloadVideoSection resolves successfully", async () => {
-    vi.mocked(execYtDlp).mockResolvedValue({ stdout: "Done", stderr: "" });
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.statSync).mockReturnValue({ size: 1024 } as any);
+      const promise = downloadVideoSection(mockVideo, 10, 20, tempDirConfig);
 
-    const path = await downloadVideoSection(mockVideo, 10, 20, { tempDir: "/tmp" } as any);
-    expect(path).toContain("vid1");
-    expect(typeof path).toBe("string");
-  });
-
-  it("downloadVideoSection creates output dir if missing", async () => {
-    vi.mocked(execYtDlp).mockResolvedValue({ stdout: "Done", stderr: "" });
-    vi.mocked(fs.existsSync).mockReturnValue(true); // file exists
-
-    const path = await downloadVideoSection(mockVideo, 10, 20, { tempDir: "/tmp" } as any);
-    expect(fs.mkdirSync).toHaveBeenCalled();
-  });
-
-  it("downloadVideoSection handles failure", async () => {
-    vi.mocked(execYtDlp).mockRejectedValue(new Error("Fail"));
-    await expect(downloadVideoSection(mockVideo, 10, 20, { tempDir: "/tmp" } as any)).rejects.toThrow();
-  });
-
-  it("downloadVideoSection throws if downloaded file is missing or empty", async () => {
-    vi.mocked(execYtDlp).mockResolvedValue({ stdout: "Done", stderr: "" });
-    vi.mocked(fs.existsSync).mockReturnValue(false);
-
-    await expect(downloadVideoSection(mockVideo, 10, 20, { tempDir: "/tmp" } as any)).rejects.toThrow();
-  });
-
-  it("cleanupVideo calls rmSync with prefix", () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    cleanupVideo("vid1", { tempDir: "/tmp" } as any);
-    expect(fs.rmSync).toHaveBeenCalled();
-  });
-
-  it("cleanupVideo does nothing if file missing", () => {
-    vi.mocked(fs.existsSync).mockReturnValue(false);
-    cleanupVideo("vid1", { tempDir: "/tmp" } as any);
-    expect(fs.rmSync).toHaveBeenCalled(); // RM sync always called, even if not exists in this implementation
-  });
-
-  it("cleanupVideo handles rmSync error gracefully", () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.rmSync).mockImplementation(() => {
-      throw new Error("Failed to delete");
+      if (rejectYt || !fileExists) {
+        await expect(promise).rejects.toThrow();
+      } else {
+        const path = await promise;
+        expect(path).toContain("vid1");
+        expect(typeof path).toBe("string");
+        if (createsDir) expect(fs.mkdirSync).toHaveBeenCalled();
+      }
     });
+  });
 
-    expect(() => cleanupVideo("vid1", { tempDir: "/tmp" } as any)).not.toThrow();
+  describe("cleanupVideo", () => {
+    it.each([
+      { desc: "calls rmSync with prefix", fileExists: true, throwErr: false },
+      { desc: "does nothing if file missing", fileExists: false, throwErr: false },
+      { desc: "handles rmSync error gracefully", fileExists: true, throwErr: true },
+    ])("$desc", ({ fileExists, throwErr }) => {
+      vi.mocked(fs.existsSync).mockReturnValue(fileExists);
+      if (throwErr) {
+        vi.mocked(fs.rmSync).mockImplementation(() => { throw new Error("Failed to delete"); });
+      }
+
+      expect(() => cleanupVideo("vid1", tempDirConfig)).not.toThrow();
+      expect(fs.rmSync).toHaveBeenCalled();
+    });
   });
 });
