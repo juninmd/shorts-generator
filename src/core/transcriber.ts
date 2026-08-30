@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -146,7 +146,7 @@ async function transcribeRemote(
   throw new Error("Remote Whisper failed after retries");
 }
 
- /* v8 ignore start */
+
 export async function transcribeVideo(video: DownloadedVideo, config: PipelineConfig): Promise<Transcript> {
   if (!config.whisperBaseUrl) throw new Error("WHISPER_BASE_URL is required; cluster faster-whisper is the only supported transcriber");
 
@@ -210,4 +210,3 @@ export async function transcribeVideo(video: DownloadedVideo, config: PipelineCo
     duration: video.duration,
   };
 }
-/* v8 ignore stop */
