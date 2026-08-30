@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { google } from "googleapis";
 import fs from "node:fs";
 import { generateText } from "ai";
@@ -516,4 +516,3 @@ export const uploadFullVideoToYouTube = async (
   );
 };
 
-/* v8 ignore stop */
