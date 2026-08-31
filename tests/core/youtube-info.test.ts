@@ -50,7 +50,34 @@ describe("youtube-info", () => {
   });
 
   describe("getVideoInfo", () => {
-    it("getVideoInfo parses yt-dlp output successfully", async () => {
+
+  it("verifyYoutubeAccess handles non-Error rejection", async () => {
+    vi.mocked(execYtDlp).mockRejectedValue("Non-Error String");
+    await expect(verifyYoutubeAccess({} as any)).rejects.toThrow("Non-Error String");
+  });
+
+  it("verifyYoutubeAccess handles Error rejection without stderr", async () => {
+    vi.mocked(execYtDlp).mockRejectedValue(new Error("My error message"));
+    await expect(verifyYoutubeAccess({} as any)).rejects.toThrow("My error message");
+  });
+
+  it("getVideoInfo handles raw.url being missing", async () => {
+    const mockOutput = {
+      id: "vid2",
+      title: "Title2",
+      channel: "channel2",
+      duration: 120,
+    };
+    vi.mocked(execYtDlp).mockImplementation(async (args, config, cb) => {
+      if(cb) cb(null, {stdout: JSON.stringify(mockOutput) + "\n", stderr: ""});
+      return {stdout: JSON.stringify(mockOutput) + "\n", stderr: ""} as any;
+    });
+
+    const info = await getVideoInfo("myurl");
+    expect(info?.url).toBe("myurl");
+  });
+
+  it("getVideoInfo parses yt-dlp output successfully", async () => {
       const mockOutput = {
         id: "vid1",
         title: "Title",

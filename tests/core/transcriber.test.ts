@@ -84,11 +84,15 @@ describe("transcriber", () => {
   });
 });
 
-function mockWhisperResponse(body: unknown): void {
+function mockWhisperResponse(body: unknown, errorOnFirstCall: boolean = false): void {
   vi.mocked(http.request).mockImplementation((options: any, callback?: any) => {
     const req = new EventEmitter() as any;
     req.write = vi.fn();
     req.end = vi.fn(() => {
+      if (errorOnFirstCall && callCount === 1) {
+        req.emit("error", Object.assign(new Error("fetch failed"), { name: "TimeoutError" }));
+        return;
+      }
       const res = new EventEmitter() as any;
       res.statusCode = 200;
       callback(res);
