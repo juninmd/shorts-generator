@@ -202,6 +202,28 @@ describe("telegram", () => {
     await sendErrorAlert("t", e, mockConfig);
   });
 
+
+  it("should send video message without clip properly", async () => {
+    vi.mocked(fs.statSync).mockReturnValue({ size: 1024 } as any);
+    mockSendVideo.mockResolvedValue({ message_id: 888 });
+
+    const shortWithoutClip: any = {
+      id: "no-clip-vid",
+      outputPath: "path.mp4",
+      originalVideoUrl: "url",
+      channelName: "Channel",
+      status: "completed",
+      createdAt: "now",
+      viralScore: 4,
+      title: "Fallback title",
+      description: "Fallback reason"
+    };
+
+    const msgId = await sendToTelegram(shortWithoutClip, mockConfig);
+    expect(msgId).toBe(888);
+    expect(mockSendVideo).toHaveBeenCalled();
+  });
+
   it("should send video message without presenter", async () => {
     vi.mocked(fs.statSync).mockReturnValue({ size: 10 * 1024 * 1024 } as any);
     mockSendVideo.mockResolvedValue({ message_id: 111 });
