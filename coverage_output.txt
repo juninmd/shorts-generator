@@ -1,93 +1,99 @@
 
+> shorts-generator@1.0.136 test:coverage /app
+> vitest run --coverage
+
+
 [1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/app[39m
       [2mCoverage enabled with [22m[33mv8[39m
 
-[02:51:14] [33mWARN[39m: [36mTelegram not configured, skipping upload[39m
-[02:51:14] [32mINFO[39m: [36mSent to Telegram[39m
+[01:57:37] [32mINFO[39m: [36mSent to Telegram[39m
     [35mclipId[39m: "short1"
     [35mmessageId[39m: 123
-[02:51:14] [32mINFO[39m: [36mSent to Telegram[39m
+[01:57:37] [32mINFO[39m: [36mSent to Telegram[39m
     [35mclipId[39m: "short1"
     [35mmessageId[39m: 321
-[02:51:14] [33mWARN[39m: [36mVideo too large for Telegram, sending link instead[39m
+[01:57:37] [33mWARN[39m: [36mVideo too large for Telegram, sending link instead[39m
     [35mclipId[39m: "short1"
     [35msizeMB[39m: "60.0"
-[02:51:14] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
+[01:57:37] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
     [35mvideoId[39m: "v"
     [35murl[39m: "u"
-[02:51:14] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+[01:57:37] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
     [35mchannelName[39m: "Canal"
     [35mreason[39m: "daily-cap"
-[02:51:14] [32mINFO[39m: [36mSent YouTube resume alert to Telegram[39m
+[01:57:37] [32mINFO[39m: [36mSent YouTube resume alert to Telegram[39m
     [35mchannelName[39m: null
-[02:51:14] [32mINFO[39m: [36mSent to Telegram[39m
+[01:57:37] [32mINFO[39m: [36mSent to Telegram[39m
     [35mclipId[39m: "short1"
     [35mmessageId[39m: 111
-[02:51:14] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
+[01:57:37] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
     [35mvideoId[39m: "v"
     [35murl[39m: "u"
-[02:51:14] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
+[01:57:37] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
     [35mvideoId[39m: "v"
     [35murl[39m: "u"
-[02:51:14] [33mWARN[39m: [36mTelegram publish notification failed, retrying...[39m
+[01:57:37] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
+    [35mvideoId[39m: "v"
+    [35murl[39m: "u"
+[01:57:37] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 1
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 2000
-[02:51:16] [33mWARN[39m: [36mTelegram publish notification failed, retrying...[39m
+[01:57:39] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 2
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 4000
-[02:51:20] [31mERROR[39m: [36mFailed to send YouTube publish notification[39m
+[01:57:43] [31mERROR[39m: [36mFailed to send YouTube publish notification[39m
     [35mvideoId[39m: "v"
     error: "Error: Net fail"
-[02:51:20] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
+[01:57:44] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
     [35mvideoId[39m: "v"
     [35murl[39m: "u"
-[02:51:20] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
+[01:57:44] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
     [35mvideoId[39m: "v"
     [35murl[39m: "u"
-[02:51:20] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
+[01:57:44] [32mINFO[39m: [36mSent YouTube publish notification to Telegram[39m
     [35mvideoId[39m: "v"
     [35murl[39m: "u"
-[02:51:20] [32mINFO[39m: [36mSent to Telegram[39m
+[01:57:44] [32mINFO[39m: [36mSent to Telegram[39m
     [35mclipId[39m: "short1"
     [35mmessageId[39m: 111
-[02:51:20] [32mINFO[39m: [36mSent full video to Telegram[39m
-    [35mvideoId[39m: "v1"
-    [35mmessageId[39m: 333
-[02:51:20] [32mINFO[39m: [36mSent full video to Telegram[39m
-    [35mvideoId[39m: "v1"
-    [35mmessageId[39m: 333
-[02:51:20] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+[01:57:44] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
     [35mchannelName[39m: "Test Channel"
     [35mreason[39m: "youtube-quota"
-[02:51:20] [32mINFO[39m: [36mSent YouTube resume alert to Telegram[39m
+[01:57:44] [32mINFO[39m: [36mSent YouTube resume alert to Telegram[39m
     [35mchannelName[39m: "Test Channel"
-[02:51:20] [32mINFO[39m: [36mSent full video to Telegram[39m
-    [35mvideoId[39m: "v1"
-    [35mmessageId[39m: 333
-[02:51:20] [33mWARN[39m: [36mFull video too large for Telegram, sending link instead[39m
+[01:57:44] [33mWARN[39m: [36mFull video too large for Telegram, sending link instead[39m
     [35mvideoId[39m: "v1"
     [35msizeMB[39m: "60.0"
-[02:51:20] [33mWARN[39m: [36mTelegram not configured, skipping upload[39m
-[02:51:20] [32mINFO[39m: [36mSent to Telegram[39m
+[01:57:44] [33mWARN[39m: [36mTelegram not configured, skipping upload[39m
+[01:57:44] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+    [35mchannelName[39m: "Chan"
+    [35mreason[39m: "daily-cap"
+[01:57:44] [32mINFO[39m: [36mSent YouTube resume alert to Telegram[39m
+    [35mchannelName[39m: "Chan"
+[01:57:44] [32mINFO[39m: [36mSent to Telegram[39m
     [35mclipId[39m: "short1"
     [35mmessageId[39m: 321
-[02:51:20] [33mWARN[39m: [36mTelegram resume alert failed, retrying...[39m
+[01:57:44] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+    [35mchannelName[39m: "Canal"
+[01:57:44] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+    [35mchannelName[39m: "Canal"
+[01:57:44] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 1
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 2000
-[02:51:22] [33mWARN[39m: [36mTelegram resume alert failed, retrying...[39m
+[01:57:46] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 2
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 4000
-[02:51:26] [31mERROR[39m: [36mFailed to send YouTube resume alert[39m
+[01:57:50] [31mERROR[39m: [36mFailed to send YouTube resume alert[39m
     error: "Error: Net fail"
-[02:51:26] [33mWARN[39m: [36mTelegram sendVideo failed, retrying...[39m
+[01:57:50] [33mWARN[39m: [36mTelegram sendVideo failed, retrying...[39m
     [35mattempt[39m: 1
     [35mmaxAttempts[39m: 2
     [35mdelayMs[39m: 1000
-[02:51:27] [31mERROR[39m: [36mFailed to send full video to Telegram[39m
+[01:57:51] [31mERROR[39m: [36mFailed to send full video to Telegram[39m
     [35mvideoId[39m: "v1"
     error: {
       "name": "Error",
@@ -105,11 +111,11 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:51:27] [33mWARN[39m: [36mTelegram sendVideo failed, retrying...[39m
+[01:57:51] [33mWARN[39m: [36mTelegram sendVideo failed, retrying...[39m
     [35mattempt[39m: 1
     [35mmaxAttempts[39m: 2
     [35mdelayMs[39m: 1000
-[02:51:28] [31mERROR[39m: [36mFailed to send to Telegram[39m
+[01:57:52] [31mERROR[39m: [36mFailed to send to Telegram[39m
     [35mclipId[39m: "short1"
     error: {
       "name": "Error",
@@ -127,9 +133,25 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:51:28] [31mERROR[39m: [36mFailed to send error alert to Telegram[39m
+[01:57:52] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
+    [35mattempt[39m: 1
+    [35mmaxAttempts[39m: 3
+    [35mdelayMs[39m: 2000
+[01:57:54] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
+    [35mattempt[39m: 2
+    [35mmaxAttempts[39m: 3
+    [35mdelayMs[39m: 4000
+[01:57:58] [31mERROR[39m: [36mFailed to send error alert to Telegram[39m
     [35me[39m: {}
-[02:51:28] [31mERROR[39m: [36mFailed to send summary to Telegram[39m
+[01:57:58] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
+    [35mattempt[39m: 1
+    [35mmaxAttempts[39m: 3
+    [35mdelayMs[39m: 2000
+[01:58:00] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
+    [35mattempt[39m: 2
+    [35mmaxAttempts[39m: 3
+    [35mdelayMs[39m: 4000
+[01:58:04] [31mERROR[39m: [36mFailed to send summary to Telegram[39m
     error: {
       "name": "Error",
       "message": "Net fail",
@@ -146,112 +168,139 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:51:28] [32mINFO[39m: [36mSent to Telegram[39m
+[01:58:04] [32mINFO[39m: [36mSent to Telegram[39m
     [35mclipId[39m: "short1"
     [35mmessageId[39m: 111
-[02:51:28] [31mERROR[39m: [36mFailed to send error alert to Telegram[39m
+[01:58:04] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
+    [35mattempt[39m: 1
+    [35mmaxAttempts[39m: 3
+    [35mdelayMs[39m: 2000
+[01:58:06] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
+    [35mattempt[39m: 2
+    [35mmaxAttempts[39m: 3
+    [35mdelayMs[39m: 4000
+[01:58:10] [31mERROR[39m: [36mFailed to send error alert to Telegram[39m
     [35me[39m: "err str"
-[02:51:28] [33mWARN[39m: [36mTelegram resume alert failed, retrying...[39m
+[01:58:10] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+    [35mchannelName[39m: "Canal"
+[01:58:10] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 1
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 2000
-[02:51:30] [33mWARN[39m: [36mTelegram resume alert failed, retrying...[39m
+[01:58:12] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 2
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 4000
-[02:51:34] [31mERROR[39m: [36mFailed to send YouTube resume alert[39m
+[01:58:16] [31mERROR[39m: [36mFailed to send YouTube resume alert[39m
     error: "err str"
-[02:51:34] [33mWARN[39m: [36mTelegram publish notification failed, retrying...[39m
+[01:58:16] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 1
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 2000
-[02:51:36] [33mWARN[39m: [36mTelegram publish notification failed, retrying...[39m
+[01:58:18] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 2
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 4000
-[02:51:40] [31mERROR[39m: [36mFailed to send YouTube publish notification[39m
+[01:58:22] [31mERROR[39m: [36mFailed to send YouTube publish notification[39m
     [35mvideoId[39m: "v"
     error: "err str"
-[02:51:40] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+[01:58:22] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
     [35mchannelName[39m: "Test Channel"
     [35mreason[39m: "daily-cap"
-[02:51:40] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+[01:58:22] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
     [35mchannelName[39m: "Test Channel"
     [35mreason[39m: "daily-cap"
-[02:51:40] [33mWARN[39m: [36mTelegram rate-limit alert failed, retrying...[39m
+[01:58:22] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+    [35mchannelName[39m: "Canal"
+[01:58:22] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+    [35mchannelName[39m: "Canal"
+[01:58:22] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+    [35mchannelName[39m: "Canal"
+[01:58:22] [32mINFO[39m: [36mSent YouTube rate-limit alert to Telegram[39m
+    [35mchannelName[39m: "Canal"
+[01:58:22] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 1
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 2000
-[02:51:42] [33mWARN[39m: [36mTelegram rate-limit alert failed, retrying...[39m
+[01:58:24] [33mWARN[39m: [36mTelegram message sending failed, retrying...[39m
     [35mattempt[39m: 2
     [35mmaxAttempts[39m: 3
     [35mdelayMs[39m: 4000
-[02:51:46] [31mERROR[39m: [36mFailed to send YouTube rate-limit alert[39m
+[01:58:28] [31mERROR[39m: [36mFailed to send YouTube rate-limit alert[39m
     error: "Error: Net fail rate limited log"
- [32m✓[39m tests/core/telegram.test.ts [2m([22m[2m54 tests[22m[2m)[22m[33m 32198[2mms[22m[39m
-     [33m[2m✓[22m[39m should handle error in notifyYoutubePublished gracefully [33m 6009[2mms[22m[39m
-     [33m[2m✓[22m[39m should handle error in notifyYoutubeResumed gracefully [33m 6005[2mms[22m[39m
-     [33m[2m✓[22m[39m should handle error in sendFullVideoToTelegram gracefully [33m 1005[2mms[22m[39m
-     [33m[2m✓[22m[39m should handle error in sendToTelegram gracefully [33m 1004[2mms[22m[39m
+ [32m✓[39m tests/core/telegram.test.ts [2m([22m[2m54 tests[22m[2m)[22m[33m 50116[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle error in notifyYoutubePublished gracefully [33m 6008[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle error in notifyYoutubeResumed gracefully [33m 6004[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle error in sendFullVideoToTelegram gracefully [33m 1003[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle error in sendToTelegram gracefully [33m 1002[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle error in sendErrorAlert gracefully [33m 6002[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle error in sendSummary gracefully [33m 6007[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle error with missing message gracefully [33m 6008[2mms[22m[39m
      [33m[2m✓[22m[39m should handle error in notifyYoutubeResumed non error string gracefully [33m 6002[2mms[22m[39m
-     [33m[2m✓[22m[39m should handle error in notifyYoutubePublished non error string gracefully [33m 6006[2mms[22m[39m
-     [33m[2m✓[22m[39m should cover catch branch in notifyYoutubeRateLimited [33m 6007[2mms[22m[39m
-[02:51:47] [32mINFO[39m: [36mPerforming YouTube access sanity check...[39m
-[02:51:49] [32mINFO[39m: [36mYouTube format access check passed.[39m
-[02:51:52] [32mINFO[39m: [36mPerforming YouTube access sanity check...[39m
-[02:51:53] [32mINFO[39m: [36mYouTube format access check passed.[39m
- [32m✓[39m tests/core/youtube.health.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 6845[2mms[22m[39m
-     [33m[2m✓[22m[39m should verify YouTube access is working [33m 2345[2mms[22m[39m
-     [33m[2m✓[22m[39m should fetch metadata from public test video [33m 2648[2mms[22m[39m
-     [33m[2m✓[22m[39m should handle YouTube blocking gracefully [33m 1847[2mms[22m[39m
- [32m✓[39m tests/server/index.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 3844[2mms[22m[39m
-     [33m[2m✓[22m[39m should start the server when startServer is called [33m 3336[2mms[22m[39m
- [32m✓[39m tests/server/index-error.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1923[2mms[22m[39m
-         [33m[2m✓[22m[39m throws "Invalid PORT value: abc" before starting the server [33m 1770[2mms[22m[39m
-[02:52:01] [32mINFO[39m: [36mChannel updated[39m
+     [33m[2m✓[22m[39m should handle error in notifyYoutubePublished non error string gracefully [33m 6008[2mms[22m[39m
+     [33m[2m✓[22m[39m should cover catch branch in notifyYoutubeRateLimited [33m 6004[2mms[22m[39m
+[01:58:28] [32mINFO[39m: [36mPerforming YouTube access sanity check...[39m
+[01:58:32] [32mINFO[39m: [36mYouTube format access check passed.[39m
+[01:58:35] [32mINFO[39m: [36mPerforming YouTube access sanity check...[39m
+[01:58:39] [32mINFO[39m: [36mYouTube format access check passed.[39m
+ [32m✓[39m tests/core/youtube.health.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 11584[2mms[22m[39m
+     [33m[2m✓[22m[39m should verify YouTube access is working [33m 4538[2mms[22m[39m
+     [33m[2m✓[22m[39m should fetch metadata from public test video [33m 2835[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle YouTube blocking gracefully [33m 4207[2mms[22m[39m
+(node:25817) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ [32m✓[39m tests/server/index.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 2146[2mms[22m[39m
+     [33m[2m✓[22m[39m should start the server when startServer is called [33m 1873[2mms[22m[39m
+(node:25830) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ [32m✓[39m tests/server/index-error.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1608[2mms[22m[39m
+         [33m[2m✓[22m[39m throws "Invalid PORT value: abc" before starting the server [33m 1467[2mms[22m[39m
+[01:58:44] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "run"
-[02:52:01] [32mINFO[39m: [36mChannel updated[39m
+[01:58:44] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "run"
-[02:52:01] [32mINFO[39m: [36mChannel updated[39m
+[01:58:44] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "run"
-[02:52:01] [32mINFO[39m: [36mChannel updated[39m
+[01:58:44] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "run"
-[02:52:01] [32mINFO[39m: [36mChannel updated[39m
+[01:58:44] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "run"
-[02:52:01] [32mINFO[39m: [36mChannel updated[39m
+[01:58:44] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "run"
-[02:52:01] [32mINFO[39m: [36mChannel updated[39m
+[01:58:44] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "run"
-[02:52:01] [32mINFO[39m: [36mChannel updated[39m
+[01:58:44] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "run"
- [32m✓[39m tests/server/admin-run-routes.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 156[2mms[22m[39m
-[02:52:03] [33mWARN[39m: [36mTranscrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.[39m
+ [32m✓[39m tests/server/admin-run-routes.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 143[2mms[22m[39m
+(node:25855) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[01:58:46] [33mWARN[39m: [36mTranscrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.[39m
     [35mvideoId[39m: "vid1"
     [35mvideoTitle[39m: "Test Video"
-[02:52:03] [31mERROR[39m: [36mFailed to send generated short[39m
+[01:58:46] [31mERROR[39m: [36mFailed to send generated short[39m
     [35mclipId[39m: "clip1"
     [35mstage[39m: "telegram"
     error: "String Error"
-[02:52:03] [33mWARN[39m: [36m⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila[39m
+[01:58:46] [33mWARN[39m: [36m⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila[39m
     [35mlimit[39m: 5
     [35mchannelId[39m: "global"
-[02:52:03] [31mERROR[39m: [36mFailed to send generated short[39m
+[01:58:46] [31mERROR[39m: [36mFailed to send generated short[39m
     [35mclipId[39m: "clip1"
     [35mstage[39m: "telegram"
     error: {
@@ -270,10 +319,10 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:03] [32mINFO[39m: [36m🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora[39m
+[01:58:46] [32mINFO[39m: [36m🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora[39m
     [35mclipId[39m: "clip1"
     [35mchannelId[39m: "global"
-[02:52:03] [31mERROR[39m: [36mFatal video error[39m
+[01:58:46] [31mERROR[39m: [36mFatal video error[39m
     [35mvideoId[39m: "vid1"
     error: {
       "name": "Error",
@@ -291,7 +340,7 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:03] [31mERROR[39m: [36mFatal video error[39m
+[01:58:46] [31mERROR[39m: [36mFatal video error[39m
     [35mvideoId[39m: "vid1"
     error: {
       "name": "Error",
@@ -309,7 +358,7 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:03] [31mERROR[39m: [36mFailed to send generated short[39m
+[01:58:46] [31mERROR[39m: [36mFailed to send generated short[39m
     [35mclipId[39m: "clip1"
     [35mstage[39m: "metadata"
     error: {
@@ -328,13 +377,89 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:03] [33mWARN[39m: [36mYouTube upload failed, queueing for retry[39m
+[01:58:46] [33mWARN[39m: [36mYouTube upload failed, queueing for retry[39m
     [35mclipId[39m: "clip1"
-[02:52:03] [33mWARN[39m: [36mTranscrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.[39m
+[01:58:46] [33mWARN[39m: [36mTranscrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.[39m
     [35mvideoId[39m: "vid1"
     [35mvideoTitle[39m: "Test Video"
- [32m✓[39m tests/core/pipeline-video-processor.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 143[2mms[22m[39m
-[02:52:05] [31mERROR[39m: [36mJob failed[39m
+ [32m✓[39m tests/core/pipeline-video-processor.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 132[2mms[22m[39m
+[01:58:47] [33mWARN[39m: [36mOAuth callback error[39m
+    [35madminId[39m: "system"
+    error: "denied"
+[01:58:47] [33mWARN[39m: [36mOAuth callback missing code or state[39m
+    [35madminId[39m: "system"
+[01:58:47] [31mERROR[39m: [36mInvalid state parameter[39m
+    [35madminId[39m: "system"
+    [35mstate[39m: "invalid"
+[01:58:47] [33mWARN[39m: [36mNo refresh token received - user may have already granted consent[39m
+    [35madminId[39m: "system"
+    [35mchannelId[39m: "c1"
+    [35maccountId[39m: "a1"
+[01:58:47] [33mWARN[39m: [36mFailed to send Telegram notification[39m
+    error: {
+      "name": "Error",
+      "message": "notify fail",
+      "stack":
+          Error: notify fail
+              at /app/tests/server/admin-oauth-routes.test.ts:151:58
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:58:47] [31mERROR[39m: [36mFailed to generate YouTube auth URL[39m
+    [35madminId[39m: "system"
+    [35mchannelId[39m: "test"
+    error: {
+      "name": "Error",
+      "message": "db error",
+      "stack":
+          Error: db error
+              at /app/tests/server/admin-oauth-routes.test.ts:159:53
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+[01:58:47] [31mERROR[39m: [36mInvalid state parameter[39m
+    [35madminId[39m: "system"
+    [35mstate[39m: "e2ludmFsaWQganNvbn0"
+[01:58:47] [31mERROR[39m: [36mOAuth callback failed[39m
+    [35madminId[39m: "system"
+    error: "string error"
+[01:58:47] [31mERROR[39m: [36mOAuth callback failed[39m
+    [35madminId[39m: "system"
+    error: {
+      "name": "Error",
+      "message": "object error",
+      "stack":
+          Error: object error
+              at /app/tests/server/admin-oauth-routes.test.ts:203:53
+              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
+              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
+              at new Promise (<anonymous>)
+              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
+              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
+              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
+    }
+ [32m✓[39m tests/server/admin-oauth-routes.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+ [32m✓[39m tests/core/youtube.service.test.ts [2m([22m[2m38 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+(node:25888) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[01:58:49] [31mERROR[39m: [36mJob failed[39m
     [35mjobId[39m: "test-job-id"
     error: {
       "name": "Error",
@@ -352,10 +477,10 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:05] [31mERROR[39m: [36mJob failed[39m
+[01:58:49] [31mERROR[39m: [36mJob failed[39m
     [35mjobId[39m: "test-job-id"
     error: "String error"
-[02:52:05] [31mERROR[39m: [36mJob failed[39m
+[01:58:49] [31mERROR[39m: [36mJob failed[39m
     [35mjobId[39m: "test-job-id"
     error: {
       "name": "Error",
@@ -373,23 +498,23 @@
               at /app/tests/server/routes.test.ts:310:21
               at file:///app/node_modules/@vitest/runner/dist/index.js:915:20
     }
- [32m✓[39m tests/server/routes.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 79[2mms[22m[39m
-[02:52:06] [33mWARN[39m: [36mAdmin mutation failed[39m
+ [32m✓[39m tests/server/routes.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+[01:58:49] [33mWARN[39m: [36mAdmin mutation failed[39m
     [35mchannelId[39m: "test"
     [35maction[39m: "save"
-[02:52:06] [32mINFO[39m: [36mChannel updated[39m
+[01:58:49] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "create"
-[02:52:06] [32mINFO[39m: [36mChannel updated[39m
+[01:58:49] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "update"
-[02:52:06] [32mINFO[39m: [36mChannel updated[39m
+[01:58:49] [32mINFO[39m: [36mChannel updated[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35maction[39m: "delete"
-[02:52:06] [33mWARN[39m: [36mChannel connection test failed[39m
+[01:58:49] [33mWARN[39m: [36mChannel connection test failed[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35mprovider[39m: "youtube"
@@ -409,7 +534,7 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:06] [33mWARN[39m: [36mChannel connection test failed[39m
+[01:58:49] [33mWARN[39m: [36mChannel connection test failed[39m
     [35madminId[39m: "system"
     [35mchannelId[39m: "test"
     [35mprovider[39m: "youtube"
@@ -425,93 +550,18 @@
               at /app/tests/server/admin-channel-routes.test.ts:201:17
               at file:///app/node_modules/@vitest/runner/dist/index.js:915:20
     }
- [32m✓[39m tests/server/admin-channel-routes.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 82[2mms[22m[39m
-[02:52:06] [33mWARN[39m: [36mOAuth callback error[39m
-    [35madminId[39m: "system"
-    error: "denied"
-[02:52:06] [33mWARN[39m: [36mOAuth callback missing code or state[39m
-    [35madminId[39m: "system"
-[02:52:06] [31mERROR[39m: [36mInvalid state parameter[39m
-    [35madminId[39m: "system"
-    [35mstate[39m: "invalid"
-[02:52:06] [33mWARN[39m: [36mNo refresh token received - user may have already granted consent[39m
-    [35madminId[39m: "system"
-    [35mchannelId[39m: "c1"
-    [35maccountId[39m: "a1"
-[02:52:06] [33mWARN[39m: [36mFailed to send Telegram notification[39m
-    error: {
-      "name": "Error",
-      "message": "notify fail",
-      "stack":
-          Error: notify fail
-              at /app/tests/server/admin-oauth-routes.test.ts:151:58
-              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
-              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
-              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
-              at new Promise (<anonymous>)
-              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
-              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
-              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
-              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
-              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
-    }
-[02:52:06] [31mERROR[39m: [36mFailed to generate YouTube auth URL[39m
-    [35madminId[39m: "system"
-    [35mchannelId[39m: "test"
-    error: {
-      "name": "Error",
-      "message": "db error",
-      "stack":
-          Error: db error
-              at /app/tests/server/admin-oauth-routes.test.ts:159:53
-              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
-              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
-              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
-              at new Promise (<anonymous>)
-              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
-              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
-              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
-              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
-              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
-    }
-[02:52:06] [31mERROR[39m: [36mInvalid state parameter[39m
-    [35madminId[39m: "system"
-    [35mstate[39m: "e2ludmFsaWQganNvbn0"
-[02:52:06] [31mERROR[39m: [36mOAuth callback failed[39m
-    [35madminId[39m: "system"
-    error: "string error"
-[02:52:06] [31mERROR[39m: [36mOAuth callback failed[39m
-    [35madminId[39m: "system"
-    error: {
-      "name": "Error",
-      "message": "object error",
-      "stack":
-          Error: object error
-              at /app/tests/server/admin-oauth-routes.test.ts:203:53
-              at file:///app/node_modules/@vitest/runner/dist/index.js:145:11
-              at file:///app/node_modules/@vitest/runner/dist/index.js:915:26
-              at file:///app/node_modules/@vitest/runner/dist/index.js:1243:20
-              at new Promise (<anonymous>)
-              at runWithTimeout (file:///app/node_modules/@vitest/runner/dist/index.js:1209:10)
-              at file:///app/node_modules/@vitest/runner/dist/index.js:1653:37
-              at Traces.$ (file:///app/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
-              at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
-              at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
-    }
- [32m✓[39m tests/server/admin-oauth-routes.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 95[2mms[22m[39m
- [32m✓[39m tests/server/job-api-flow.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 64[2mms[22m[39m
- [32m✓[39m tests/core/youtube.service.test.ts [2m([22m[2m38 tests[22m[2m)[22m[32m 79[2mms[22m[39m
- [32m✓[39m tests/server/youtube-oauth-routes.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 76[2mms[22m[39m
-[02:52:09] [33mWARN[39m: [36mNo channels configured for top video pipeline[39m
- [32m✓[39m tests/core/pipeline.test.ts [2m([22m[2m51 tests[22m[2m)[22m[32m 69[2mms[22m[39m
-[02:52:09] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
+ [32m✓[39m tests/server/admin-channel-routes.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+ [32m✓[39m tests/server/youtube-oauth-routes.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+[01:58:50] [33mWARN[39m: [36mNo channels configured for top video pipeline[39m
+ [32m✓[39m tests/core/pipeline.test.ts [2m([22m[2m51 tests[22m[2m)[22m[32m 54[2mms[22m[39m
+[01:58:50] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
     [35mchannel[39m: "channel1"
-[02:52:09] [33mWARN[39m: [36mNo valid unposted top video found for this channel.[39m
-[02:52:09] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
+[01:58:50] [33mWARN[39m: [36mNo valid unposted top video found for this channel.[39m
+[01:58:50] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
     [35mchannel[39m: "channel1"
-[02:52:09] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
+[01:58:50] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
     [35mchannel[39m: "channel1"
-[02:52:09] [31mERROR[39m: [36mFailed to process full top video[39m
+[01:58:50] [31mERROR[39m: [36mFailed to process full top video[39m
     [35mvideoId[39m: "vid1"
     error: {
       "name": "Error",
@@ -529,32 +579,32 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:09] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
+[01:58:50] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
     [35mchannel[39m: "channel1"
-[02:52:09] [31mERROR[39m: [36mFailed to process full top video[39m
+[01:58:50] [31mERROR[39m: [36mFailed to process full top video[39m
     [35mvideoId[39m: "vid1"
     error: "str err"
-[02:52:09] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
+[01:58:50] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
     [35mchannel[39m: "channel1"
-[02:52:09] [33mWARN[39m: [36mNo valid unposted top video found for this channel.[39m
-[02:52:09] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
+[01:58:50] [33mWARN[39m: [36mNo valid unposted top video found for this channel.[39m
+[01:58:50] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
     [35mchannel[39m: "channel1"
-[02:52:09] [33mWARN[39m: [36mNo valid unposted top video found for this channel.[39m
-[02:52:09] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo valid unposted top video found for this channel.[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:09] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:09] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:09] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:09] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
@@ -562,11 +612,11 @@
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:09] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
@@ -574,11 +624,11 @@
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
@@ -586,21 +636,21 @@
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 2
-[02:52:10] [32mINFO[39m: [36m🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora[39m
+[01:58:50] [32mINFO[39m: [36m🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora[39m
     [35mclipId[39m: "clip1"
     [35mchannelId[39m: "global"
-[02:52:10] [33mWARN[39m: [36m⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila[39m
+[01:58:50] [33mWARN[39m: [36m⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila[39m
     [35mchannelId[39m: "global"
-[02:52:10] [33mWARN[39m: [36mYouTube upload failed, queueing for retry[39m
+[01:58:50] [33mWARN[39m: [36mYouTube upload failed, queueing for retry[39m
     [35mclipId[39m: "clip1"
-[02:52:10] [33mWARN[39m: [36mTranscrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.[39m
+[01:58:50] [33mWARN[39m: [36mTranscrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.[39m
     [35mvideoId[39m: "vid1"
     [35mvideoTitle[39m: "Vid"
-[02:52:10] [31mERROR[39m: [36mFatal video error[39m
+[01:58:50] [31mERROR[39m: [36mFatal video error[39m
     [35mvideoId[39m: "vid1"
     error: {
       "name": "Error",
@@ -618,7 +668,7 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
@@ -626,11 +676,11 @@
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
@@ -638,26 +688,26 @@
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: []
     [35mvideoQuery[39m: "none"
-[02:52:10] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 2
-[02:52:10] [31mERROR[39m: [36mFailed to send generated short[39m
+[01:58:50] [31mERROR[39m: [36mFailed to send generated short[39m
     [35mclipId[39m: "clip1"
     [35mstage[39m: "telegram"
     error: {
@@ -676,209 +726,198 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1",
       "url2"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mTarget de shorts alcançado; finalizando pipeline[39m
+[01:58:50] [32mINFO[39m: [36mTarget de shorts alcançado; finalizando pipeline[39m
     [35mtargetShorts[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
     [35murls[39m: []
     [35mvideoQuery[39m: "evangelho"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
     [35murls[39m: []
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 2
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "homilia"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "evangelho"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
+[01:58:50] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
     [35mchannel[39m: "channel1"
-[02:52:10] [33mWARN[39m: [36mNo valid unposted top video found for this channel.[39m
-[02:52:10] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
+[01:58:50] [33mWARN[39m: [36mNo valid unposted top video found for this channel.[39m
+[01:58:50] [32mINFO[39m: [36mSelected random channel for top video pipeline[39m
     [35mchannel[39m: "channel1"
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
     [35murls[39m: []
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1",
       "url2"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
     [35murls[39m: []
     [35mvideoQuery[39m: "none"
-[02:52:10] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
     [35murls[39m: []
     [35mvideoQuery[39m: "none"
-[02:52:10] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [33mWARN[39m: [36mNo videos found to process[39m
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [33mWARN[39m: [36mNo videos found to process[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: []
     [35murls[39m: [
       "url1"
     ]
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
     [35murls[39m: []
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline starting[39m
+[01:58:50] [32mINFO[39m: [36mPipeline starting[39m
     [35mchannels[39m: [
       "channel1"
     ]
     [35murls[39m: []
     [35mvideoQuery[39m: "none"
-[02:52:10] [32mINFO[39m: [36mStarting pipeline[39m
+[01:58:50] [32mINFO[39m: [36mStarting pipeline[39m
     [35mvideoCount[39m: 1
-[02:52:10] [32mINFO[39m: [36mPipeline completed[39m
+[01:58:50] [32mINFO[39m: [36mPipeline completed[39m
     [35mshortsCount[39m: 0
- [32m✓[39m tests/server/auth-middleware.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 59[2mms[22m[39m
-[02:52:10] [33mWARN[39m: [36mUnauthorized admin request[39m
+(node:25934) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ [32m✓[39m tests/server/job-api-flow.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+ [32m✓[39m tests/server/auth-middleware.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+[01:58:52] [33mWARN[39m: [36mUnauthorized admin request[39m
     [35morigin[39m: "http://localhost:5173"
     [35mpath[39m: "/admin/channels"
-[02:52:10] [33mWARN[39m: [36mUnauthorized admin request[39m
+[01:58:52] [33mWARN[39m: [36mUnauthorized admin request[39m
     [35morigin[39m: "http://evil.example"
     [35mpath[39m: "/admin/channels"
-[02:52:10] [33mWARN[39m: [36mUnauthorized admin request[39m
+[01:58:52] [33mWARN[39m: [36mUnauthorized admin request[39m
     [35morigin[39m: "http://localhost:5173"
     [35mpath[39m: "/admin/channels"
-[02:52:10] [33mWARN[39m: [36mUnauthorized admin request[39m
+[01:58:52] [33mWARN[39m: [36mUnauthorized admin request[39m
     [35morigin[39m: "http://localhost:5173"
     [35mpath[39m: "/admin/test"
-[02:52:10] [33mWARN[39m: [36mUnauthorized admin request[39m
+[01:58:52] [33mWARN[39m: [36mUnauthorized admin request[39m
     [35mpath[39m: "/admin/channels"
-[02:52:10] [33mWARN[39m: [36mUnauthorized admin request[39m
+[01:58:52] [33mWARN[39m: [36mUnauthorized admin request[39m
     [35morigin[39m: "http://localhost:5173"
     [35mpath[39m: "/admin/channels"
-[02:52:10] [33mWARN[39m: [36mUnauthorized admin request[39m
+[01:58:52] [33mWARN[39m: [36mUnauthorized admin request[39m
     [35morigin[39m: ""
     [35mpath[39m: "/admin/channels"
- [32m✓[39m tests/server/admin-routes.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 50[2mms[22m[39m
-[02:52:10] [32mINFO[39m: [36mProtected admin routes registered[39m
+ [32m✓[39m tests/server/admin-routes.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 42[2mms[22m[39m
+[01:58:52] [32mINFO[39m: [36mProtected admin routes registered[39m
     [35mallowedOrigins[39m: [
       "*"
     ]
- [32m✓[39m tests/core/sqlite-db.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 47[2mms[22m[39m
- [32m✓[39m tests/core/queue.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 41[2mms[22m[39m
- [32m✓[39m tests/core/youtube-reauth.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 37[2mms[22m[39m
- [32m✓[39m tests/core/quiz/quiz-assets.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 31[2mms[22m[39m
- [32m✓[39m tests/core/control-plane-db.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 39[2mms[22m[39m
- [32m✓[39m tests/core/short-renderer.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 37[2mms[22m[39m
-[02:52:13] [31mERROR[39m: [36mFFmpeg CRASHED! O vídeo gerado provavelmente está corrompido ou vazio.[39m
-    [35mcommand[39m: "mocked_ffmpeg -ss 0 -i in.mp4 -y -filter_complex [0:v]scale=w='if(gt(iw/ih,1080/1920),-1,1080)':h='if(gt(iw/ih,1080/1920),1920,-1)':flags=lanczos+accurate_rnd,crop=1080:1920:'clip((in_w*0.5000)-(1080/2)\,0\,in_w-1080)':(in_h-1920)/2,scale=w='ceil(iw*(1+0.07*pow(sin(PI*t/8),2))/2)*2':h=-2:eval=frame:flags=lanczos,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2,hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1,ass='sub.ass'[base];[base]copy[v] -map [v] -map 0:a? -af highpass=f=70,lowpass=f=16000,acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2:detection=rms,loudnorm=I=-16:TP=-1.5:LRA=7,afade=t=in:st=0:d=0.08,afade=t=out:st=9.88:d=0.12 -t 10 -c:v libx264 -preset slow -crf 18 -profile:v high -level 4.1 -c:a aac -b:a 256k -ar 44100 -movflags +faststart -pix_fmt yuv420p -r 30 out.mp4"
-    err: {
-      "type": "Error",
-      "message": "FFmpeg finished but output file is missing: out.mp4",
-      "stack":
-          Error: FFmpeg finished but output file is missing: out.mp4
-              at verifyOutput (/app/src/core/short-renderer.ts:131:11)
-              at runFfmpeg (/app/src/core/short-renderer.ts:119:5)
-              at processTicksAndRejections (node:internal/process/task_queues:103:5)
-              at Module.renderShort (/app/src/core/short-renderer.ts:102:3)
-              at /app/tests/core/short-renderer.test.ts:109:7
-              at file:///app/node_modules/@vitest/runner/dist/index.js:915:20
-    }
- [32m✓[39m tests/core/quiz/quiz-pipeline.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 31[2mms[22m[39m
- [32m✓[39m tests/core/state.test.ts [2m([22m[2m30 tests[22m[2m)[22m[32m 29[2mms[22m[39m
- [32m✓[39m tests/core/analyzer-generation-branches.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 27[2mms[22m[39m
-[02:52:17] [32mINFO[39m: [36mStarting professional clip selection[39m
+ [32m✓[39m tests/core/sqlite-db.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m tests/core/queue.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-assets.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m tests/core/youtube-reauth.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m tests/core/control-plane-db.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m tests/core/short-renderer.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-pipeline.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-generation-branches.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m tests/core/state.test.ts [2m([22m[2m30 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+[01:58:57] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:17] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+[01:58:57] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
     error: {
       "name": "Error",
       "message": "AI Error",
@@ -895,7 +934,7 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:17] [31mERROR[39m: [36mFalha no fallback do LLM[39m
+[01:58:57] [31mERROR[39m: [36mFalha no fallback do LLM[39m
     error: {
       "name": "Error",
       "message": "AI Fallback Error",
@@ -912,23 +951,23 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:17] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:58:57] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 0
     [35mvalid[39m: 0
     [35mselected[39m: 0
-[02:52:17] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:58:57] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 0
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 0
     [35mapproved[39m: 0
     [35melapsedSec[39m: "0.0"
-[02:52:17] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:58:57] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:17] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+[01:58:57] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
     error: {
       "name": "AbortError",
       "message": "aborted",
@@ -945,7 +984,7 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:17] [31mERROR[39m: [36mFalha no fallback do LLM[39m
+[01:58:57] [31mERROR[39m: [36mFalha no fallback do LLM[39m
     error: {
       "name": "Error",
       "message": "fallback also failed",
@@ -962,23 +1001,23 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:17] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:58:57] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 0
     [35mvalid[39m: 0
     [35mselected[39m: 0
-[02:52:17] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:58:57] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 0
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 0
     [35mapproved[39m: 0
     [35melapsedSec[39m: "0.0"
-[02:52:17] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:58:57] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:17] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+[01:58:57] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
     error: {
       "name": "Error",
       "message": "main failed",
@@ -995,23 +1034,23 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:17] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:58:57] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 0
     [35mvalid[39m: 0
     [35mselected[39m: 0
-[02:52:17] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:58:57] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 0
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 0
     [35mapproved[39m: 0
     [35melapsedSec[39m: "0.0"
-[02:52:17] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:58:57] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:17] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+[01:58:57] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
     error: {
       "name": "Error",
       "message": "main failed",
@@ -1028,23 +1067,23 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:17] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:58:57] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 1
     [35mvalid[39m: 1
     [35mselected[39m: 1
-[02:52:17] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:58:57] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 1
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 1
     [35mapproved[39m: 1
     [35melapsedSec[39m: "0.0"
-[02:52:17] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:58:57] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:17] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
+[01:58:57] [31mERROR[39m: [36mFalha na geração estruturada; tentando fallback[39m
     error: {
       "name": "Error",
       "message": "main failed",
@@ -1061,182 +1100,154 @@
               at trace (file:///app/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
               at runTest (file:///app/node_modules/@vitest/runner/dist/index.js:1653:12)
     }
-[02:52:17] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:58:57] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 1
     [35mvalid[39m: 1
     [35mselected[39m: 1
-[02:52:17] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:58:57] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 1
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 1
     [35mapproved[39m: 1
     [35melapsedSec[39m: "0.0"
- [32m✓[39m tests/core/analyzer-fallback.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 27[2mms[22m[39m
- [32m✓[39m tests/server/job-store.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 25[2mms[22m[39m
- [32m✓[39m tests/core/face-framing.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m tests/core/youtube.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 25[2mms[22m[39m
- [32m✓[39m tests/cli-interactive.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 27[2mms[22m[39m
- [32m✓[39m tests/core/generate-json.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 22[2mms[22m[39m
- [32m✓[39m tests/core/channel-bundle-repository.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 22[2mms[22m[39m
- [32m✓[39m tests/core/clip-boundary.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 9[2mms[22m[39m
-[02:52:21] [32mINFO[39m: [36mStarting professional clip selection[39m
+ [32m✓[39m tests/core/analyzer-fallback.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m tests/core/youtube.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m tests/server/job-store.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+[01:58:58] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 4
     [35mmaxCuts[39m: 6
     [35mcandidateMax[39m: 12
-[02:52:21] [32mINFO[39m: [36m📦 Transcrição grande — analisando em chunks[39m
+ [32m✓[39m tests/core/analyzer-chunking.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 18[2mms[22m[39m
+[01:58:58] [32mINFO[39m: [36m📦 Transcrição grande — analisando em chunks[39m
     [35mvideoId[39m: "vid1"
     [35mchunkCount[39m: 5
     [35mtotalSegments[39m: 600
-[02:52:21] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+[01:58:58] [32mINFO[39m: [36m🔍 Analisando chunk[39m
     [35mchunk[39m: 1
     [35mof[39m: 5
     [35msegments[39m: 139
     [35mchars[39m: 31861
-[02:52:21] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+[01:58:58] [32mINFO[39m: [36m🔍 Analisando chunk[39m
     [35mchunk[39m: 2
     [35mof[39m: 5
     [35msegments[39m: 139
     [35mchars[39m: 31969
-[02:52:21] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+[01:58:58] [32mINFO[39m: [36m🔍 Analisando chunk[39m
     [35mchunk[39m: 3
     [35mof[39m: 5
     [35msegments[39m: 139
     [35mchars[39m: 31969
-[02:52:21] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+[01:58:58] [32mINFO[39m: [36m🔍 Analisando chunk[39m
     [35mchunk[39m: 4
     [35mof[39m: 5
     [35msegments[39m: 138
     [35mchars[39m: 31838
-[02:52:21] [32mINFO[39m: [36m🔍 Analisando chunk[39m
+[01:58:58] [32mINFO[39m: [36m🔍 Analisando chunk[39m
     [35mchunk[39m: 5
     [35mof[39m: 5
     [35msegments[39m: 53
     [35mchars[39m: 12295
-[02:52:21] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:58:58] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 1
     [35mvalid[39m: 1
     [35mselected[39m: 1
-[02:52:21] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:58:58] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 1
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 1
     [35mapproved[39m: 1
     [35melapsedSec[39m: "0.0"
- [32m✓[39m tests/core/analyzer-chunking.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 27[2mms[22m[39m
- [32m✓[39m tests/server/admin-schemas.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m tests/core/video-processor.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 23[2mms[22m[39m
- [32m✓[39m tests/core/pipeline-smoke.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 21[2mms[22m[39m
- [32m✓[39m tests/core/pipeline-filters.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 19[2mms[22m[39m
- [32m✓[39m tests/core/clip-processing-branches.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m tests/core/transcriber.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 20[2mms[22m[39m
- [32m✓[39m tests/core/channel-config-resolver.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 19[2mms[22m[39m
- [32m✓[39m tests/core/state-missing.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
- [32m✓[39m tests/core/candidate-discovery-branches.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m tests/core/analyzer.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 18[2mms[22m[39m
-[02:52:24] [32mINFO[39m: [36mStarting professional clip selection[39m
+(node:26090) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ [32m✓[39m tests/cli-interactive.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m tests/core/channel-bundle-repository.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m tests/core/video-processor.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/core/generate-json.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m tests/core/pipeline-smoke.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/core/viral-feedback.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m tests/core/pipeline-filters.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m tests/core/state-missing.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/channel-config-resolver.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m tests/core/youtube-ytdlp.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+[01:59:02] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:24] [32mINFO[39m: [36mClip quality filters applied[39m
+ [32m✓[39m tests/core/analyzer.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+[01:59:02] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 1
     [35mvalid[39m: 1
     [35mselected[39m: 1
-[02:52:24] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:59:02] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 1
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 1
     [35mapproved[39m: 1
     [35melapsedSec[39m: "0.0"
-[02:52:24] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:59:02] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:24] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:02] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 2
     [35mvalid[39m: 2
     [35mselected[39m: 2
-[02:52:24] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:59:02] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 2
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 2
     [35mapproved[39m: 2
     [35melapsedSec[39m: "0.0"
-[02:52:24] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:59:02] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:24] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:02] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 0
     [35mvalid[39m: 0
     [35mselected[39m: 0
-[02:52:24] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:59:02] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 0
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 0
     [35mapproved[39m: 0
     [35melapsedSec[39m: "0.0"
-[02:52:24] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:59:02] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:24] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:02] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 0
     [35mvalid[39m: 0
     [35mselected[39m: 0
-[02:52:24] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:59:02] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 0
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 0
     [35mapproved[39m: 0
     [35melapsedSec[39m: "0.0"
- [32m✓[39m tests/core/analyzer-candidate-pool.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 17[2mms[22m[39m
-[02:52:24] [32mINFO[39m: [36mStarting professional clip selection[39m
-    [35mvideoId[39m: "full-scan"
-    [35mminCuts[39m: 1
-    [35mmaxCuts[39m: 3
-    [35mcandidateMax[39m: 6
-[02:52:24] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
-    [35mtitle[39m: "Candidate 0"
-[02:52:24] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
-    [35mtitle[39m: "Candidate 1"
-[02:52:24] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
-    [35mtitle[39m: "Candidate 2"
-[02:52:24] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
-    [35mtitle[39m: "Candidate 3"
-[02:52:24] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
-    [35mtitle[39m: "Candidate 4"
-[02:52:24] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
-    [35mtitle[39m: "Candidate 5"
-[02:52:24] [32mINFO[39m: [36mClip quality filters applied[39m
-    [35mtotal[39m: 1
-    [35mvalid[39m: 1
-    [35mselected[39m: 1
-[02:52:24] [32mINFO[39m: [36mProfessional clip selection completed[39m
-    [35mvideoId[39m: "full-scan"
-    [35mrawCandidates[39m: 6
-    [35mdiscoveredCandidates[39m: 1
-    [35muniqueCandidates[39m: 7
-    [35mapproved[39m: 1
-    [35melapsedSec[39m: "0.0"
- [32m✓[39m tests/core/clip-quality.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m✓[39m tests/core/analyzer-quality.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 18[2mms[22m[39m
-[02:52:25] [32mINFO[39m: [36mStarting professional clip selection[39m
+ [32m✓[39m tests/core/clip-quality.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+(node:26191) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ [32m✓[39m tests/server/health-check.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-quality.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+[01:59:05] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "video-1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:25] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+[01:59:05] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
     [35mtitle[39m: "A história que pode mudar sua disciplina hoje"
     [35mreview[39m: {
       "candidateIndex": 0,
@@ -1247,128 +1258,162 @@
       "approved": false,
       "reason": "Começa com introdução."
     }
-[02:52:25] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:05] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 0
     [35mvalid[39m: 0
     [35mselected[39m: 0
-[02:52:25] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:05] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 0
     [35mvalid[39m: 0
     [35mselected[39m: 0
-[02:52:25] [32mINFO[39m: [36mClip repair pass completed[39m
+[01:59:05] [32mINFO[39m: [36mClip repair pass completed[39m
     [35mrepairedCandidates[39m: 0
     [35mapprovedRepairs[39m: 0
-[02:52:25] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:59:05] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "video-1"
     [35mrawCandidates[39m: 1
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 1
     [35mapproved[39m: 0
     [35melapsedSec[39m: "0.0"
-[02:52:25] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:59:05] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "video-2"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 1
     [35mcandidateMax[39m: 2
-[02:52:25] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:05] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 1
     [35mvalid[39m: 0
     [35mselected[39m: 0
-[02:52:25] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:05] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 1
     [35mvalid[39m: 1
     [35mselected[39m: 1
-[02:52:25] [32mINFO[39m: [36mClip repair pass completed[39m
+[01:59:05] [32mINFO[39m: [36mClip repair pass completed[39m
     [35mrepairedCandidates[39m: 1
     [35mapprovedRepairs[39m: 1
-[02:52:25] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:59:05] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "video-2"
     [35mrawCandidates[39m: 1
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 1
     [35mapproved[39m: 1
     [35melapsedSec[39m: "0.0"
- [32m✓[39m tests/core/viral-feedback.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m✓[39m tests/core/youtube-ytdlp.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m✓[39m tests/server/health-check.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 17[2mms[22m[39m
- [32m✓[39m tests/core/analyzer-generation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 17[2mms[22m[39m
- [32m✓[39m tests/core/managed-run-repository.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 19[2mms[22m[39m
- [32m✓[39m tests/core/short-quality.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 17[2mms[22m[39m
- [32m✓[39m tests/core/quiz/quiz-tts.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
- [32m✓[39m tests/core/youtube-download.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m✓[39m tests/core/secret-store.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 16[2mms[22m[39m
- [32m✓[39m tests/core/config.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 16[2mms[22m[39m
- [32m✓[39m tests/core/quiz/quiz-ffmpeg.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 16[2mms[22m[39m
- [32m✓[39m tests/core/quiz/quiz-video.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
- [32m✓[39m tests/core/youtube-info.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m tests/core/transcriber.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/managed-run-repository.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-candidate-pool.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 14[2mms[22m[39m
+[01:59:05] [32mINFO[39m: [36mStarting professional clip selection[39m
+    [35mvideoId[39m: "full-scan"
+    [35mminCuts[39m: 1
+    [35mmaxCuts[39m: 3
+    [35mcandidateMax[39m: 6
+[01:59:05] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 0"
+[01:59:05] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 1"
+[01:59:05] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 2"
+[01:59:05] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 3"
+[01:59:05] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 4"
+[01:59:05] [32mINFO[39m: [36mClip rejected by editorial quality review[39m
+    [35mtitle[39m: "Candidate 5"
+[01:59:05] [32mINFO[39m: [36mClip quality filters applied[39m
+    [35mtotal[39m: 1
+    [35mvalid[39m: 1
+    [35mselected[39m: 1
+[01:59:05] [32mINFO[39m: [36mProfessional clip selection completed[39m
+    [35mvideoId[39m: "full-scan"
+    [35mrawCandidates[39m: 6
+    [35mdiscoveredCandidates[39m: 1
+    [35muniqueCandidates[39m: 7
+    [35mapproved[39m: 1
+    [35melapsedSec[39m: "0.0"
+ [32m✓[39m tests/core/config.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-ffmpeg.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-generation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/core/youtube-download.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/core/secret-store.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/core/youtube-info.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/core/short-quality.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-video.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 14[2mms[22m[39m
  [32m✓[39m tests/core/retry-backoff.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 13[2mms[22m[39m
- [32m✓[39m tests/core/presenter-title.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 14[2mms[22m[39m
- [32m✓[39m tests/core/youtube-channel.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 13[2mms[22m[39m
- [32m✓[39m tests/core/analyzer-filtering.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 15[2mms[22m[39m
-[02:52:31] [32mINFO[39m: [36mStarting professional clip selection[39m
+ [32m✓[39m tests/core/quiz/quiz-domain.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-tts.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/core/clip-repair.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m tests/core/presenter-title.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-filtering.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+[01:59:09] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:31] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:09] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 2
     [35mvalid[39m: 1
     [35mselected[39m: 1
-[02:52:31] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:59:09] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 4
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 2
     [35mapproved[39m: 1
     [35melapsedSec[39m: "0.0"
-[02:52:31] [32mINFO[39m: [36mStarting professional clip selection[39m
+[01:59:09] [32mINFO[39m: [36mStarting professional clip selection[39m
     [35mvideoId[39m: "vid1"
     [35mminCuts[39m: 1
     [35mmaxCuts[39m: 2
     [35mcandidateMax[39m: 4
-[02:52:31] [32mINFO[39m: [36mClip quality filters applied[39m
+[01:59:09] [32mINFO[39m: [36mClip quality filters applied[39m
     [35mtotal[39m: 1
     [35mvalid[39m: 1
     [35mselected[39m: 1
-[02:52:31] [32mINFO[39m: [36mProfessional clip selection completed[39m
+[01:59:09] [32mINFO[39m: [36mProfessional clip selection completed[39m
     [35mvideoId[39m: "vid1"
     [35mrawCandidates[39m: 1
     [35mdiscoveredCandidates[39m: 0
     [35muniqueCandidates[39m: 1
     [35mapproved[39m: 1
     [35melapsedSec[39m: "0.0"
- [32m✓[39m tests/core/quiz/quiz-domain.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
- [32m✓[39m tests/core/clip-repair.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
- [32m✓[39m tests/core/youtube-section.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 13[2mms[22m[39m
- [32m✓[39m tests/core/audio-chunker.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 13[2mms[22m[39m
- [32m✓[39m tests/core/quiz/quiz-content.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 12[2mms[22m[39m
- [32m✓[39m tests/core/analyzer-chunks.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 12[2mms[22m[39m
- [32m✓[39m tests/core/quiz/quiz-filters.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
- [32m✓[39m tests/core/subtitle.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m tests/core/full-video-metadata.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m tests/core/clip-quality-branches.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 12[2mms[22m[39m
- [32m✓[39m tests/core/control-plane-migrations.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m tests/server/admin-helpers.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m tests/core/control-plane-config.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m tests/core/clip-processing.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m tests/core/analyzer-schema.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m tests/core/video-metadata.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m tests/core/abort-timeout.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m tests/core/quiz/quiz-pipeline-helpers.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m tests/core/candidate-discovery.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m tests/core/ai-provider.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/core/audio-chunker.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/youtube-channel.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m tests/core/youtube-section.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-chunks.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-content.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-filters.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/subtitle.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/server/admin-helpers.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/core/clip-quality-branches.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/clip-processing.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/core/face-framing.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/video-metadata.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/core/full-video-metadata.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/control-plane-config.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/core/control-plane-migrations.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-schema.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/server/admin-schemas.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/core/clip-boundary.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/candidate-discovery-branches.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/core/clip-processing-branches.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/core/abort-timeout.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+(node:26510) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ [32m✓[39m tests/core/quiz/quiz-pipeline-helpers.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/core/candidate-discovery.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/core/ai-provider.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/core/quiz/quiz-assets-missing.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
  [32m✓[39m tests/core/logger.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m tests/core/quiz/quiz-assets-missing.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
- [32m✓[39m tests/core/channel-domain.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m tests/core/audio-polish.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m tests/core/analyzer-prompt.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m tests/core/control-plane-db-2.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/core/channel-domain.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/core/audio-polish.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/core/analyzer-prompt.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/core/control-plane-db-2.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 3[2mms[22m[39m
  [2m[90m↓[39m[22m tests/core/llm-analysis.integration.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
 
 [2m Test Files [22m [1m[32m89 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (90)[39m
 [2m      Tests [22m [1m[32m850 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (851)[39m
-[2m   Start at [22m 02:51:12
-[2m   Duration [22m 88.56s[2m (transform 3.04s, setup 0ms, import 19.31s, tests 47.03s, environment 17ms)[22m
+[2m   Start at [22m 01:57:37
+[2m   Duration [22m 100.33s[2m (transform 1.94s, setup 0ms, import 15.65s, tests 67.31s, environment 15ms)[22m
 
 [34m % [39m[2mCoverage report from [22m[33mv8[39m
 -------------------|---------|----------|---------|---------|-------------------
@@ -1414,7 +1459,6 @@ All files          |     100 |      100 |     100 |     100 |
   sqlite-db.ts     |     100 |      100 |     100 |     100 |
   state.ts         |     100 |      100 |     100 |     100 |
   subtitle.ts      |     100 |      100 |     100 |     100 |
-  telegram.ts      |     100 |      100 |     100 |     100 |
   ...-processor.ts |     100 |      100 |     100 |     100 |
   ...l-feedback.ts |     100 |      100 |     100 |     100 |
   ...ube-reauth.ts |     100 |      100 |     100 |     100 |
