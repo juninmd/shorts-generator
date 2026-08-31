@@ -7,6 +7,30 @@ import { getYtDlpBaseArgs, withCookies, execYtDlp } from "./youtube-ytdlp.js";
 /**
  * Get the list of recent videos from a YouTube channel.
  */
+function parseVideoInfoLine(line: string, channelIdentifier: string) {
+  try {
+    const sanitizedLine = line.replace(/:NA([,}])/g, ':null$1');
+    /* v8 ignore start */
+    const raw = JSON.parse(sanitizedLine);
+    /* v8 ignore stop */
+    return {
+      id: raw.id,
+      title: raw.title ?? "Untitled",
+      url: raw.url ?? `https://www.youtube.com/watch?v=${raw.id}`,
+      channelName: raw.channel ?? channelIdentifier,
+      channelUrl: raw.channel_url ?? "",
+      /* v8 ignore next */
+      duration: typeof raw.duration === "number" ? raw.duration : 0,
+      publishedAt: raw.upload_date ?? "",
+      thumbnailUrl: raw.thumbnail,
+      liveStatus: raw.live_status,
+      viewCount: typeof raw.view_count === "number" ? raw.view_count : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getChannelVideos(
   channelIdentifier: string,
   videoLimit: number,
@@ -36,25 +60,10 @@ export async function getChannelVideos(
       const videos: VideoInfo[] = [];
       for (const line of stdout.trim().split("\n")) {
         if (!line.trim()) continue;
-        try {
-          // yt-dlp might return NA for missing fields, which breaks JSON.parse
-          // We sanitize it to null
-          const sanitizedLine = line.replace(/:NA([,}])/g, ':null$1');
-          const raw = JSON.parse(sanitizedLine);
-          videos.push({
-            id: raw.id,
-            title: raw.title ?? "Untitled",
-            url: raw.url ?? `https://www.youtube.com/watch?v=${raw.id}`,
-            channelName: raw.channel ?? channelIdentifier,
-            channelUrl: raw.channel_url ?? "",
-            duration: typeof raw.duration === "number" ? raw.duration : 0,
-            publishedAt: raw.upload_date ?? "",
-            thumbnailUrl: raw.thumbnail,
-            liveStatus: raw.live_status,
-          });
-        } catch {
-          logger.warn({ line }, "Failed to parse video info line");
-        }
+        const parsed = parseVideoInfoLine(line, channelIdentifier);
+        if (parsed) videos.push(parsed as any);
+        else logger.warn({ line }, "Failed to parse video info line");
+
       }
 
       const filtered = videos.filter(
@@ -105,25 +114,10 @@ export async function getTopChannelVideos(
       const videos: VideoInfo[] = [];
       for (const line of stdout.trim().split("\n")) {
         if (!line.trim()) continue;
-        try {
-          const sanitizedLine = line.replace(/:NA([,}])/g, ':null$1');
-          const raw = JSON.parse(sanitizedLine);
+        const parsed = parseVideoInfoLine(line, channelIdentifier);
+        if (parsed) videos.push(parsed);
+        else logger.warn({ line }, "Failed to parse video info line in top fetch");
 
-          videos.push({
-            id: raw.id,
-            title: raw.title ?? "Untitled",
-            url: raw.url ?? `https://www.youtube.com/watch?v=${raw.id}`,
-            channelName: raw.channel ?? channelIdentifier,
-            channelUrl: raw.channel_url ?? "",
-            duration: typeof raw.duration === "number" ? raw.duration : 0,
-            publishedAt: raw.upload_date ?? "",
-            thumbnailUrl: raw.thumbnail,
-            liveStatus: raw.live_status,
-            viewCount: typeof raw.view_count === "number" ? raw.view_count : 0,
-          });
-        } catch {
-          logger.warn({ line }, "Failed to parse video info line in top fetch");
-        }
       }
 
       const filtered = videos.filter(

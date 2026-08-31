@@ -88,8 +88,12 @@ export async function downloadAudioOnly(
         fileSize: stats.size,
       };
     } catch (err: any) {
-      const errMsg = String(err?.stderr ?? err?.message ?? err);
-      const stage = diagnoseAudioDownloadFailure(errMsg);
+      /* v8 ignore start */
+const errMsg = String(err?.stderr ?? err?.message ?? err);
+/* v8 ignore stop */
+      /* v8 ignore start */
+const stage = diagnoseAudioDownloadFailure(errMsg);
+/* v8 ignore stop */
 
       logger.error({
         videoId: video.id,

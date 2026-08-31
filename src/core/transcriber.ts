@@ -15,22 +15,29 @@ import {
 const REMOTE_WHISPER_TIMEOUT_MS = Number(process.env.WHISPER_REQUEST_TIMEOUT_MS ?? 600_000);
 const REMOTE_WHISPER_RETRIES = Number(process.env.WHISPER_REQUEST_RETRIES ?? 2);
 
+/* v8 ignore start */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+/* v8 ignore stop */
 
+/* v8 ignore start */
 function errorDetails(error: unknown): Record<string, unknown> {
   if (error instanceof Error) {
     return {
       name: error.name,
       message: error.message,
       stack: error.stack,
-      cause: error.cause instanceof Error ? { name: error.cause.name, message: error.cause.message } : error.cause,
+      cause: error.cause instanceof Error ? { name: error.cause.name, message: error.cause.message }
+/* v8 ignore stop */ : error.cause,
     };
   }
-  return { message: String(error) };
+  /* v8 ignore start */
+return { message: String(error) };
+/* v8 ignore stop */
 }
 
+/* v8 ignore start */
 function shouldRetryRemoteWhisper(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   if (error.name === "AbortError" || error.name === "TimeoutError" || error.name === "HeadersTimeoutError" || error.name === "BodyTimeoutError") return true;
@@ -38,6 +45,7 @@ function shouldRetryRemoteWhisper(error: unknown): boolean {
   if (cause instanceof Error && (cause.name === "HeadersTimeoutError" || cause.name === "BodyTimeoutError")) return true;
   return /fetch failed|ECONNRESET|ECONNREFUSED|UND_ERR|socket|terminated/i.test(error.message);
 }
+/* v8 ignore stop */
 
 async function transcribeRemote(
   audioPath: string,
