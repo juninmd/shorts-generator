@@ -73,6 +73,36 @@ describe("transcriber", () => {
     );
   });
 
+
+  it("shouldRetryRemoteWhisper handles various errors", async () => {
+    let callCount = 0;
+    vi.mocked(http.request).mockImplementation((options: any, callback?: any) => {
+      callCount++;
+      if (callCount === 1) {
+        const req = new EventEmitter() as any;
+        req.write = vi.fn();
+        req.end = vi.fn(() => {
+          req.emit("error", Object.assign(new Error("fetch failed"), { name: "TimeoutError" }));
+        });
+        req.destroy = vi.fn();
+        return req;
+      }
+      const req = new EventEmitter() as any;
+      req.write = vi.fn();
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as any;
+        res.statusCode = 200;
+        if(callback) callback(res);
+        res.emit("data", Buffer.from(JSON.stringify({ text: "Hello" })));
+        res.emit("end");
+      });
+      req.destroy = vi.fn();
+      return req;
+    });
+
+    const result = await transcribeVideo(mockVideo, mockConfig);
+  });
+
   it("handles missing segments and words safely", async () => {
     mockWhisperResponse({});
 

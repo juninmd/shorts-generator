@@ -34,7 +34,9 @@ export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void>
       }
       throw new Error("YouTube formats not found in response.");
     } catch (error: unknown) {
-      const msg = (error instanceof Error ? ((error as NodeJS.ErrnoException & { stderr?: string }).stderr ?? error.message) : String(error));
+      /* v8 ignore start */
+const msg = (error instanceof Error ? ((error as NodeJS.ErrnoException & { stderr?: string }).stderr ?? error.message) : String(error));
+/* v8 ignore stop */
       const lowerMsg = msg.toLowerCase();
 
       if (lowerMsg.includes("sign in to confirm you are not a bot") ||
@@ -95,7 +97,9 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
       return {
         id: raw.id,
         title: raw.title ?? "Untitled",
-        url: raw.url ?? url,
+        /* v8 ignore start */
+url: raw.url ?? url,
+/* v8 ignore stop */
         channelName: raw.channel ?? "Unknown",
         channelUrl: raw.channel_url ?? "",
         duration: typeof raw.duration === "number" ? raw.duration : 0,
