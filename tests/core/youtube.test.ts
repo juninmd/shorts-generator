@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 
 vi.mock("node:child_process", () => ({
+  execFileAsync: vi.fn(),
   execFile: vi.fn(),
 }));
 

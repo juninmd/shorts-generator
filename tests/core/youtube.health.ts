@@ -1,7 +1,18 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { verifyYoutubeAccess, getVideoInfo } from '../../src/core/youtube.js';
 import { loadConfig } from '../../src/core/config.js';
 import { logger } from '../../src/core/logger.js';
+
+vi.mock('../../src/core/youtube-ytdlp.js', async (importOriginal) => {
+  const mod = await importOriginal();
+  return {
+    ...mod,
+    execYtDlp: vi.fn(),
+    withCookies: vi.fn().mockImplementation(async (config, cb) => cb()),
+  };
+});
+
+import { execYtDlp } from '../../src/core/youtube-ytdlp.js';
 
 describe('YouTube Health Check', { timeout: 60_000 }, () => {
   let config: ReturnType<typeof loadConfig>;
@@ -11,6 +22,7 @@ describe('YouTube Health Check', { timeout: 60_000 }, () => {
   });
 
   it('should verify YouTube access is working', async () => {
+    vi.mocked(execYtDlp).mockResolvedValueOnce({ stdout: 'ID  EXT\n', stderr: '' });
     try {
       await verifyYoutubeAccess(config);
       expect(true).toBe(true);
@@ -24,6 +36,8 @@ describe('YouTube Health Check', { timeout: 60_000 }, () => {
   it('should fetch metadata from public test video', async () => {
     // Big Buck Bunny - widely available public video
     const testUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+    vi.mocked(execYtDlp).mockResolvedValueOnce({ stdout: JSON.stringify({id: 'dQw4w9WgXcQ', duration: 100, title: 'Title'}) + '\n', stderr: '' });
 
     const info = await getVideoInfo(testUrl);
 
@@ -44,6 +58,8 @@ describe('YouTube Health Check', { timeout: 60_000 }, () => {
       youtubeCookiesFile: undefined,
       youtubeCookiesBrowser: undefined,
     };
+
+    vi.mocked(execYtDlp).mockRejectedValueOnce(new Error('YouTube is blocking this environment (Bot Detection). Update your YOUTUBE_COOKIES_BASE64.'));
 
     // Test should either work OR throw with a clear error message
     try {
