@@ -70,10 +70,10 @@ export async function sendToTelegram(
   if (!bot) return undefined;
 
   // Provide fallback for tests that don't pass a proper ShortClip nested object.
-  /* v8 ignore start */
+
 const clip = short.clip || (short as any) || {};
   const scoreText = clip.viralScore >= 9 ? `🔥 ${clip.viralScore}/10` : `⭐ ${clip.viralScore}/10`;
-/* v8 ignore stop */
+
   // Test assumes presenter from managedRun context OR clip itself
   const presenter = (config.managedRun as any)?.presenterName || clip.presenter;
 

@@ -92,4 +92,17 @@ describe("youtube-download", () => {
     const downloaded = await downloadAudioOnly(mockVideo, { tempDir: "/tmp" } as any);
     expect(downloaded.fileSize).toBe(500);
   });
+
+
+
+
+  describe("youtube-download uncovered lines", () => {
+    it("should handle error with missing message", async () => {
+      vi.mocked(execYtDlp).mockRejectedValueOnce({ stderr: "some stderr" } as any);
+
+      const config = { secrets: { youtube: { clientId: "id", clientSecret: "sec", refreshToken: "ref" } } } as any;
+      await expect(downloadAudioOnly({ id: "123", url: "http" } as any, "dir", config)).rejects.toThrow();
+    });
+  });
+
 });

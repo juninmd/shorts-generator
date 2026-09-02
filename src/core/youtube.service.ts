@@ -22,13 +22,13 @@ interface YouTubeVideoInsertBody {
 }
 
 const withOriginalVideoLink = (description: string, originalVideoUrl?: string | null): string => {
-  /* v8 ignore start */
+
 if (!originalVideoUrl || description.includes(originalVideoUrl)) return description;
-/* v8 ignore stop */
+
   return `${description}\n\nVideo original: ${originalVideoUrl}`;
 };
 
-/* v8 ignore start */
+
 export async function validateYouTubeToken(config: PipelineConfig): Promise<{ valid: boolean; error?: string }> {
   const auth = await getYouTubeAuth(config);
   if (!auth) {
@@ -66,7 +66,7 @@ export async function validateYouTubeToken(config: PipelineConfig): Promise<{ va
     return { valid: false, error: errorMessage };
   }
 }
-/* v8 ignore stop */
+
 
 const extractJsonObject = (content: string): string => {
   const clean = content.trim();
@@ -242,7 +242,7 @@ async function getYouTubeAuth(config: PipelineConfig): Promise<YouTubeAuthConfig
       const cpConfig = loadControlPlaneConfig();
       const store = createSecretStore(cpConfig);
       const repo = new ChannelBundleRepository(getControlPlanePool(cpConfig) as any);
-      /* v8 ignore start */
+
 const bundle = await repo.getBundle(channelId);
       const yt = bundle?.publishingAccounts.find((a) => a.provider === "youtube");
       if (!yt) {
@@ -258,7 +258,7 @@ const bundle = await repo.getBundle(channelId);
       logger.error({ error, channelId }, "Falha ao carregar token do YouTube do banco — upload cancelado (sem fallback)");
       return null;
     }
-/* v8 ignore stop */
+
   }
 
   // Non-managed single-channel mode (legacy/global): explicit config or env.

@@ -149,4 +149,20 @@ describe("youtube-info", () => {
       expect(size).toBeNull();
     });
   });
+
+
+  describe("youtube-info uncovered lines", () => {
+    it("verifyYoutubeAccess with string error", async () => {
+      vi.mocked(execYtDlp).mockRejectedValueOnce("some string error");
+      const config = {} as any;
+      await expect(verifyYoutubeAccess(config)).rejects.toThrow("some string error");
+    });
+
+    it("getVideoInfo empty lines", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({ stdout: '\n\n{"id":"vid1","title":"t","duration":10}\n\n', stderr: "" } as any);
+      const res = await getVideoInfo("url");
+      expect(res?.id).toBe("vid1");
+    });
+  });
+
 });
