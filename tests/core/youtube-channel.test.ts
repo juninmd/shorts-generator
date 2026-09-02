@@ -95,4 +95,50 @@ describe("youtube-channel", () => {
       expect(videos).toEqual([]);
     });
   });
+
+
+  describe("youtube-channel uncovered lines", () => {
+    it("getChannelVideos empty line handling", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({
+        stdout: '\n\n{"id":"1","title":"t","duration":10}\n   \n',
+        stderr: ''
+      } as any);
+
+      const videos = await getChannelVideos('test', 1);
+      expect(videos).toHaveLength(1);
+      expect(videos[0].id).toBe('1');
+    });
+
+    it("getChannelVideos non-number duration", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({
+        stdout: '{"id":"2","title":"t","duration":"not a number"}\n',
+        stderr: ''
+      } as any);
+
+      const videos = await getChannelVideos('test', 1);
+      expect(videos).toHaveLength(0);
+    });
+
+    it("getTopChannelVideos empty line handling", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({
+        stdout: '\n\n{"id":"3","title":"t","duration":10}\n   \n',
+        stderr: ''
+      } as any);
+
+      const videos = await getTopChannelVideos('test', 1);
+      expect(videos).toHaveLength(1);
+      expect(videos[0].id).toBe('3');
+    });
+
+    it("getTopChannelVideos non-number duration", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({
+        stdout: '{"id":"4","title":"t","duration":null}\n',
+        stderr: ''
+      } as any);
+
+      const videos = await getTopChannelVideos('test', 1);
+      expect(videos).toHaveLength(0);
+    });
+  });
+
 });
