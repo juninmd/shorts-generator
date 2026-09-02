@@ -513,4 +513,15 @@ describe("Even More Telegram Logger Ignored Cases 4", () => {
     const { notifyYoutubeRateLimited } = await import("../../src/core/telegram.js");
     await notifyYoutubeRateLimited({ channelName: "Test Channel", reason: "daily-cap", limit: 10 } as any, mockConfig4);
   });
+
+  describe("telegram uncovered lines", () => {
+    it("sendToTelegram with random any clip", async () => {
+      const config = {} as any;
+      const res = await sendToTelegram({} as any, "mp4", config);
+      // Wait, there's no bot mocked, so it returns undefined
+      expect(res).toBeUndefined();
+    });
+  });
+
+
 });
