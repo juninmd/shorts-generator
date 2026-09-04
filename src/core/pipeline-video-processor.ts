@@ -10,9 +10,7 @@ import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./stat
 import { logger } from "./logger.js";
 import { enqueueYoutubeUpload } from "./queue.js";
 import pLimit from "p-limit";
-
 export type ProgressCallback = (progress: PipelineProgress) => void;
-
 export async function processVideo(
   video: VideoInfo,
   config: PipelineConfig,
@@ -22,15 +20,12 @@ export async function processVideo(
   const startTime = Date.now();
   const errors: string[] = [];
   const shorts: GeneratedShort[] = [];
-
   const emitProgress = (stage: PipelineProgress["stage"], message: string, progress = 0, currentShort?: number, totalShorts?: number) => {
     onProgress?.({ stage, videoId: video.id, videoTitle: video.title, currentShort, totalShorts, message, progress });
   };
-
   try {
     emitProgress("downloading", `Baixando áudio: ${video.title}`, 0);
     const downloadedAudio = await downloadAudioOnly(video, config);
-
     let lastProgress = 20;
     emitProgress("transcribing", "Transcrevendo com Whisper...", lastProgress);
     const transcript = await transcribeVideo(downloadedAudio, {
@@ -43,37 +38,26 @@ export async function processVideo(
         }
       },
     });
-
     emitProgress("analyzing", "Analisando momentos virais...", 40);
     let clips = await analyzeTranscript(transcript, video.title, video.channelName, config);
-
     if (maxShorts !== undefined && maxShorts > 0 && clips.length > maxShorts) {
       clips = clips.slice(0, maxShorts);
     }
-
     if (clips.length === 0) {
       logger.warn({ videoId: video.id, videoTitle: video.title }, "Transcrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.");
-
       if (!config.keepTempFiles) cleanupVideo(video.id, config);
       return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts: [], errors: [], processingTimeMs: Date.now() - startTime };
-
     }
-
     const totalClips = clips.length;
     emitProgress("cutting", `Gerando ${totalClips} shorts...`, 50, 0, totalClips);
-
-
     const limit = pLimit(2);
     await Promise.all(
       clips.map((clip, index) =>
         limit(async () => {
           try {
             emitProgress("cutting", `Baixando trecho ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
-
             const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
             const downloadedSection = { ...downloadedAudio, filePath: sectionPath };
-
-            // yt-dlp with DASH streams resets timestamps to 0; detect and compute correct seek offset
             const sectionStartTime = await getFileStartTime(sectionPath);
             const expectedSectionStart = Math.max(0, clip.startTime - 2);
             const timestampsPreserved = Math.abs(sectionStartTime - expectedSectionStart) <= 10;
@@ -81,9 +65,7 @@ export async function processVideo(
               ? clip.startTime
               : Math.max(0, clip.startTime - expectedSectionStart);
             const sectionClip = { ...clip, startTime: seekOffset, endTime: seekOffset + clip.duration };
-
             logger.debug({ clipId: clip.id, sectionStartTime, expectedSectionStart, timestampsPreserved, seekOffset }, "Section seek offset");
-
             emitProgress("cutting", `Processando corte ${index + 1}/${totalClips}`, 65 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
             const short = await processClip(downloadedSection, sectionClip, config);
             shorts.push(short);
@@ -93,15 +75,9 @@ export async function processVideo(
         }),
       ),
     );
-
-
     emitProgress("uploading", "Enviando resultados...", 85);
     const youtubeEnabled = process.env.ENABLE_YOUTUBE === "true";
-    // Night-generation mode: skip the immediate upload (don't burn the daily
-    // quota at 3am) and always enqueue, so queue-process drips them out during
-    // the day per the YouTube rate limit.
     const deferUploads = process.env.DEFER_UPLOADS === "true";
-
     for (const short of shorts) {
       let sendStage = "metadata";
       try {
@@ -123,15 +99,11 @@ export async function processVideo(
             } else {
               uploaded = true;
               await incrementDailyUploadCountAsync(channelId);
-              
-              // Engagement question + original link as the channel's comment
-
               const videoId = youtubeUrl.split("/").pop();
               if (videoId) {
                 const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels);
                 await addCommentToVideo(videoId, commentText, config);
               }
-
             }
           }
           if (!uploaded) {
@@ -141,7 +113,6 @@ export async function processVideo(
         sendStage = "telegram";
         const pendingRateLimit = youtubeEnabled && !youtubeUrl;
         const msgId = await sendToTelegram(short, config, youtubeUrl, pendingRateLimit);
-
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
         logger.error(
@@ -157,8 +128,6 @@ export async function processVideo(
         errors.push(`Erro no envio de ${short.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
-
-
     await sendSummary(video.title, video.channelName, shorts.length, errors, config);
     if (!config.keepTempFiles) cleanupVideo(video.id, config);
     emitProgress("done", "Concluído", 100);
@@ -168,7 +137,5 @@ export async function processVideo(
     if (!config.keepTempFiles) cleanupVideo(video.id, config);
     await sendSummary(video.title, video.channelName, shorts.length, errors, config);
   }
-
   return { videoId: video.id, videoTitle: video.title, channelName: video.channelName, shorts, errors, processingTimeMs: Date.now() - startTime };
-
 }

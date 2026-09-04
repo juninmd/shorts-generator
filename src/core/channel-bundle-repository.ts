@@ -10,7 +10,6 @@ import type {
   SourceTarget,
 } from "./channel-domain.js";
 import { queryRows, withTransaction } from "./control-plane-db.js";
-
 type ChannelRow = {
   id: string;
   slug: string;
@@ -52,15 +51,12 @@ type AccountRow = {
   token_auth_tag: string;
   token_ciphertext: string;
 };
-
 export class ChannelBundleRepository {
   constructor(private readonly db: any) {}
-
   async listBundles(): Promise<readonly ManagedChannelBundle[]> {
     const channels = await queryRows<ChannelRow>(this.db, "SELECT * FROM managed_channels ORDER BY name ASC");
     return this.loadBundles(channels.map((channel) => channel.id), channels);
   }
-
   async getBundle(channelId: string): Promise<ManagedChannelBundle | null> {
     const channels = await queryRows<ChannelRow>(this.db, "SELECT * FROM managed_channels WHERE id = $1", [channelId]);
     if (channels.length === 0) {
@@ -68,7 +64,6 @@ export class ChannelBundleRepository {
     }
     return ((await this.loadBundles([channelId], channels))[0]) ?? null;
   }
-
   async saveBundle(bundle: ManagedChannelBundle): Promise<void> {
     await withTransaction(this.db, async (client) => {
       await client.query(
@@ -112,11 +107,9 @@ export class ChannelBundleRepository {
       }
     });
   }
-
   async deleteBundle(channelId: string): Promise<void> {
     await this.db.query("DELETE FROM managed_channels WHERE id = $1", [channelId]);
   }
-
   async updatePublishingAccount(
     accountId: string,
     updates: { encryptedToken?: { keyVersion: string; iv: string; authTag: string; ciphertext: string }; clientId?: string | null; clientSecret?: string | null; updatedAt: string }
@@ -124,7 +117,6 @@ export class ChannelBundleRepository {
     const setParts: string[] = ["updated_at = $2"];
     const params: unknown[] = [accountId, updates.updatedAt];
     let paramIndex = 3;
-
     if (updates.encryptedToken) {
       setParts.push(`token_key_version = $${paramIndex++}`, `token_iv = $${paramIndex++}`, `token_auth_tag = $${paramIndex++}`, `token_ciphertext = $${paramIndex++}`);
       params.push(updates.encryptedToken.keyVersion, updates.encryptedToken.iv, updates.encryptedToken.authTag, updates.encryptedToken.ciphertext);
@@ -137,13 +129,11 @@ export class ChannelBundleRepository {
       setParts.push(`client_secret = $${paramIndex++}`);
       params.push(updates.clientSecret);
     }
-
     await this.db.query(
       `UPDATE publishing_accounts SET ${setParts.join(", ")} WHERE id = $1`,
       params,
     );
   }
-
   private async loadBundles(
     channelIds: readonly string[],
     channels: readonly ChannelRow[],
@@ -154,7 +144,6 @@ export class ChannelBundleRepository {
     const accounts = await this.lookupByChannel<AccountRow>("publishing_accounts", channelIds);
     return channels.map((channel) => buildBundle(channel, profiles, focuses, sources, accounts));
   }
-
   private async lookupByChannel<Row extends { channel_id: string }>(
     table: string,
     channelIds: readonly string[],
@@ -165,7 +154,6 @@ export class ChannelBundleRepository {
     return queryRows<Row>(this.db, `SELECT * FROM ${table} WHERE channel_id = ANY($1::text[])`, [channelIds]);
   }
 }
-
 async function replaceChildren<T>(
   client: PoolClient,
   table: "channel_focuses" | "source_targets",
@@ -183,7 +171,6 @@ async function replaceChildren<T>(
     await client.query("INSERT INTO source_targets (id, channel_id, kind, value, label, created_at) VALUES ($1,$2,$3,$4,$5,$6)", params);
   }
 }
-
 function buildBundle(
   channel: ChannelRow,
   profiles: readonly ProfileRow[],
@@ -222,13 +209,11 @@ function buildBundle(
     },
     focuses: focuses.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...focus }) => ({
       ...focus,
-      // queryRows returns snake_case focus_key/focus_label; ChannelFocus expects camelCase key/label.
       key: focus.key ?? (focus as { focus_key?: FocusKey }).focus_key,
       label: focus.label ?? (focus as { focus_label?: string }).focus_label,
     })),
     sources: sources.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...source }) => ({
       ...source,
-      // queryRows returns snake_case `created_at`; SourceTarget expects camelCase `createdAt`.
       createdAt: source.createdAt ?? (source as { created_at?: string }).created_at,
     })),
     publishingAccounts: channelAccounts.map((account) => ({
