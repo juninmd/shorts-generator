@@ -3,7 +3,6 @@ import { getBot, sendTelegramMessage } from "./telegram-bot.js";
 import { escapeHtml, formatTagsPreview } from "./telegram-formatting.js";
 import { logger } from "./logger.js";
 import type { PipelineConfig } from "../types.js";
-
 export async function notifyYoutubePublished(
   params: {
     videoId: string;
@@ -17,14 +16,12 @@ export async function notifyYoutubePublished(
   config: PipelineConfig,
 ): Promise<void> {
   const { videoId, url, title, channelName, isShort, tags, description } = params;
-
   const tagsPreview = formatTagsPreview(tags);
   const teaserRaw = (description || "")
     .split("\n")
     .map((l) => l.trim())
     .find((l) => l.length > 0 && !l.startsWith("#") && !l.startsWith("🎥") && !l.startsWith("🔗")) || "";
   const teaser = teaserRaw.length > 180 ? `${teaserRaw.slice(0, 177)}...` : teaserRaw;
-
   const text = [
     isShort ? `🎬 <b>SHORT PUBLICADO NO YOUTUBE</b>` : `🎬 <b>VÍDEO PUBLICADO NO YOUTUBE</b>`,
     `──────────────────────`,
@@ -37,7 +34,6 @@ export async function notifyYoutubePublished(
     ``,
     `🔗 <a href="${url}">${url}</a>`,
   ].filter(line => line !== "").join("\n");
-
   try {
     await sendTelegramMessage(config, text, {
       link_preview_options: { is_disabled: false, url, prefer_large_media: true },
@@ -47,7 +43,6 @@ export async function notifyYoutubePublished(
     logger.error({ videoId, error: String(e) }, "Failed to send YouTube publish notification");
   }
 }
-
 export async function notifyYoutubeRateLimited(
   params: { channelName?: string | null; reason: "daily-cap" | "youtube-quota"; limit?: number },
   config: PipelineConfig,
@@ -56,7 +51,6 @@ export async function notifyYoutubeRateLimited(
   const cause = params.reason === "youtube-quota"
     ? "O YouTube bloqueou novos uploads (limite de envios da conta atingido)."
     : `Limite diário de uploads atingido${params.limit ? ` (${params.limit})` : ""}.`;
-
   const message = [
     `⏸️ <b>UPLOADS DO YOUTUBE PAUSADOS</b>`,
     `──────────────────────`,
@@ -66,7 +60,6 @@ export async function notifyYoutubeRateLimited(
     `Os shorts restantes seguem na fila e serão publicados automaticamente quando a janela reabrir.`,
     `──────────────────────`,
   ].join("\n");
-
   try {
     await sendTelegramMessage(config, message);
     logger.info({ channelName: name, reason: params.reason }, "Sent YouTube rate-limit alert to Telegram");
@@ -74,7 +67,6 @@ export async function notifyYoutubeRateLimited(
     logger.error({ error: String(e) }, "Failed to send YouTube rate-limit alert");
   }
 }
-
 export async function notifyYoutubeResumed(
   channelName: string | null | undefined,
   config: PipelineConfig,
@@ -94,7 +86,6 @@ export async function notifyYoutubeResumed(
     logger.error({ error: String(e) }, "Failed to send YouTube resume alert");
   }
 }
-
 export async function sendErrorAlert(
   title: string,
   error: unknown,
@@ -103,7 +94,6 @@ export async function sendErrorAlert(
   const errStr = error instanceof Error
     ? `${error.message}${error.stack ? `\n\n<pre>${escapeHtml(error.stack.slice(0, 600))}</pre>` : ""}`
     : escapeHtml(String(error)).slice(0, 600);
-
   const message = [
     `🚨 <b>ERRO FATAL NA PIPELINE</b>`,
     `──────────────────────`,
@@ -113,14 +103,12 @@ export async function sendErrorAlert(
     `──────────────────────`,
     `<i>${new Date().toLocaleString("pt-BR")}</i>`,
   ].join("\n");
-
   try {
     await sendTelegramMessage(config, message);
   } catch (e) {
     logger.error({ e }, "Failed to send error alert to Telegram");
   }
 }
-
 export async function sendSummary(
   videoTitle: string,
   channelName: string,
@@ -129,7 +117,6 @@ export async function sendSummary(
   config: PipelineConfig,
 ): Promise<void> {
   const status = errors.length === 0 ? "✅ Sucesso" : "⚠️ Com erros";
-
   const message = [
     `📊 <b>RESUMO DO PROCESSAMENTO</b>`,
     `──────────────────────`,
@@ -146,7 +133,6 @@ export async function sendSummary(
     `──────────────────────`,
     `<i>Pipeline concluído em ${new Date().toLocaleDateString('pt-BR')}</i>`
   ].filter(Boolean).join("\n");
-
   try {
     await sendTelegramMessage(config, message);
   } catch (error) {
