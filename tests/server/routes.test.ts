@@ -317,3 +317,32 @@ describe('unhandled catch in pipeline job runner', () => {
         // This is to hit the catch(/* v8 ignore next */(err) => { ... })
     });
 });
+
+describe('unhandled catch in pipeline job runner (catch wrapper)', () => {
+  it('covers the outer catch for unhandled IIFE rejections', async () => {
+    // To trigger the outer catch in the IIFE (lines 69-70):
+    // void (async () => { ... })().catch((err) => { ... })
+
+    // We mock failJob inside the try/catch so that it throws.
+    // This will cause the inner catch block to throw synchronously,
+    // rejecting the outer IIFE promise and triggering the `.catch()` block.
+
+    const { runPipeline } = await import('../../src/core/pipeline.js');
+    const { failJob } = await import('../../src/server/job-store.js');
+
+    vi.mocked(runPipeline).mockRejectedValue(new Error('Inner pipeline failure'));
+    // mock failJob module entirely to be able to override it
+    vi.spyOn(await import('../../src/server/job-store.js'), 'failJob').mockRejectedValueOnce(new Error('failJob error'));
+
+    const res = await app.request('/api/generate', {
+      method: 'POST',
+      body: JSON.stringify({ urls: ['https://youtube.com/watch?v=unhandled-catch'] }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    expect(res.status).toBe(202);
+
+    // allow microtasks to flush so the unhandled rejection handler runs
+    await new Promise(r => setTimeout(r, 10));
+  });
+});
