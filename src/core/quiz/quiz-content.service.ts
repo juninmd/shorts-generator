@@ -42,7 +42,13 @@ export const generateQuiz = async (config: PipelineConfig, customTopic?: string)
       schema: quizSchema,
       prompt: `${basePrompt}\n\n${QUIZ_JSON_FORMAT}`,
       system: systemPrompt,
-      maxOutputTokens: 1500,
+      // O orcamento nao pode ser dimensionado so pelo tamanho do JSON: os
+      // modelos servidos pelo litellm hoje sao de raciocinio (gpt-oss) e os
+      // tokens de raciocinio saem do MESMO orcamento de saida. Com 1500 o
+      // raciocinio consumia quase tudo e o JSON vinha cortado no meio de uma
+      // string, o que o extractJson reporta como "No JSON found in model
+      // output".
+      maxOutputTokens: 4000,
     });
     if (!quizResult.tema) {
       quizResult.tema = topic;
