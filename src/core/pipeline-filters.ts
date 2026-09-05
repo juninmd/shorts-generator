@@ -23,7 +23,11 @@ Responda APENAS "sim" se for música/clipe musical, ou "não" se for conteúdo f
       model: createModel(config),
       prompt,
       temperature: 0.1,
-      maxOutputTokens: 10,
+      // 10 tokens bastavam para "sim"/"nao" num modelo comum, mas os modelos
+      // de raciocinio servidos pelo litellm gastam esse orcamento pensando e
+      // devolvem texto vazio -- e o catch abaixo transforma isso em "nao e
+      // musica" silenciosamente, desligando o filtro.
+      maxOutputTokens: 200,
     });
     const isMusic = text.trim().toLowerCase().includes("sim");
     if (isMusic) {
