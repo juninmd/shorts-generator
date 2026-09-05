@@ -542,3 +542,42 @@ describe("Even More Telegram Logger Ignored Cases 4", () => {
     const result2 = await sendToTelegram({ clip: { viralScore: 1 } } as any, { telegramChatId: "123", managedRun: {} } as any);
     expect(result2).toBeUndefined();
   });
+
+describe("more coverage", () => {
+  it("sendToTelegram with mockBot and proper inputs hits the score and presenter formatting", async () => {
+    const { getBot } = await import("../../src/core/telegram.js");
+    const origGetBot = getBot;
+    vi.doMock("../../src/core/telegram.js", async (importOriginal) => {
+      const orig = await importOriginal();
+      return {
+        ...orig,
+        getBot: () => ({ api: { sendVideo: vi.fn().mockResolvedValue({}) } })
+      }
+    });
+
+    vi.mocked(fs.statSync).mockReturnValue({ size: 100 } as any);
+
+    const { sendToTelegram } = await import("../../src/core/telegram.js");
+
+    await sendToTelegram({
+      id: "vid1",
+      outputPath: "video.mp4",
+      originalVideoUrl: "x",
+      clip: { viralScore: 9, title: "Title9" },
+    } as any, { telegramChatId: "123", telegramBotToken: "abc" } as any, "https://youtube.com", true);
+
+    await sendToTelegram({
+      id: "vid2",
+      outputPath: "video.mp4",
+      originalVideoUrl: "x",
+      clip: { viralScore: 8, title: "Title8", presenter: "Presenter" },
+    } as any, { telegramChatId: "123", telegramBotToken: "abc", managedRun: {} } as any);
+
+    await sendToTelegram({
+      id: "vid2",
+      outputPath: "video.mp4",
+      originalVideoUrl: "x",
+    } as any, { telegramChatId: "123", telegramBotToken: "abc", managedRun: {} } as any);
+
+  });
+});

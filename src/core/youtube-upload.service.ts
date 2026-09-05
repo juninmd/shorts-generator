@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { google } from "googleapis";
 import fs from "node:fs";
 import type { PipelineConfig, YouTubeAuthConfig } from "../types.js";
@@ -123,4 +123,3 @@ export const uploadFullVideoToYouTube = async (videoPath: string, title: string,
   return performUpload(videoPath, { snippet: { title: title.slice(0, 100), description, tags: uploadTags, categoryId: "22" }, status: { privacyStatus: "public", selfDeclaredMadeForKids: false } }, auth, config, "🚀 Fazendo upload do vídeo COMPLETO para o YouTube...", false);
 };
 
-/* v8 ignore stop */
