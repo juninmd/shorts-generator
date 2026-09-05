@@ -536,9 +536,9 @@ describe("Even More Telegram Logger Ignored Cases 4", () => {
 
   it("should cover viralScore logic missing lines", async () => {
     vi.mocked(fs.statSync).mockReturnValue({ size: 100 } as any);
-    const result1 = await sendToTelegram({ id: "vid1", outputPath: "video.mp4", originalVideoUrl: "x" } as any, { telegramChatId: "123", managedRun: {} } as any);
-    expect(result1).toBeUndefined();
+    const result1 = await sendToTelegram({ id: "vid1", outputPath: "video.mp4", originalVideoUrl: "x", viralScore: 4 } as any, { telegramChatId: "123", telegramBotToken: "token", managedRun: {} } as any);
+    expect(result1).toBeDefined();
 
-    const result2 = await sendToTelegram({ clip: { viralScore: 1 } } as any, { telegramChatId: "123", managedRun: {} } as any);
-    expect(result2).toBeUndefined();
+    const result2 = await sendToTelegram({ clip: { viralScore: 1 }, outputPath: "video.mp4" } as any, { telegramChatId: "123", telegramBotToken: "token", managedRun: {} } as any);
+    expect(result2).toBeDefined();
   });

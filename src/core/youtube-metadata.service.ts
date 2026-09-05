@@ -41,7 +41,7 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto ex
   if (!isTesting && process.env.ENABLE_YOUTUBE === "true") {
     let aiModel;
     try {
-      aiModel = createModel(config.aiProvider, config.aiModel);
+      aiModel = createModel(config);
     } catch (e) {
       logger.warn({ error: e instanceof Error ? e.message : String(e) }, "Falha ao instanciar LLM para metadados, usando fallback");
     }
@@ -49,8 +49,8 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto ex
     if (aiModel) {
       let finalPrompt = prompt;
       if (config.managedRun?.channelId) {
-        const feedback = await getChannelFeedback(config.managedRun.channelId);
-        if (feedback.topVideos.length > 0) {
+        const feedback = await getChannelFeedback(config);
+        if (feedback && feedback.topTitles.length > 0) {
           finalPrompt += `\n\n${formatFeedbackForPrompt(feedback)}`;
         }
       }
