@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 
 import type { VideoInfo } from "../types.js";
@@ -149,4 +149,3 @@ duration: typeof raw.duration === "number" ? raw.duration : 0,
 
 
 
-/* v8 ignore stop */

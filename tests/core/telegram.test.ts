@@ -541,4 +541,7 @@ describe("Even More Telegram Logger Ignored Cases 4", () => {
 
     const result2 = await sendToTelegram({ clip: { viralScore: 1 }, outputPath: "video.mp4" } as any, { telegramChatId: "123", telegramBotToken: "token", managedRun: {} } as any);
     expect(result2).toBeDefined();
+
+    const result3 = await sendToTelegram({ clip: { viralScore: 9 }, outputPath: "video.mp4" } as any, { telegramChatId: "123", telegramBotToken: "token", managedRun: {} } as any);
+    expect(result3).toBeDefined();
   });
