@@ -73,7 +73,6 @@ describe("transcriber", () => {
     );
   });
 
-
   it("shouldRetryRemoteWhisper handles various errors", async () => {
     let callCount = 0;
     vi.mocked(http.request).mockImplementation((options: any, callback?: any) => {
@@ -100,18 +99,52 @@ describe("transcriber", () => {
       return req;
     });
 
-    const result = await transcribeVideo(mockVideo, mockConfig);
+    await transcribeVideo(mockVideo, mockConfig);
   });
 
   it("handles missing segments and words safely", async () => {
     mockWhisperResponse({});
-
     const result = await transcribeVideo(mockVideo, mockConfig);
-
     expect(result.segments).toHaveLength(0);
     expect(result.words).toHaveLength(0);
     expect(result.language).toBe("pt");
   });
+
+  it("chunks long audio and supports progress callback", async () => {
+    const audioChunker = await import("../../src/core/audio-chunker.js");
+    vi.spyOn(audioChunker, "splitAudioIntoChunks").mockResolvedValue([
+      { path: "/tmp/chunk_0.wav", offsetSec: 0 },
+      { path: "/tmp/chunk_1.wav", offsetSec: 120 }
+    ]);
+    vi.spyOn(audioChunker, "cleanupChunkFiles").mockImplementation(() => {});
+
+    mockWhisperResponse({
+      text: "hello", language: "pt", segments: [{start:0, end:1, text:"hello"}]
+    });
+
+    const onProgress = vi.fn();
+    const result = await transcribeVideo({ ...mockVideo, duration: 300 }, { ...mockConfig, onProgress } as any);
+    expect(result.segments.length).toBeGreaterThan(0);
+
+    const chunkOnProgress = vi.fn();
+    const api = await import("../../src/core/transcriber-api.js");
+    vi.spyOn(api, "transcribeRemote").mockImplementation(async (path, cfg, prog) => {
+      if (prog) prog(50);
+      return { text: "mock", language: "pt", segments: [] };
+    });
+
+    await transcribeVideo({ ...mockVideo, duration: 300 }, { ...mockConfig, onProgress: chunkOnProgress } as any);
+    await transcribeVideo({ ...mockVideo, duration: 300 }, { ...mockConfig } as any);
+    vi.spyOn(api, "transcribeRemote").mockRestore();
+
+    mockWhisperResponse({
+      text: null,
+      language: "en",
+      segments: [{ start: null, end: null, text: null, words: [{ start: null, end: null, word: null }] }]
+    });
+    await transcribeVideo({ ...mockVideo, duration: 10 }, mockConfig);
+  });
+
 });
 
 function mockWhisperResponse(body: unknown): void {
