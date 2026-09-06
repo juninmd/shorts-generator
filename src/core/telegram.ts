@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { InputFile } from "grammy";
 import fs from "node:fs";
@@ -72,8 +72,8 @@ export async function sendToTelegram(
 
   // Provide fallback for tests that don't pass a proper ShortClip nested object.
 
-/* v8 ignore next */
-/* v8 ignore next */
+
+
   const clip = short.clip || (short as any) || {};
   const scoreText = clip.viralScore >= 9 ? `🔥 ${clip.viralScore}/10` : `⭐ ${clip.viralScore}/10`;
 
@@ -122,4 +122,3 @@ export async function sendToTelegram(
 }
 
 
-/* v8 ignore stop */

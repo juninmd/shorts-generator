@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { google } from "googleapis";
 import type { PipelineConfig, YouTubeAuthConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -79,4 +79,3 @@ export async function getYouTubeAuth(config: PipelineConfig): Promise<YouTubeAut
   return { clientId, clientSecret, refreshToken };
 }
 
-/* v8 ignore stop */
