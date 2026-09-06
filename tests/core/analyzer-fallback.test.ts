@@ -27,7 +27,7 @@ describe("analyzer fallback", () => {
     const abortError = new Error("aborted");
     abortError.name = "AbortError";
     vi.mocked(gjModule.generateJsonObject).mockRejectedValue(abortError);
-    vi.mocked(aiModule.generateText).mockRejectedValue(new Error("fallback also failed"));
+    vi.mocked(aiModule.generateText).mockRejectedValue(new Error("AI Fallback Error"));
     await expect(analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig))
       .resolves.toEqual([]);
   });
