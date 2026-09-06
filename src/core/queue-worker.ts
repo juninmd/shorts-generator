@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { Worker } from "bullmq";
 import fs from "node:fs";
 import { logger } from "./logger.js";
@@ -101,4 +101,3 @@ export async function retryFailedWithExistingFiles(): Promise<void> {
   if (retried > 0) await processQueueUntilEmpty();
 }
 
-/* v8 ignore stop */

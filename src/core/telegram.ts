@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 import { InputFile } from "grammy";
 import fs from "node:fs";
@@ -122,4 +122,3 @@ export async function sendToTelegram(
 }
 
 
-/* v8 ignore stop */
