@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { google } from "googleapis";
 import type { PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -54,4 +54,3 @@ export const addCommentToVideo = async (
   }
 };
 
-/* v8 ignore stop */
