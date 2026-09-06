@@ -18,7 +18,7 @@ export default defineConfig({
         'src/cli-interactive.ts',
         'src/core/youtube.ts',
         'src/core/youtube.service.ts',
-        'src/core/transcriber.ts',
+
         'src/core/queue.ts',
         'src/core/transcriber-api.ts',
         'src/core/telegram.ts',
