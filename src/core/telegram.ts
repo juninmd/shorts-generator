@@ -74,7 +74,7 @@ export async function sendToTelegram(
 
 
 
-  const clip = short.clip || (short as any);
+  const clip = short.clip || (short as any) || {};
   const scoreText = clip.viralScore >= 9 ? `🔥 ${clip.viralScore}/10` : `⭐ ${clip.viralScore}/10`;
 
   // Test assumes presenter from managedRun context OR clip itself

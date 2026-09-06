@@ -314,7 +314,7 @@ describe('unhandled catch in pipeline job runner', () => {
         });
         expect(res.status).toBe(202);
         // We know that `catch` block catches sync throws inside async IIFE
-        // This is to hit the catch(/* v8 ignore next */(err) => { ... })
+        // This is to hit the catch((err) => { ... })
     });
 });
 
