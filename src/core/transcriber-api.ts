@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -28,7 +28,7 @@ export function shouldRetryRemoteWhisper(error: unknown): boolean {
   return /fetch failed|ECONNRESET|ECONNREFUSED|UND_ERR|socket|terminated/i.test(error.message);
 }
 
-/* v8 ignore start */
+
 export async function transcribeRemote(audioPath: string, config: PipelineConfig, onProgress?: (pct: number) => void): Promise<WhisperOutput> {
   const url = new URL("/asr", config.whisperBaseUrl);
   url.searchParams.append("task", "transcribe");
@@ -86,6 +86,4 @@ export async function transcribeRemote(audioPath: string, config: PipelineConfig
   }
   throw new Error("Remote Whisper failed after retries");
 }
-/* v8 ignore stop */
 
-/* v8 ignore stop */

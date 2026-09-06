@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 import { generateText } from "ai";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -82,4 +82,3 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto ex
   return { title, description, tags };
 };
 
-/* v8 ignore stop */
