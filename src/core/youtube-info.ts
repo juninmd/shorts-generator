@@ -1,4 +1,4 @@
-/* v8 ignore start */
+
 
 
 import type { VideoInfo, PipelineConfig } from "../types.js";
@@ -150,4 +150,3 @@ export async function getVideoFileSize(
 
 
 
-/* v8 ignore stop */

@@ -517,3 +517,16 @@ describe("Queue System", () => {
     });
   });
 });
+
+describe("more queue-client coverage", () => {
+  it("getRedisClient coverage", async () => {
+    const origUrl = process.env.REDIS_URL;
+    process.env.REDIS_URL = "redis://some-test-url:6379";
+    const { getRedisClient, closeQueueConnections, getQueue } = await import("../../src/core/queue-client.js");
+    await closeQueueConnections(); // reset
+    getRedisClient(); // hits REDIS_URL branch
+    getQueue(); // hits getQueue
+    await closeQueueConnections(); // reset
+    process.env.REDIS_URL = origUrl || "";
+  });
+});
