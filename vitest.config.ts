@@ -16,10 +16,6 @@ export default defineConfig({
         'src/cli.ts',
         'src/cli-commands/**',
         'src/cli-interactive.ts',
-        'src/core/youtube.ts',
-        'src/core/youtube.service.ts',
-
-        'src/core/queue.ts',
         'src/core/youtube-upload-perform.ts',
         'src/types/better-sqlite3.d.ts',
         'src/core/youtube-auth.service.ts',
