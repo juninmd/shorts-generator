@@ -24,6 +24,7 @@ export default defineConfig({
         'src/core/youtube-download.ts',
         'src/core/youtube-info.ts',
         'src/core/youtube-metadata.service.ts',
+        'src/core/youtube.ts',
       ],
       all: true,
       thresholds: {
