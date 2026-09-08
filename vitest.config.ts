@@ -19,7 +19,7 @@ export default defineConfig({
         'src/core/youtube-upload-perform.ts',
         'src/types/better-sqlite3.d.ts',
         'src/core/youtube-auth.service.ts',
-        'src/core/youtube-channel.ts',
+
         'src/core/youtube-comment.service.ts',
         'src/core/youtube-download.ts',
         'src/core/youtube-info.ts',
