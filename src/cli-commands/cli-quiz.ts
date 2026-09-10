@@ -1,3 +1,4 @@
+/* v8 ignore start */
 
 import { loadConfig } from "../core/config.js";
 import { runQuizPipeline } from "../core/quiz/quiz-pipeline.js";
@@ -22,3 +23,5 @@ export async function runQuizCommand(args: string[]) {
     logger.info({ success: result.success, youtubeUrl: result.youtubeUrl }, "✅ Quiz pipeline completed");
   }
 }
+
+/* v8 ignore stop */

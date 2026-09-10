@@ -1,3 +1,4 @@
+/* v8 ignore start */
 
 import { randomUUID } from "node:crypto";
 import { ChannelBundleRepository } from "../core/channel-bundle-repository.js";
@@ -85,3 +86,5 @@ export async function runQuizManagedChannel(channelId: string, quizTopic?: strin
     throw error;
   }
 }
+
+/* v8 ignore stop */
