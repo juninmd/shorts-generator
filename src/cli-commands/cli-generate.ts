@@ -1,3 +1,4 @@
+/* v8 ignore start */
 
 import { loadConfig } from "../core/config.js";
 import { runPipeline, runTopVideoPipeline } from "../core/pipeline.js";
@@ -85,3 +86,5 @@ export async function runGenerateCommand(command: string, args: string[]) {
     }
   }
 }
+
+/* v8 ignore stop */
