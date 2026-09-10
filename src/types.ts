@@ -1,3 +1,4 @@
+/* v8 ignore start */
 // ─── Core domain types for shorts-generator ───
 
 export interface VideoInfo {
@@ -197,3 +198,5 @@ export interface ApiGenerateResponse {
   results?: PipelineResult[];
   progress?: PipelineProgress;
 }
+
+/* v8 ignore stop */
