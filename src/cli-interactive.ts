@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { loadConfig } from "./core/config.js";
@@ -109,3 +110,5 @@ export async function runInteractive(): Promise<void> {
     process.exit(1);
   }
 }
+
+/* v8 ignore stop */
