@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* v8 ignore start */
 import { config as dotenvConfig } from "dotenv";
 dotenvConfig({ override: true });
 
@@ -99,4 +98,3 @@ main().catch((err) => {
   process.exit(1);
 });
 
-/* v8 ignore stop */
