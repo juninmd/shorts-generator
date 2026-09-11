@@ -1,4 +1,3 @@
-/* v8 ignore start */
 declare module 'better-sqlite3' {
   interface RunResult {
     changes: number;
@@ -27,4 +26,3 @@ declare module 'better-sqlite3' {
   export = Database;
 }
 
-/* v8 ignore stop */
