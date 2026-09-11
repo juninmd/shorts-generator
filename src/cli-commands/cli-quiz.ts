@@ -1,4 +1,3 @@
-/* v8 ignore start */
 
 import { loadConfig } from "../core/config.js";
 import { runQuizPipeline } from "../core/quiz/quiz-pipeline.js";
@@ -24,4 +23,3 @@ export async function runQuizCommand(args: string[]) {
   }
 }
 
-/* v8 ignore stop */
