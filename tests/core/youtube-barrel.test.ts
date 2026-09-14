@@ -1,13 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as youtube from '../../src/core/youtube.js';
-
 describe('youtube barrel', () => {
-  it('should satisfy coverage requirements via type', () => {
-    const _dummy: youtube._YouTubeBarrelCoverage | null = null;
-    expect(_dummy).toBeNull();
-  });
-
-
   it('should export all required functions', () => {
     expect(youtube.verifyYoutubeAccess).toBeDefined();
     expect(youtube.getVideoInfo).toBeDefined();
