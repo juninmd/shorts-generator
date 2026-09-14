@@ -16,12 +16,23 @@ async function main() {
   switch (command) {
     case "generate":
     case "generate:top": {
-      await runGenerateCommand(command, args);
+      // DEFER_UPLOADS opens a BullMQ Redis socket; left open it keeps the CronJob alive.
+      const { closeQueueConnections } = await import("./core/queue.js");
+      try {
+        await runGenerateCommand(command, args);
+      } finally {
+        await closeQueueConnections();
+      }
       break;
     }
 
     case "generate:quiz": {
-      await runQuizCommand(args);
+      const { closeQueueConnections } = await import("./core/queue.js");
+      try {
+        await runQuizCommand(args);
+      } finally {
+        await closeQueueConnections();
+      }
       break;
     }
 
