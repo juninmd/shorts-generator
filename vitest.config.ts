@@ -15,7 +15,8 @@ export default defineConfig({
         'src/cli.ts',
         'src/cli-commands/**',
         'src/cli-interactive.ts',
-        'src/types/better-sqlite3.d.ts'
+        'src/types/better-sqlite3.d.ts',
+        'src/core/youtube.ts'
       ],
       all: true,
       thresholds: {
