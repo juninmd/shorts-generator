@@ -14,7 +14,7 @@ spec:
         args: ["--url", "https://www.youtube.com/watch?v=ybcOKbe1H1c", "--clips", "1"]
         env:
         - name: YOUTUBE_CHANNELS
-          value: "@FreiGilsonSomdoMonteOFICIAL"
+          value: "@PadreChrystianShankar"
         - name: WHISPER_CHUNK_DURATION_SEC
           value: "120"
         - name: WHISPER_BASE_URL
