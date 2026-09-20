@@ -32,7 +32,7 @@ function pruneExpired(now: number): void {
 }
 
 async function cachedAnalytics(channelId: string, ids: readonly string[], config: PipelineConfig, source: MetricsSource, now: number): Promise<MetricsResult> {
-  const key = `${channelId}:${[...ids].sort().join(",")}`;
+  const key = `${channelId}:${[...ids].sort((a, b) => a.localeCompare(b)).join(",")}`;
   const hit = cache.get(key);
   if (hit && now - hit.at < CACHE_TTL_MS) return hit.result;
   const result = await source(ids, config);
