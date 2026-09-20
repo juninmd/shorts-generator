@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { DashboardPage } from "./components/DashboardPage";
 import { useAdminConsole } from "./hooks/useAdminConsole";
 import type { AdminChannelBundle } from "./types";
 
@@ -469,6 +470,7 @@ export default function App() {
   const [wizardStep, setWizardStep] = useState(0);
   const [isNew, setIsNew] = useState(true);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [view, setView] = useState<"console" | "dashboard">("console");
   const activeRuns = useMemo(() => runs.slice(0, 10), [runs]);
 
   function toast$(msg: string, type: "ok" | "err") { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); }
@@ -497,6 +499,10 @@ export default function App() {
   const hasChannel = channels.length > 0;
   const editorStep = isNew ? wizardStep : wizardStep + STEP_OFFSET;
 
+  if (view === "dashboard") {
+    return <DashboardPage adminToken={adminToken} onBack={() => setView("console")} />;
+  }
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#050914" }}>
 
@@ -512,6 +518,10 @@ export default function App() {
             <div style={{ fontSize: ".65rem", color: "#334155" }}>Painel de controle</div>
           </div>
         </div>
+
+        <button className="btn btn-ghost" style={{ justifyContent: "flex-start", gap: 8, marginBottom: 8 }} onClick={() => setView("dashboard")}>
+          <Ico.Activity /> Dashboard de métricas
+        </button>
 
         {/* Token */}
         <div style={{ marginBottom: 8 }}>

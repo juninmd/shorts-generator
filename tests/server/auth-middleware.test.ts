@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
-import { createAdminAuthMiddleware, extractBearerToken } from "../../src/server/auth-middleware.js";
+import { createAdminAuthMiddleware, createLinkAuthMiddleware, extractBearerToken } from "../../src/server/auth-middleware.js";
 
 const config = {
   adminToken: "secret-admin-token",
@@ -122,6 +122,41 @@ describe("createAdminAuthMiddleware", () => {
       expect(res.status).toBe(403);
       expect(await res.json()).toEqual({ error: "Origin not allowed" });
     });
+  });
+});
+
+describe("createLinkAuthMiddleware", () => {
+  function createLinkApp() {
+    const app = new Hono();
+    app.use("/dashboard/*", createLinkAuthMiddleware(config));
+    app.get("/dashboard/data", (c) => c.json({ ok: true }));
+    return app;
+  }
+
+  it("rejects a request with no token at all", async () => {
+    const res = await createLinkApp().request("/dashboard/data");
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
+  });
+
+  it("rejects a request with a wrong query-string token", async () => {
+    const res = await createLinkApp().request("/dashboard/data?token=wrong");
+    expect(res.status).toBe(401);
+  });
+
+  it("allows a request with a valid query-string token, ignoring origin", async () => {
+    const res = await createLinkApp().request("/dashboard/data?token=secret-admin-token", {
+      headers: { origin: "http://evil.example" },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  it("allows a request authenticated via a bearer header instead of the query token", async () => {
+    const res = await createLinkApp().request("/dashboard/data", {
+      headers: { authorization: "Bearer secret-admin-token" },
+    });
+    expect(res.status).toBe(200);
   });
 });
 
