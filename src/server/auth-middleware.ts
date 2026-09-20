@@ -25,6 +25,21 @@ export function createAdminAuthMiddleware(
   };
 }
 
+/**
+ * Same-origin check is dropped: this guards links shared outside the browser
+ * (Telegram), which carry the token as a query param instead of a header.
+ * Constant-time compare only — do not reuse for origin-sensitive routes.
+ */
+export function createLinkAuthMiddleware(config: ControlPlaneConfig): MiddlewareHandler {
+  return async (c, next) => {
+    const token = extractBearerToken(c.req.header("authorization")) ?? c.req.query("token") ?? null;
+    if (!token || !tokensMatch(token, config.adminToken)) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+    await next();
+  };
+}
+
 export function extractBearerToken(header: string | undefined): string | null {
   if (!header) return null;
   const [scheme, token] = header.split(" ");
