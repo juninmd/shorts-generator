@@ -15,6 +15,7 @@
     "generate": "tsx src/cli.ts generate",
     "generate:top": "tsx src/cli.ts generate:top",
     "generate:quiz": "tsx src/cli.ts generate:quiz",
+    "generate:metrics-digest": "tsx src/cli.ts generate:metrics-digest",
     "generate:url": "tsx src/cli.ts generate --url",
     "test": "vitest run",
     "test:watch": "vitest",
