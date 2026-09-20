@@ -17,12 +17,12 @@ describe("dashboard aggregation and daily Telegram digest", () => {
   const now = new Date("2026-09-10T12:00:00Z");
   const config = { telegramBotToken: "t", telegramChatId: "c" } as any;
 
-  async function seedChannel(id: string) {
+  async function seedChannel(id: string, status: "active" | "inactive" = "active") {
     const createdAt = now.toISOString();
     await db.query(
       `INSERT INTO managed_channels (id, slug, name, description, status, logo_path, watermark_text, channel_type, created_at, updated_at)
-       VALUES ($1, $2, 'Canal A', '', 'active', NULL, '', 'cuts', $3, $4)`,
-      [id, id, createdAt, createdAt],
+       VALUES ($1, $2, 'Canal A', '', $5, NULL, '', 'cuts', $3, $4)`,
+      [id, id, createdAt, createdAt, status],
     );
     await db.query(
       `INSERT INTO channel_profiles (channel_id, video_limit, min_short_duration, max_short_duration, target_shorts, video_query, sort_by_views, ai_provider, ai_model)
@@ -31,12 +31,12 @@ describe("dashboard aggregation and daily Telegram digest", () => {
     );
   }
 
-  async function snapshot(channelId: string, videoId: string, capturedAt: Date, views: number) {
+  async function snapshot(channelId: string, videoId: string, capturedAt: Date, views: number, extra: { avgViewPercentage?: number; subscribersGained?: number } = {}) {
     await new SnapshotRepository(db).insert(
       channelId,
       { publicationId: `p-${videoId}`, youtubeVideoId: videoId, title: `T-${videoId}`, format: "cuts", theme: null, publishedAt: now.toISOString() },
       capturedAt,
-      { views, source: "public" },
+      { views, source: "public", ...extra },
     );
   }
 
@@ -59,7 +59,7 @@ describe("dashboard aggregation and daily Telegram digest", () => {
     ]);
   });
 
-  it("builds dashboard data only for active channels with their daily series", async () => {
+  it("builds dashboard data for active channels with their daily series", async () => {
     await snapshot("chan-a", "v1", now, 500);
     const bundles = await new ChannelBundleRepository(db).listBundles();
     expect(bundles).toHaveLength(1);
@@ -69,6 +69,32 @@ describe("dashboard aggregation and daily Telegram digest", () => {
     expect(data.channels[0]!.channelId).toBe("chan-a");
     expect(data.channels[0]!.series.at(-1)!.totalViews).toBe(500);
     expect(summarizeDashboard(data)).toContain("Canal A");
+  });
+
+  it("skips an inactive channel's bundle", async () => {
+    const listBundles = vi.fn().mockResolvedValue([
+      { channel: { id: "chan-a", name: "Canal A", channelType: "cuts", status: "active" } },
+      { channel: { id: "chan-b", name: "Canal B", channelType: "cuts", status: "inactive" } },
+    ]);
+    const { ChannelBundleRepository: RealRepo } = await import("../../../src/core/channel-bundle-repository.js");
+    const spy = vi.spyOn(RealRepo.prototype, "listBundles").mockImplementation(listBundles);
+    try {
+      const data = await buildDashboardData(db, now);
+      expect(data.channels.map((c) => c.channelId)).toEqual(["chan-a"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("propagates non-null analytics fields through recent() and dailySeries()", async () => {
+    await snapshot("chan-a", "v1", now, 500, { avgViewPercentage: 61.5, subscribersGained: 4 });
+    const repo = new SnapshotRepository(db);
+
+    const recent = await repo.recent("chan-a", now);
+    expect(recent[0]).toMatchObject({ avgViewPercentage: 61.5, subscribersGained: 4 });
+
+    const series = await repo.dailySeries("chan-a", now);
+    expect(series.at(-1)!.avgViewPercentage).toBe(61.5);
   });
 
   it("summarizes an empty dashboard without crashing", () => {
@@ -104,5 +130,34 @@ describe("dashboard aggregation and daily Telegram digest", () => {
     expect(outcome).toBe("no_telegram");
     expect(sendMock).not.toHaveBeenCalled();
     delete process.env.PUBLIC_BASE_URL;
+  });
+
+  it("re-throws and logs when the Telegram send fails", async () => {
+    process.env.PUBLIC_BASE_URL = "https://dashboard.example.com";
+    sendMock.mockRejectedValueOnce(new Error("telegram down"));
+    await expect(sendDailyDashboardDigest(db, config, now)).rejects.toThrow("telegram down");
+    delete process.env.PUBLIC_BASE_URL;
+  });
+
+  it("re-throws a non-Error rejection from the Telegram send too", async () => {
+    process.env.PUBLIC_BASE_URL = "https://dashboard.example.com";
+    sendMock.mockRejectedValueOnce("plain string failure");
+    await expect(sendDailyDashboardDigest(db, config, now)).rejects.toBe("plain string failure");
+    delete process.env.PUBLIC_BASE_URL;
+  });
+
+  it("treats a missing rowCount from the insert as not claimed", async () => {
+    process.env.PUBLIC_BASE_URL = "https://dashboard.example.com";
+    const fakeDb = { query: vi.fn().mockResolvedValue({ rows: [], rowCount: undefined }) } as unknown as SqlClient;
+    const { ChannelBundleRepository: RealRepo } = await import("../../../src/core/channel-bundle-repository.js");
+    const spy = vi.spyOn(RealRepo.prototype, "listBundles").mockResolvedValue([]);
+    try {
+      const outcome = await sendDailyDashboardDigest(fakeDb, config, now);
+      expect(outcome).toBe("skipped");
+      expect(sendMock).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+      delete process.env.PUBLIC_BASE_URL;
+    }
   });
 });
