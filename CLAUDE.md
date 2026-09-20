@@ -9,6 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pnpm dev                    # Start web server with hot reload
 pnpm cli generate           # Generate shorts from configured channels/URLs
 pnpm cli generate:top       # Send top unposted video (full) to Telegram/YouTube
+pnpm cli generate:comic --demo         # Narrate the built-in comic smoke-test book (Flashpoint)
+pnpm cli generate:movie --demo         # Narrate the built-in movie-recap smoke-test book (Shrek)
+pnpm cli generate:series --demo        # Narrate the built-in series-recap smoke-test book (The Flash 1x01)
+pnpm cli generate:bio --demo           # Narrate the built-in biography smoke-test book (Ada Lovelace)
+pnpm cli generate:news --demo          # Narrate the built-in news-digest smoke-test book (example headlines)
+pnpm cli generate:book --demo          # Narrate the built-in book-recap smoke-test book (Dom Casmurro)
+pnpm cli generate:<kind> --book <path.json>  # Any kind: narrate a custom ComicBook definition
 
 # Testing
 pnpm test                   # Run all tests once
@@ -53,6 +60,19 @@ YouTube Channel/URL
 
 - **`runPipeline()`** — standard: fetches multiple videos per channel, generates multiple shorts per video, posts all clips
 - **`runTopVideoPipeline()`** — picks one random channel, selects its top unposted non-Music video, sends the **full video** (not clips) to Telegram/YouTube, tracks in `posted_top_videos.json`
+
+### Narrated-Story Pipeline (`src/core/comic/`)
+
+Separate, standalone flow — narrates a "book" (chapter images + narration script) into a vertical short. Shared by six CLI entry points — comics, movie recaps, series-episode recaps, biographies, news digests, book recaps — since the engine only cares about chapters of image+narration, not the content's genre. Not wired into `runPipeline`/YouTube upload; local output only.
+
+```
+ComicBook { id, title, chapters: [{ id, title, imagePath, narrationText }] }
+  → comic-tts.ts     — edge-tts (Python subprocess, scripts/comic_tts.py) synthesizes narration + word timestamps
+  → comic-video.ts   — FFmpeg: image+audio per chapter (Ken Burns), concat, burn ASS subtitles
+  → comic-pipeline.ts — orchestrates chapters, offsets word timestamps onto one timeline, reuses subtitle.ts's generateASSSubtitles via a synthetic ShortClip
+```
+
+`pnpm cli generate:<kind> --demo` (kind: `comic`/`movie`/`series`/`bio`/`news`/`book`) runs the matching built-in smoke-test book from `demo-books.ts` (Flashpoint / Shrek / The Flash 1x01 / Ada Lovelace / example headlines / Dom Casmurro) — plain color chapter cards with an original synopsis, no copyrighted stills/panels/dialogue, since those must be supplied by the user for their own licensed use. `--book <path.json>` narrates a custom `ComicBook`. Requires `pip install edge-tts`; voice via `COMIC_TTS_VOICE` (default `pt-BR-AntonioNeural`), optional watermark via `COMIC_WATERMARK_TEXT` (unset by default).
 
 ### Configuration
 
