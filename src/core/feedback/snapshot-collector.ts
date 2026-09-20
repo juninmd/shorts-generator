@@ -24,12 +24,20 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
 const cache = new Map<string, { at: number; result: MetricsResult }>();
 export const clearMetricsCache = () => cache.clear();
 
+// Bounds the cache in a long-running process: expired entries are dropped on every write.
+function pruneExpired(now: number): void {
+  for (const [key, entry] of cache) {
+    if (now - entry.at >= CACHE_TTL_MS) cache.delete(key);
+  }
+}
+
 async function cachedAnalytics(channelId: string, ids: readonly string[], config: PipelineConfig, source: MetricsSource, now: number): Promise<MetricsResult> {
   const key = `${channelId}:${[...ids].sort().join(",")}`;
   const hit = cache.get(key);
   if (hit && now - hit.at < CACHE_TTL_MS) return hit.result;
   const result = await source(ids, config);
   // Permission/quota failures are cached too, so a missing scope is not retried every run.
+  pruneExpired(now);
   cache.set(key, { at: now, result });
   return result;
 }
