@@ -21,8 +21,8 @@ describe("dashboard aggregation and daily Telegram digest", () => {
     const createdAt = now.toISOString();
     await db.query(
       `INSERT INTO managed_channels (id, slug, name, description, status, logo_path, watermark_text, channel_type, created_at, updated_at)
-       VALUES ($1, $2, 'Canal A', '', $5, NULL, '', 'cuts', $3, $4)`,
-      [id, id, createdAt, createdAt, status],
+       VALUES ($1, $2, 'Canal A', '', $3, NULL, '', 'cuts', $4, $5)`,
+      [id, id, status, createdAt, createdAt],
     );
     await db.query(
       `INSERT INTO channel_profiles (channel_id, video_limit, min_short_duration, max_short_duration, target_shorts, video_query, sort_by_views, ai_provider, ai_model)
