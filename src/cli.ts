@@ -31,6 +31,18 @@ async function main() {
       break;
     }
 
+    case "generate:comic":
+    case "generate:movie":
+    case "generate:series":
+    case "generate:bio":
+    case "generate:news":
+    case "generate:book": {
+      const { runComicCommand } = await import("./cli-commands/cli-comic.js");
+      const kind = command.split(":")[1] as import("./cli-commands/cli-comic.js").StoryKind;
+      await runComicCommand(kind, args);
+      break;
+    }
+
     case "queue:process": {
       const { processQueueUntilEmpty, closeQueueConnections } = await import("./core/queue.js");
       try {
