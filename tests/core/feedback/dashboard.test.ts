@@ -18,10 +18,11 @@ describe("dashboard aggregation and daily Telegram digest", () => {
   const config = { telegramBotToken: "t", telegramChatId: "c" } as any;
 
   async function seedChannel(id: string) {
+    const createdAt = now.toISOString();
     await db.query(
       `INSERT INTO managed_channels (id, slug, name, description, status, logo_path, watermark_text, channel_type, created_at, updated_at)
-       VALUES ($1, $1, 'Canal A', '', 'active', NULL, '', 'cuts', $2, $2)`,
-      [id, now.toISOString()],
+       VALUES ($1, $2, 'Canal A', '', 'active', NULL, '', 'cuts', $3, $4)`,
+      [id, id, createdAt, createdAt],
     );
     await db.query(
       `INSERT INTO channel_profiles (channel_id, video_limit, min_short_duration, max_short_duration, target_shorts, video_query, sort_by_views, ai_provider, ai_model)
