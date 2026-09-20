@@ -1,6 +1,5 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import ffmpeg from "fluent-ffmpeg";
@@ -20,18 +19,7 @@ function escapeFilterPath(filePath: string): string {
   return filePath.replace(/\\/g, "/").replace(/:/g, "\\:");
 }
 
-function buildFontEnv(): NodeJS.ProcessEnv {
-  const fontsConfNative = path.resolve(process.cwd(), "fonts.conf");
-  const fontsConfFwd = fontsConfNative.replace(/\\/g, "/");
-  const cacheDir = path.join(os.homedir(), ".cache", "fontconfig");
-  if (fs.existsSync(fontsConfNative)) {
-    fs.mkdirSync(cacheDir, { recursive: true });
-  }
-  return {
-    ...process.env,
-    FONTCONFIG_FILE: fs.existsSync(fontsConfNative) ? fontsConfFwd : undefined,
-  };
-}
+import { buildFontEnv } from "./ffmpeg-env.js";
 
 export function buildSafeFramingFilter(
   subtitlePath: string,
