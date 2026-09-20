@@ -1,4 +1,4 @@
-import type { AdminChannelBundle, AdminRunRecord } from "./types";
+import type { AdminChannelBundle, AdminRunRecord, DashboardData } from "./types";
 
 const API_BASE = "/api/admin";
 
@@ -58,6 +58,14 @@ export async function getShorts(): Promise<never[]> {
 
 export function getDownloadUrl(videoId: string, clipId: string): string {
   return `/api/shorts/${videoId}/${clipId}`;
+}
+
+// Mounted outside /api/admin: it accepts a query-string token so the link
+// shared via Telegram works without an Authorization header.
+export async function fetchDashboardData(adminToken: string): Promise<DashboardData> {
+  const res = await fetch("/api/dashboard/data", { headers: { Authorization: `Bearer ${adminToken}` } });
+  if (!res.ok) throw new Error((await res.text()) || `Request failed: ${res.status}`);
+  return res.json() as Promise<DashboardData>;
 }
 
 async function request<T>(adminToken: string, path: string, init?: RequestInit): Promise<T> {

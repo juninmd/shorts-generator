@@ -122,3 +122,42 @@ export interface AdminRunRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface DailyMetricPoint {
+  day: string;
+  totalViews: number;
+  avgViewPercentage: number | null;
+  videoCount: number;
+}
+
+export interface RankedVideo {
+  youtubeVideoId: string;
+  title: string;
+  views: number;
+  avgViewPercentage: number | null;
+}
+
+export interface WindowGroup {
+  key: string;
+  window: "24h" | "72h" | "7d";
+  sampleSize: number;
+  immature: number;
+  status: "ok" | "insufficient_sample";
+  medianViews: number | null;
+  top: RankedVideo[];
+  flop: RankedVideo[];
+}
+
+export interface ChannelDashboard {
+  channelId: string;
+  channelName: string;
+  channelType: string;
+  status: string;
+  series: DailyMetricPoint[];
+  windows: WindowGroup[];
+}
+
+export interface DashboardData {
+  generatedAt: string;
+  channels: ChannelDashboard[];
+}

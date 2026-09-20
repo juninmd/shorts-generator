@@ -7,6 +7,7 @@ import { startServer } from "./server/index.js";
 import { runInteractive } from "./cli-interactive.js";
 import { runGenerateCommand } from "./cli-commands/cli-generate.js";
 import { runQuizCommand } from "./cli-commands/cli-quiz.js";
+import { runMetricsDigestCommand } from "./cli-commands/cli-metrics-digest.js";
 
 // Filter out '--' separator that pnpm/npm passes through
 const args = process.argv.slice(2).filter((a) => a !== "--");
@@ -22,6 +23,11 @@ async function main() {
 
     case "generate:quiz": {
       await runQuizCommand(args);
+      break;
+    }
+
+    case "generate:metrics-digest": {
+      await runMetricsDigestCommand();
       break;
     }
 
@@ -74,6 +80,7 @@ Usage:
   pnpm generate [options]
   pnpm generate:top [options]
   pnpm generate:quiz [options]
+  pnpm generate:metrics-digest
   pnpm queue:process
   pnpm queue:retry
   pnpm server
