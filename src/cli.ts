@@ -44,22 +44,14 @@ async function main() {
     }
 
     case "queue:process": {
-      const { processQueueUntilEmpty, closeQueueConnections } = await import("./core/queue.js");
-      try {
-        await processQueueUntilEmpty();
-      } finally {
-        await closeQueueConnections();
-      }
+      const { processQueueUntilEmpty } = await import("./core/queue.js");
+      await processQueueUntilEmpty();
       break;
     }
 
     case "queue:retry": {
-      const { retryFailedWithExistingFiles, closeQueueConnections } = await import("./core/queue.js");
-      try {
-        await retryFailedWithExistingFiles();
-      } finally {
-        await closeQueueConnections();
-      }
+      const { retryFailedWithExistingFiles } = await import("./core/queue.js");
+      await retryFailedWithExistingFiles();
       break;
     }
 
@@ -112,8 +104,22 @@ Environment Variables:
   }
 }
 
-main().catch((err) => {
-  logger.fatal({ error: err }, "Unhandled error");
-  process.exit(1);
-});
+// "server" and "interactive" are long-running: they must keep the Redis connection
+// open for their own lifetime. Every other command is one-shot and may have enqueued
+// a BullMQ upload (queue-client.ts), which opens a persistent ioredis connection that
+// Node never exits on its own while alive — leaving it open hangs the CronJob pod
+// until activeDeadlineSeconds kills it. closeQueueConnections() is a no-op when no
+// connection was ever opened, so it's safe to call unconditionally here.
+const LONG_RUNNING_COMMANDS = new Set(["server", "interactive"]);
+
+main()
+  .catch((err) => {
+    logger.fatal({ error: err }, "Unhandled error");
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    if (LONG_RUNNING_COMMANDS.has(command)) return;
+    const { closeQueueConnections } = await import("./core/queue-client.js");
+    await closeQueueConnections();
+  });
 
