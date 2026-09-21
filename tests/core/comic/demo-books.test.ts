@@ -13,44 +13,24 @@ describe('demo-books', () => {
     vi.resetAllMocks();
     vi.spyOn(fs, 'mkdirSync').mockReturnValue(undefined);
     vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, opts, cb) => {
-       if (typeof cb === 'function') cb(null, { stdout: '', stderr: '' });
+       if (typeof cb === 'function') cb(null, { stdout: '', stderr: '' } as any);
        return {} as any;
     });
   });
 
-  it('should buildFlashpointDemoBook', async () => {
-    const book = await demoBooks.buildFlashpointDemoBook('work');
-    expect(book.id).toBe('flashpoint-demo');
-    expect(book.chapters).toHaveLength(3);
-  });
+  const testCases = [
+    { method: 'buildFlashpointDemoBook', expectedId: 'flashpoint-demo' },
+    { method: 'buildShrek1DemoBook', expectedId: 'shrek1-demo' },
+    { method: 'buildFlashEpisode1DemoBook', expectedId: 'flash-s01e01-demo' },
+    { method: 'buildBiographyDemoBook', expectedId: 'ada-lovelace-demo' },
+    { method: 'buildNewsDigestDemoBook', expectedId: 'news-digest-demo' },
+    { method: 'buildBookRecapDemoBook', expectedId: 'dom-casmurro-demo' }
+  ];
 
-  it('should buildShrek1DemoBook', async () => {
-    const book = await demoBooks.buildShrek1DemoBook('work');
-    expect(book.id).toBe('shrek1-demo');
-    expect(book.chapters).toHaveLength(3);
-  });
-
-  it('should buildFlashEpisode1DemoBook', async () => {
-    const book = await demoBooks.buildFlashEpisode1DemoBook('work');
-    expect(book.id).toBe('flash-s01e01-demo');
-    expect(book.chapters).toHaveLength(3);
-  });
-
-  it('should buildBiographyDemoBook', async () => {
-    const book = await demoBooks.buildBiographyDemoBook('work');
-    expect(book.id).toBe('ada-lovelace-demo');
-    expect(book.chapters).toHaveLength(3);
-  });
-
-  it('should buildNewsDigestDemoBook', async () => {
-    const book = await demoBooks.buildNewsDigestDemoBook('work');
-    expect(book.id).toBe('news-digest-demo');
-    expect(book.chapters).toHaveLength(3);
-  });
-
-  it('should buildBookRecapDemoBook', async () => {
-    const book = await demoBooks.buildBookRecapDemoBook('work');
-    expect(book.id).toBe('dom-casmurro-demo');
+  it.each(testCases)('should build $method correctly', async ({ method, expectedId }) => {
+    const fn = (demoBooks as any)[method];
+    const book = await fn('work');
+    expect(book.id).toBe(expectedId);
     expect(book.chapters).toHaveLength(3);
   });
 });

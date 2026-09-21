@@ -9,8 +9,18 @@ vi.mock('node:child_process');
 vi.mock('fluent-ffmpeg');
 
 describe('comic-video', () => {
+  const chapter = {
+    id: '1', title: 'a', imagePath: 'i', narrationText: 't',
+    audioPath: 'a', durationSec: 1, words: []
+  };
+
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, opts, cb) => {
+       const callback = typeof cb === 'function' ? cb : opts;
+       if (typeof callback === 'function') callback(null, { stdout: '', stderr: '' } as any);
+       return {} as any;
+    });
   });
 
   afterEach(() => {
@@ -18,15 +28,6 @@ describe('comic-video', () => {
   });
 
   it('should render chapter clip', async () => {
-    vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, opts, cb) => {
-       if (typeof cb === 'function') cb(null, { stdout: '', stderr: '' });
-       return {} as any;
-    });
-
-    const chapter = {
-      id: '1', title: 'a', imagePath: 'i', narrationText: 't',
-      audioPath: 'a', durationSec: 1, words: []
-    };
     await expect(comicVideo.renderChapterClip(chapter, 'out.mp4', 1920, 1080)).resolves.not.toThrow();
   });
 
@@ -34,14 +35,6 @@ describe('comic-video', () => {
     const mockFfmpegPath = vi.fn().mockReturnValue('custom-ffmpeg');
     (ffmpeg as any).ffmpegPath = mockFfmpegPath;
 
-    vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, opts, cb) => {
-       if (typeof cb === 'function') cb(null, { stdout: '', stderr: '' });
-       return {} as any;
-    });
-    const chapter = {
-      id: '1', title: 'a', imagePath: 'i', narrationText: 't',
-      audioPath: 'a', durationSec: 1, words: []
-    };
     await expect(comicVideo.renderChapterClip(chapter, 'out.mp4', 1920, 1080)).resolves.not.toThrow();
 
     delete (ffmpeg as any).ffmpegPath;
@@ -49,31 +42,15 @@ describe('comic-video', () => {
 
   it('should get ffmpeg path fallback', async () => {
     delete (ffmpeg as any).ffmpegPath;
-    vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, opts, cb) => {
-       if (typeof cb === 'function') cb(null, { stdout: '', stderr: '' });
-       return {} as any;
-    });
-    const chapter = {
-      id: '1', title: 'a', imagePath: 'i', narrationText: 't',
-      audioPath: 'a', durationSec: 1, words: []
-    };
     await expect(comicVideo.renderChapterClip(chapter, 'out.mp4', 1920, 1080)).resolves.not.toThrow();
   });
 
   it('should concat chapter clips', async () => {
     vi.spyOn(fs, 'writeFileSync').mockReturnValue(undefined);
-    vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, opts, cb) => {
-       if (typeof cb === 'function') cb(null, { stdout: '', stderr: '' });
-       return {} as any;
-    });
     await expect(comicVideo.concatChapterClips(['c1.mp4', 'c2.mp4'], 'out.mp4', 'work')).resolves.not.toThrow();
   });
 
   it('should burn subtitles', async () => {
-    vi.spyOn(child_process, 'execFile').mockImplementation((cmd, args, opts, cb) => {
-       if (typeof cb === 'function') cb(null, { stdout: '', stderr: '' });
-       return {} as any;
-    });
     await expect(comicVideo.burnSubtitles('in.mp4', 'c:\\sub.ass', 'out.mp4')).resolves.not.toThrow();
   });
 });
