@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("../../src/core/comic/comic-tts.js", () => ({
@@ -66,3 +67,23 @@ describe("comic-pipeline", () => {
     ).rejects.toThrow("no chapters");
   });
 });
+
+
+  it("throws if chapter image is missing", async () => {
+    const localBook = {
+      id: "book-2",
+      title: "Test Comic 2",
+      chapters: [
+        { id: "ch1", title: "Ch1", imagePath: "a.png", narrationText: "text one" }
+      ],
+    };
+    vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+    await expect(
+      runComicPipeline(localBook, {
+        outputDir: "output",
+        verticalWidth: 1080,
+        verticalHeight: 1920,
+        ttsVoice: "pt-BR-AntonioNeural",
+      }),
+    ).rejects.toThrow(/Chapter image not found/);
+  });
