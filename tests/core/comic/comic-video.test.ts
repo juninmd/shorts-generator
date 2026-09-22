@@ -29,6 +29,10 @@ import ffmpeg from "fluent-ffmpeg";
 describe("comic-video", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(execFile).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      cb(null, { stdout: "", stderr: "" });
+    });
   });
 
   const narratedChapter = {
@@ -42,10 +46,6 @@ describe("comic-video", () => {
   };
 
   it("renderChapterClip works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
 
     await renderChapterClip(narratedChapter, "output.mp4", 1080, 1920);
     expect(execFile).toHaveBeenCalled();
@@ -55,30 +55,18 @@ describe("comic-video", () => {
   });
 
   it("concatChapterClips works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
 
     await concatChapterClips(["a.mp4", "b.mp4"], "concat.mp4", "workdir");
     expect(execFile).toHaveBeenCalled();
   });
 
   it("burnSubtitles works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
 
     await burnSubtitles("concat.mp4", "sub.ass", "output.mp4");
     expect(execFile).toHaveBeenCalled();
   });
 
   it("uses default ffmpeg if ffmpegPath is not available", async () => {
-     vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
 
     // override ffmpegPath mock just for this test
     (ffmpeg as any).ffmpegPath = undefined;

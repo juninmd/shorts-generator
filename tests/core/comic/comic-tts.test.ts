@@ -32,6 +32,10 @@ import ffmpeg from "fluent-ffmpeg";
 describe("comic-tts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(execFile).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      cb(null, { stdout: "", stderr: "" });
+    });
   });
 
   const chapter: ComicChapter = {
@@ -43,10 +47,6 @@ describe("comic-tts", () => {
 
   it("narrateChapter works", async () => {
     // We mock execFile by wrapping it in util.promisify, so we simulate the cb call
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
 
     const result = await narrateChapter(chapter, "output", "pt-BR-AntonioNeural");
     expect(result.durationSec).toBe(10);
@@ -55,10 +55,6 @@ describe("comic-tts", () => {
   });
 
   it("narrateChapters works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
 
     const result = await narrateChapters([chapter], "output", "pt-BR-AntonioNeural");
     expect(result).toHaveLength(1);
@@ -71,20 +67,12 @@ describe("comic-tts", () => {
   });
 
   it("handles ffprobe error", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => cb(new Error("ffprobe error"), null));
+        vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => cb(new Error("ffprobe error"), null));
     await expect(narrateChapter(chapter, "output", "pt-BR-AntonioNeural")).rejects.toThrow("ffprobe error");
   });
 
   it("handles missing duration in ffprobe", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => cb(null, { format: {} }));
+        vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => cb(null, { format: {} }));
     const res = await narrateChapter(chapter, "output", "pt-BR-AntonioNeural");
     expect(res.durationSec).toBe(0);
   });
