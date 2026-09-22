@@ -97,7 +97,6 @@ vi.mock("../../src/core/telegram.js", () => ({
 
 import * as state from "../../src/core/state.js";
 import * as filters from "../../src/core/pipeline-filters.js";
-import * as telegram from "../../src/core/telegram.js";
 
 describe("pipeline", () => {
   const mockConfig = {
