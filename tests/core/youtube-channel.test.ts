@@ -124,8 +124,6 @@ invalid json
     expect(args.join(' ')).toContain('http://youtube.com/mychannel');
   });
 
-});
-
   it("getTopChannelVideos handles parse error", async () => {
     vi.mocked(execYtDlp).mockResolvedValueOnce({
       stdout: `{"id":"v1","duration":100}\ninvalid\n{"id":"v2","duration":100,"view_count":150}`
@@ -152,3 +150,5 @@ invalid json
     const res = await getTopChannelVideos("mychannel", 10);
     expect(res).toHaveLength(0); // Because duration is 0, it gets filtered out
   });
+
+});
