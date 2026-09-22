@@ -1,18 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupComicMocks } from './comic-test-utils.js';
+setupComicMocks();
 
-vi.mock("node:child_process", () => ({
-  execFile: vi.fn(),
-}));
-
-vi.mock("node:fs", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("node:fs")>();
-  const overrides = {
-    existsSync: vi.fn(() => true),
-    mkdirSync: vi.fn(),
-    writeFileSync: vi.fn(),
-  };
-  return { ...actual, ...overrides, default: { ...(actual as any).default, ...overrides } };
-});
 
 vi.mock("fluent-ffmpeg", () => {
   return {

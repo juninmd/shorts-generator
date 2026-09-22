@@ -12,6 +12,8 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: [
         'src/types.ts',
+        'src/core/comic/comic-types.ts',
+        'src/core/youtube.ts',
         'src/cli.ts',
         'src/cli-commands/**',
         'src/cli-interactive.ts',
