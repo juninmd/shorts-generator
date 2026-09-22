@@ -27,65 +27,39 @@ import { execFile } from "node:child_process";
 describe("demo-books", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("buildFlashpointDemoBook works", async () => {
     vi.mocked(execFile).mockImplementation((...args: any[]) => {
       const cb = args[args.length - 1];
       cb(null, { stdout: "", stderr: "" });
     });
+  });
 
+  it("buildFlashpointDemoBook works", async () => {
     const book = await buildFlashpointDemoBook("workdir");
     expect(book.id).toBe("flashpoint-demo");
     expect(book.chapters).toHaveLength(3);
   });
 
   it("buildShrek1DemoBook works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
-
     const book = await buildShrek1DemoBook("workdir");
     expect(book.id).toBe("shrek1-demo");
   });
 
   it("buildFlashEpisode1DemoBook works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
-
     const book = await buildFlashEpisode1DemoBook("workdir");
     expect(book.id).toBe("flash-s01e01-demo");
   });
 
   it("buildBiographyDemoBook works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
-
     const book = await buildBiographyDemoBook("workdir");
     expect(book.id).toBe("ada-lovelace-demo");
   });
 
   it("buildNewsDigestDemoBook works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
-
     const book = await buildNewsDigestDemoBook("workdir");
     expect(book.id).toBe("news-digest-demo");
   });
 
   it("buildBookRecapDemoBook works", async () => {
-    vi.mocked(execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: "", stderr: "" });
-    });
-
     const book = await buildBookRecapDemoBook("workdir");
     expect(book.id).toBe("dom-casmurro-demo");
   });
