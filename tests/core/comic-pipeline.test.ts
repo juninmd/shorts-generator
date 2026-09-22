@@ -20,7 +20,10 @@ vi.mock("../../src/core/comic/comic-video.js", () => ({
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   const overrides = {
-    existsSync: vi.fn(() => true),
+    existsSync: vi.fn((path) => {
+       if(path.includes("missing")) return false;
+       return true;
+    }),
     mkdirSync: vi.fn(),
     writeFileSync: vi.fn(),
   };
@@ -64,5 +67,16 @@ describe("comic-pipeline", () => {
         ttsVoice: "pt-BR-AntonioNeural",
       }),
     ).rejects.toThrow("no chapters");
+  });
+
+  it("rejects a book with missing chapter image", async () => {
+    await expect(
+      runComicPipeline({ id: "missing", title: "Missing", chapters: [{ id: "ch1", title: "Ch1", imagePath: "missing.png", narrationText: "text one" }] }, {
+        outputDir: "output",
+        verticalWidth: 1080,
+        verticalHeight: 1920,
+        ttsVoice: "pt-BR-AntonioNeural",
+      }),
+    ).rejects.toThrow("Chapter image not found");
   });
 });
