@@ -27,6 +27,7 @@ vi.mock("node:fs", async (importOriginal) => {
   return { ...actual, ...overrides, default: { ...(actual as any).default, ...overrides } };
 });
 
+import fs from "node:fs";
 import { runComicPipeline } from "../../src/core/comic/comic-pipeline.js";
 import type { ComicBook } from "../../src/core/comic/comic-types.js";
 
@@ -64,5 +65,17 @@ describe("comic-pipeline", () => {
         ttsVoice: "pt-BR-AntonioNeural",
       }),
     ).rejects.toThrow("no chapters");
+  });
+
+  it("rejects a chapter when image does not exist", async () => {
+    vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+    await expect(
+      runComicPipeline(book, {
+        outputDir: "output",
+        verticalWidth: 1080,
+        verticalHeight: 1920,
+        ttsVoice: "pt-BR-AntonioNeural",
+      }),
+    ).rejects.toThrow("Chapter image not found");
   });
 });
