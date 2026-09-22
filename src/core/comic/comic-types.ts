@@ -1,4 +1,3 @@
-export const _dummy: string | null = null;
 import type { TranscriptWord } from "../../types.js";
 
 /** One chapter/page of a comic short: an image plus the narration spoken over it. */
