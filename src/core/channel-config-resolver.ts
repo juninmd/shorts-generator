@@ -76,7 +76,7 @@ export function buildManagedPipelineConfig(
     targetShorts: overrides?.targetShorts ?? (resolvedRun.profile.targetShorts ?? undefined),
     sortByViews: overrides?.sortByViews ?? resolvedRun.profile.sortByViews,
     videoQuery: overrides?.videoQuery ?? (resolvedRun.profile.videoQuery || undefined),
-    aiModel: resolvedRun.profile.aiModel,
+    aiModel: resolvedRun.profile.aiModel || baseConfig.aiModel,
     watermarkText: resolvedRun.channel.watermarkText,
     youtubeAuth: {
       clientId: resolvedRun.publishingAccount.clientId ?? "",
