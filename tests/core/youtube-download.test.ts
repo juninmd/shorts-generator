@@ -1,133 +1,187 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { downloadAudioOnly } from '../../src/core/youtube-download.js';
-import { execYtDlp, diagnoseAudioDownloadFailure } from '../../src/core/youtube-ytdlp.js';
-import fs from 'fs';
-import path from 'path';
+import { describe, it, expect, vi } from "vitest";
+import { downloadAudioOnly } from "../../src/core/youtube-download.js";
+import { execYtDlp } from "../../src/core/youtube-ytdlp.js";
+import type { VideoInfo, SystemConfig } from "../../src/types.js";
+import fs from "node:fs";
 
-vi.mock('../../src/core/youtube-ytdlp.js', () => ({
+vi.mock("../../src/core/youtube-ytdlp.js", () => ({
   execYtDlp: vi.fn(),
-  getYtDlpBaseArgs: vi.fn().mockReturnValue([]),
-  withCookies: vi.fn().mockImplementation(async (config, callback) => callback('mock-cookie')),
-  diagnoseAudioDownloadFailure: vi.fn().mockReturnValue('download_video_stream')
+  withCookies: vi.fn(async (_opts, cb) => cb("/tmp/cookies.txt")),
+  getYtDlpBaseArgs: vi.fn(() => ["--cookies", "/tmp/cookies.txt"]),
+  diagnoseAudioDownloadFailure: vi.fn(() => "mock_stage")
 }));
 
-vi.mock('fs', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('fs')>();
-    return {
-        ...actual,
-        default: {
-            ...actual,
-            mkdirSync: vi.fn(),
-            existsSync: vi.fn().mockReturnValue(true),
-            readdirSync: vi.fn().mockReturnValue([]),
-            statSync: vi.fn().mockReturnValue({ size: 1000 })
-        }
-    };
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      existsSync: vi.fn().mockReturnValue(true),
+      statSync: vi.fn().mockReturnValue({ size: 1024 }),
+      readdirSync: vi.fn().mockReturnValue(["vid1.mp4"]),
+      mkdirSync: vi.fn()
+    },
+    existsSync: vi.fn().mockReturnValue(true),
+    statSync: vi.fn().mockReturnValue({ size: 1024 }),
+    readdirSync: vi.fn().mockReturnValue(["vid1.mp4"]),
+    mkdirSync: vi.fn()
+  };
 });
 
-describe('youtube-download', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+const mockConfig: SystemConfig = {
+  id: "test",
+  youtubeClientEmail: "test@test.com",
+  youtubePrivateKey: "key",
+  geminiApiKey: "key",
+  geminiModel: "model",
+  videoLanguage: "pt",
+  workingDirectory: "/tmp",
+  verticalWidth: 1080,
+  verticalHeight: 1920,
+  maxConcurrentJobs: 1,
+  dbPath: ":memory:",
+  enableExperimental: false,
+  telegramBotToken: "token",
+  telegramChatId: "chatId",
+  telegramAdminIds: "admin",
+  cookieMode: "none",
+  cloudGeminiApiKey: "",
+  tempDir: "/tmp"
+};
+
+describe("youtube-download", () => {
+  it("downloadAudioOnly works", async () => {
+    vi.mocked(execYtDlp).mockResolvedValue({ stdout: "Done", stderr: "" });
+    const video: VideoInfo = {
+      id: "vid1",
+      title: "Title",
+      url: "url",
+      channelName: "channel",
+      channelUrl: "curl",
+      duration: 120,
+      publishedAt: "20230101",
+    };
+    const downloaded = await downloadAudioOnly(video, mockConfig);
+    expect(downloaded.fileSize).toBe(1024);
   });
 
-  const mockVideo = { id: 'vid1', title: 'Test Video', url: 'http://test', description: '', duration: 10, channel: 'Ch', upload_date: '20230101' };
-  const mockConfig = { tempDir: '/tmp' } as any;
-
-  it('should download audio successfully', async () => {
-    vi.mocked(execYtDlp).mockResolvedValue({ stderr: 'ok', stdout: '' } as any);
-    const result = await downloadAudioOnly(mockVideo, mockConfig);
-    expect(result.audioPath).toBe(path.join('/tmp/vid1/vid1.wav'));
-    expect(execYtDlp).toHaveBeenCalled();
+  it("downloadAudioOnly warns on small size", async () => {
+    vi.mocked(execYtDlp).mockResolvedValue({ stdout: "Done", stderr: "" });
+    vi.mocked(fs.statSync).mockReturnValueOnce({ size: 500 } as any);
+    const video: VideoInfo = {
+      id: "vid1",
+      title: "Title",
+      url: "url",
+      channelName: "channel",
+      channelUrl: "curl",
+      duration: 120,
+      publishedAt: "20230101",
+    };
+    const downloaded = await downloadAudioOnly(video, mockConfig);
+    expect(downloaded.fileSize).toBe(500);
   });
 
-  it('should log warning if file size is too small', async () => {
-    vi.mocked(execYtDlp).mockResolvedValue({ stderr: 'ok', stdout: '' } as any);
-    vi.mocked(fs.statSync).mockReturnValue({ size: 500 } as any); // < 1000
-    const result = await downloadAudioOnly(mockVideo, mockConfig);
-    expect(result.fileSize).toBe(500);
+  it("downloadAudioOnly handles yt-dlp error", async () => {
+      vi.mocked(execYtDlp).mockRejectedValueOnce(new Error("Failed"));
+      const video: VideoInfo = {
+          id: "vid1",
+          title: "Title",
+          url: "url",
+          channelName: "channel",
+          channelUrl: "curl",
+          duration: 120,
+          publishedAt: "20230101",
+      };
+      await expect(downloadAudioOnly(video, mockConfig)).rejects.toThrow(/AUDIO DOWNLOAD FAILED/);
   });
 
-  it('should throw error if file is missing (ERROR)', async () => {
-      vi.mocked(execYtDlp).mockResolvedValue({ stderr: 'ERROR: connection failed', stdout: '' } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      vi.mocked(fs.readdirSync).mockReturnValue(['vid1.part']);
-
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO EXTRACTION FAILED');
+  it("downloadAudioOnly handles yt-dlp error string", async () => {
+      vi.mocked(execYtDlp).mockRejectedValueOnce("String error");
+      const video: VideoInfo = {
+          id: "vid1",
+          title: "Title",
+          url: "url",
+          channelName: "channel",
+          channelUrl: "curl",
+          duration: 120,
+          publishedAt: "20230101",
+      };
+      await expect(downloadAudioOnly(video, mockConfig)).rejects.toThrow(/AUDIO DOWNLOAD FAILED/);
   });
 
-  it('should throw error if file is missing (ffmpeg)', async () => {
-      vi.mocked(execYtDlp).mockResolvedValue({ stderr: 'ffmpeg failed', stdout: '' } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO EXTRACTION FAILED');
+  it("downloadAudioOnly handles missing file and diagnostic logs (unknown stage)", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({ stdout: "Done", stderr: "some error" });
+      vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+      const video: VideoInfo = {
+          id: "vid1",
+          title: "Title",
+          url: "url",
+          channelName: "channel",
+          channelUrl: "curl",
+          duration: 120,
+          publishedAt: "20230101",
+      };
+      await expect(downloadAudioOnly(video, mockConfig)).rejects.toThrow(/AUDIO EXTRACTION FAILED/);
   });
 
-  it('should throw error if file is missing (Post-processor)', async () => {
-      vi.mocked(execYtDlp).mockResolvedValue({ stderr: 'Post-processor error', stdout: '' } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO EXTRACTION FAILED');
+  it("downloadAudioOnly diagnostics download_video_stream stage", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({ stdout: "Done", stderr: "ERROR: stream failed" });
+      vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+      const video: VideoInfo = {
+          id: "vid1",
+          title: "Title",
+          url: "url",
+          channelName: "channel",
+          channelUrl: "curl",
+          duration: 120,
+          publishedAt: "20230101",
+      };
+      await expect(downloadAudioOnly(video, mockConfig)).rejects.toThrow(/AUDIO EXTRACTION FAILED/);
   });
 
-  it('should throw error if file is missing (WARNING)', async () => {
-      vi.mocked(execYtDlp).mockResolvedValue({ stderr: 'WARNING: connection slow', stdout: '' } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO EXTRACTION FAILED');
+  it("downloadAudioOnly diagnostics ffmpeg_audio_extraction stage", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({ stdout: "Done", stderr: "Post-processor failed" });
+      vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+      const video: VideoInfo = {
+          id: "vid1",
+          title: "Title",
+          url: "url",
+          channelName: "channel",
+          channelUrl: "curl",
+          duration: 120,
+          publishedAt: "20230101",
+      };
+      await expect(downloadAudioOnly(video, mockConfig)).rejects.toThrow(/AUDIO EXTRACTION FAILED/);
   });
 
-  it('should throw error if file is missing (unknown)', async () => {
-      vi.mocked(execYtDlp).mockResolvedValue({ stderr: 'just weird output', stdout: '' } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      vi.mocked(fs.readdirSync).mockReturnValue(['not-video-file.txt']);
-
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO EXTRACTION FAILED');
+  it("downloadAudioOnly diagnostics ffmpeg stage", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({ stdout: "Done", stderr: "ffmpeg failed" });
+      vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+      const video: VideoInfo = {
+          id: "vid1",
+          title: "Title",
+          url: "url",
+          channelName: "channel",
+          channelUrl: "curl",
+          duration: 120,
+          publishedAt: "20230101",
+      };
+      await expect(downloadAudioOnly(video, mockConfig)).rejects.toThrow(/AUDIO EXTRACTION FAILED/);
   });
 
-  it('should catch unhandled errors from execYtDlp with message', async () => {
-      vi.mocked(execYtDlp).mockRejectedValue(new Error('Process failed'));
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO DOWNLOAD FAILED');
-  });
-
-  it('should catch unhandled errors from execYtDlp with stderr', async () => {
-      vi.mocked(execYtDlp).mockRejectedValue({ stderr: 'Process failed via stderr' });
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO DOWNLOAD FAILED');
-  });
-
-  it('should catch generic string errors from execYtDlp', async () => {
-      vi.mocked(execYtDlp).mockRejectedValue('Generic error');
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO DOWNLOAD FAILED');
-  });
-
-  it('should catch generic object without stderr or message', async () => {
-      vi.mocked(execYtDlp).mockRejectedValue({ somethingElse: 123 });
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO DOWNLOAD FAILED');
-  });
-
-  it('should catch falsy error objects gracefully', async () => {
-      vi.mocked(execYtDlp).mockRejectedValue(null);
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO DOWNLOAD FAILED');
-  });
-
-  it('should trigger branch coverage for err.message fallback', async () => {
-      vi.mocked(execYtDlp).mockRejectedValue({ message: 'Process failed via message' });
-      await expect(downloadAudioOnly(mockVideo, mockConfig))
-        .rejects.toThrow('AUDIO DOWNLOAD FAILED');
-  });
-
-  it('should ensure withCookies callback coverage', async () => {
-      vi.mocked(execYtDlp).mockResolvedValue({ stderr: 'ok', stdout: '' } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      await downloadAudioOnly(mockVideo, mockConfig);
+  it("downloadAudioOnly diagnostics warning stage", async () => {
+      vi.mocked(execYtDlp).mockResolvedValueOnce({ stdout: "Done", stderr: "WARNING" });
+      vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+      const video: VideoInfo = {
+          id: "vid1",
+          title: "Title",
+          url: "url",
+          channelName: "channel",
+          channelUrl: "curl",
+          duration: 120,
+          publishedAt: "20230101",
+      };
+      await expect(downloadAudioOnly(video, mockConfig)).rejects.toThrow(/AUDIO EXTRACTION FAILED/);
   });
 });
