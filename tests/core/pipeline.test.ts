@@ -18,7 +18,7 @@ import * as youtube from "../../src/core/youtube.js";
 import * as transcriber from "../../src/core/transcriber.js";
 import * as analyzer from "../../src/core/analyzer.js";
 import * as processor from "../../src/core/video-processor.js";
-import * as telegram from "../../src/core/telegram.js";
+import * as telegramModule from "../../src/core/telegram.js";
 import * as youtubeService from "../../src/core/youtube.service.js";
 
 vi.mock("ai", () => ({
@@ -97,7 +97,6 @@ vi.mock("../../src/core/telegram.js", () => ({
 
 import * as state from "../../src/core/state.js";
 import * as filters from "../../src/core/pipeline-filters.js";
-import * as telegram from "../../src/core/telegram.js";
 
 describe("pipeline", () => {
   const mockConfig = {
@@ -142,7 +141,7 @@ describe("pipeline", () => {
     vi.mocked(transcriber.transcribeVideo).mockResolvedValue(mockTranscript);
     vi.mocked(analyzer.analyzeTranscript).mockResolvedValue([mockClip]);
     vi.mocked(processor.processClip).mockResolvedValue(mockGeneratedShort);
-    vi.mocked(telegram.sendToTelegram).mockResolvedValue(123);
+    vi.mocked(telegramModule.sendToTelegram).mockResolvedValue(123);
     vi.mocked(youtubeService.generateYoutubeMetadata).mockResolvedValue({ title: "Title", description: "Desc" });
     vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/xyz");
   });
@@ -171,7 +170,7 @@ describe("pipeline", () => {
       vi.mocked(youtube.getVideoInfo).mockResolvedValue(mockVideoInfo);
       vi.mocked(youtube.downloadVideoSection).mockResolvedValue("path");
 
-      vi.mocked(telegram.sendFullVideoToTelegram as any).mockResolvedValue(123);
+      vi.mocked(telegramModule.sendFullVideoToTelegram as any).mockResolvedValue(123);
       vi.mocked(youtubeService.uploadFullVideoToYouTube).mockResolvedValue("url");
 
       const onProgress = vi.fn();
@@ -191,7 +190,7 @@ describe("pipeline", () => {
       vi.mocked(youtube.getVideoInfo).mockResolvedValue(mockVideoInfo);
 
       vi.mocked(youtube.downloadAudioOnly).mockRejectedValue(new Error("dl err"));
-      vi.mocked(telegram.sendErrorAlert as any).mockResolvedValue(undefined);
+      vi.mocked(telegramModule.sendErrorAlert as any).mockResolvedValue(undefined);
 
       const results = await runTopVideoPipeline(mockConfig);
       expect(results).toHaveLength(1);
@@ -207,7 +206,7 @@ describe("pipeline", () => {
       vi.mocked(youtube.getVideoInfo).mockResolvedValue(mockVideoInfo);
 
       vi.mocked(youtube.downloadAudioOnly).mockRejectedValue("str err");
-      vi.mocked(telegram.sendErrorAlert as any).mockResolvedValue(undefined);
+      vi.mocked(telegramModule.sendErrorAlert as any).mockResolvedValue(undefined);
 
       const results = await runTopVideoPipeline({ ...mockConfig, keepTempFiles: true });
       expect(results).toHaveLength(1);
@@ -390,8 +389,8 @@ vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
     expect(transcriber.transcribeVideo).toHaveBeenCalled();
     expect(analyzer.analyzeTranscript).toHaveBeenCalled();
     expect(processor.processClip).toHaveBeenCalled();
-    expect(telegram.sendToTelegram).toHaveBeenCalled();
-    expect(telegram.sendSummary).toHaveBeenCalled();
+    expect(telegramModule.sendToTelegram).toHaveBeenCalled();
+    expect(telegramModule.sendSummary).toHaveBeenCalled();
     expect(youtube.cleanupVideo).toHaveBeenCalled();
 
     expect(onProgress).toHaveBeenCalled();
@@ -403,7 +402,7 @@ vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
 
     expect(result.shorts).toHaveLength(0);
     expect(processor.processClip).not.toHaveBeenCalled();
-    expect(telegram.sendToTelegram).not.toHaveBeenCalled();
+    expect(telegramModule.sendToTelegram).not.toHaveBeenCalled();
   });
 
   it("processVideo handles errors gracefully", async () => {
@@ -496,7 +495,7 @@ vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
   });
 
   it("processVideo handles telegram send error gracefully", async () => {
-    vi.mocked(telegram.sendToTelegram).mockRejectedValue(new Error("Telegram failed"));
+    vi.mocked(telegramModule.sendToTelegram).mockRejectedValue(new Error("Telegram failed"));
     const result = await processVideo(mockVideoInfo, mockConfig);
 
     // Video still counts as successful processing, but error is logged
@@ -579,7 +578,7 @@ vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
       vi.mocked(youtube.getVideoInfo).mockResolvedValue(mockVideoInfo);
       vi.mocked(youtube.downloadVideoSection).mockResolvedValue("path");
 
-      vi.mocked((telegram as any).sendFullVideoToTelegram).mockResolvedValue(123);
+      vi.mocked((telegramModule as any).sendFullVideoToTelegram).mockResolvedValue(123);
       vi.mocked(youtubeService.uploadFullVideoToYouTube).mockResolvedValue("url");
 
       const results = await runTopVideoPipeline({ ...mockConfig, keepTempFiles: true });
