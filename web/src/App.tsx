@@ -104,7 +104,7 @@ function createEmptyBundle(): AdminChannelBundle {
   const now = new Date().toISOString();
   return {
     channel: { id: "", slug: "", name: "", description: "", status: "active", logoPath: null, watermarkText: "", channelType: "cuts", createdAt: now, updatedAt: now },
-    profile: { channelId: "", videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, targetShorts: 3, videoQuery: null, sortByViews: false, aiProvider: "ollama", aiModel: "gemma3:1b" },
+    profile: { channelId: "", videoLimit: 3, minShortDuration: 15, maxShortDuration: 59, targetShorts: 3, videoQuery: null, sortByViews: false, aiProvider: "ollama", aiModel: "cloud/auto" },
     focuses: [], sources: [], publishingAccounts: [],
   };
 }

@@ -43,7 +43,7 @@ spec:
                   name: redis-secret
                   optional: false
             - name: AI_MODEL
-              value: cloud/gemma3
+              value: cloud/auto
             - name: LITELLM_BASE_URL
               value: http://litellm.ai.svc.cluster.local:4000/v1
             - name: LITELLM_KEY

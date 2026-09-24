@@ -42,7 +42,7 @@ spec:
         - name: MAX_VIDEO_DURATION_MINUTES
           value: "50"
         - name: AI_MODEL
-          value: cloud/gemma3
+          value: cloud/auto
         - name: LITELLM_BASE_URL
           value: http://litellm.ai.svc.cluster.local:4000/v1
         - name: WHISPER_BASE_URL

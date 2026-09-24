@@ -25,7 +25,7 @@ data:
   VIDEO_LIMIT: "3"
 
   # AI via LiteLLM gateway (OpenAI-compatible)
-  AI_MODEL: "cloud/gemma3"
+  AI_MODEL: "cloud/auto"
   LITELLM_BASE_URL: "http://litellm.ai.svc.cluster.local:4000/v1"
   AI_TIMEOUT_MS: "600000"
 
