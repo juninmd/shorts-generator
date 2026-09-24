@@ -104,7 +104,7 @@ export interface PipelineConfig {
   maxClipsOverride?: number;
   outputDir: string;
   tempDir: string;
-  /** Model identifier served by LiteLLM (e.g. "cloud/gemma3") */
+  /** Model identifier served by LiteLLM (e.g. "cloud/auto") */
   aiModel: string;
   /** Timeout in milliseconds for AI HTTP requests (default: 300_000 = 5 min) */
   aiTimeoutMs: number;

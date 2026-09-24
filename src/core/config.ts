@@ -69,7 +69,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     fullVideoCount: Number(optionalEnv("FULL_VIDEO_COUNT", "0")) || undefined,
     outputDir,
     tempDir,
-    aiModel: optionalEnv("AI_MODEL", "cloud/gemma3"),
+    aiModel: optionalEnv("AI_MODEL", "cloud/auto"),
     aiTimeoutMs: parseInt(optionalEnv("AI_TIMEOUT_MS", "600000"), 10),
     litellmApiKey: optionalEnv("LITELLM_KEY", optionalEnv("OPENAI_API_KEY", "")),
     litellmBaseUrl: optionalEnv("LITELLM_BASE_URL", optionalEnv("OPENAI_BASE_URL", "http://localhost:4000/v1")),
