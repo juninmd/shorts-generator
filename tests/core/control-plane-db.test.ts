@@ -16,6 +16,10 @@ vi.mock("pg", () => {
   return { Pool };
 });
 
+vi.mock("../../src/core/sqlite-db.js", () => ({
+  getLocalPool: vi.fn().mockReturnValue({ isSqlite: true }),
+}));
+
 describe("control-plane-db", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -125,9 +129,6 @@ describe("control-plane-db", () => {
 
   describe("getControlPlanePool with sqlite", () => {
     it("calls getLocalPool if url starts with sqlite:", async () => {
-      vi.mock("../../src/core/sqlite-db.js", () => ({
-        getLocalPool: vi.fn().mockReturnValue({ isSqlite: true }),
-      }));
       const { getControlPlanePool } = await import("../../src/core/control-plane-db.js");
       const pool = getControlPlanePool({ databaseUrl: "sqlite:test.db" });
       expect(pool).toEqual({ isSqlite: true });
