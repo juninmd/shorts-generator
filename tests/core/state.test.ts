@@ -224,7 +224,7 @@ describe("State management", () => {
     it("catches write error", async () => {
       vi.mocked(getOptionalPool).mockReturnValue(null);
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockImplementation(() => { throw new Error("read fail"); });
+      vi.mocked(fs.writeFileSync).mockImplementation(() => { throw new Error("write fail"); });
       await setDailyLimitReachedAsync();
       expect(logger.error).toHaveBeenCalled();
     });
@@ -241,7 +241,7 @@ describe("State management", () => {
     it("catches write error", async () => {
       vi.mocked(getOptionalPool).mockReturnValue(null);
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockImplementation(() => { throw new Error("read fail"); });
+      vi.mocked(fs.writeFileSync).mockImplementation(() => { throw new Error("write fail"); });
       await incrementDailyUploadCountAsync();
       expect(logger.error).toHaveBeenCalled();
     });
