@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import fs from "node:fs";
 
 vi.mock("../../src/core/comic/comic-tts.js", () => ({
   narrateChapters: vi.fn(async (chapters: any[], _dir: string, _voice: string) =>
@@ -41,6 +42,7 @@ describe("comic-pipeline", () => {
   };
 
   it("stitches per-chapter durations into a single timeline and returns a result", async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
     const result = await runComicPipeline(book, {
       outputDir: "output",
       verticalWidth: 1080,
@@ -64,5 +66,17 @@ describe("comic-pipeline", () => {
         ttsVoice: "pt-BR-AntonioNeural",
       }),
     ).rejects.toThrow("no chapters");
+  });
+
+  it("rejects when chapter image does not exist", async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    await expect(
+      runComicPipeline(book, {
+        outputDir: "output",
+        verticalWidth: 1080,
+        verticalHeight: 1920,
+        ttsVoice: "pt-BR-AntonioNeural",
+      }),
+    ).rejects.toThrow("Chapter image not found");
   });
 });
