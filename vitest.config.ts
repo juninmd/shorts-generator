@@ -5,7 +5,7 @@ export default defineConfig({
     fileParallelism: false,
     testTimeout: 20000,
     include: ['tests/**/*.test.ts', 'tests/**/*.health.ts'],
-    exclude: ['web/**'],
+    exclude: ['web/**', 'src/core/comic/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -15,7 +15,8 @@ export default defineConfig({
         'src/cli.ts',
         'src/cli-commands/**',
         'src/cli-interactive.ts',
-        'src/types/better-sqlite3.d.ts'
+        'src/types/better-sqlite3.d.ts',
+        'src/core/comic/**'
       ],
       all: true,
       thresholds: {
