@@ -65,4 +65,19 @@ describe("comic-pipeline", () => {
       }),
     ).rejects.toThrow("no chapters");
   });
+
+  it("rejects if chapter image is missing", async () => {
+    const fs = await import("node:fs");
+    vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+
+    await expect(
+      runComicPipeline(book, {
+        outputDir: "output",
+        verticalWidth: 1080,
+        verticalHeight: 1920,
+        ttsVoice: "pt-BR-AntonioNeural",
+      }),
+    ).rejects.toThrow("Chapter image not found");
+  });
+
 });
