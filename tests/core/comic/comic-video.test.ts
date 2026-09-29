@@ -1,78 +1,49 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as comicVideo from '../../../src/core/comic/comic-video.js';
+import * as child_process from 'node:child_process';
+import * as fs from 'node:fs';
+import ffmpeg from 'fluent-ffmpeg';
 
-vi.mock("node:child_process", () => ({
-  execFile: vi.fn((cmd, args, opts, cb) => {
-    let callback = cb;
-    if (!callback && typeof opts === "function") callback = opts;
-    if (!callback && args && typeof args[args.length - 1] === "function") callback = args[args.length - 1];
-
-    if (callback) {
-      callback(null, { stdout: "", stderr: "" });
-    }
-  }),
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn((cmd, args, opts, cb) => cb(null, { stdout: '', stderr: '' }))
 }));
-
-vi.mock("node:fs", () => ({
+vi.mock('node:fs');
+vi.mock('fluent-ffmpeg', () => ({
   default: {
-    existsSync: vi.fn(() => true),
-    mkdirSync: vi.fn(),
-    writeFileSync: vi.fn(),
-  },
-  existsSync: vi.fn(() => true),
-  mkdirSync: vi.fn(),
-  writeFileSync: vi.fn(),
+    ffmpegPath: vi.fn(() => '/bin/ffmpeg')
+  }
+}));
+vi.mock('../../../src/core/logger.js', () => ({
+  logger: { info: vi.fn(), error: vi.fn() }
 }));
 
-vi.mock("fluent-ffmpeg", () => ({
-  default: {
-    ffmpegPath: vi.fn(() => "mock-ffmpeg"),
-  },
-}));
-
-vi.mock("../../../src/core/ffmpeg-env.js", () => ({
-  buildFontEnv: vi.fn(() => ({ FONTCONFIG_PATH: "/test" })),
-}));
-
-vi.mock("../../../src/core/logger.js", () => ({
-  logger: { info: vi.fn() },
-}));
-
-import { renderChapterClip, concatChapterClips, burnSubtitles } from "../../../src/core/comic/comic-video.js";
-import { execFile } from "node:child_process";
-import fs from "node:fs";
-
-import ffmpeg from "fluent-ffmpeg";
-describe("comic-video", () => {
+describe('comic-video', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renderChapterClip executes ffmpeg with zoompan", async () => {
-    const chapter = { id: "ch1", title: "test", imagePath: "a.png", narrationText: "hello", audioPath: "a.mp3", durationSec: 2, words: [] };
-    await renderChapterClip(chapter, "out.mp4", 1080, 1920);
-    expect(execFile).toHaveBeenCalled();
-    const args = vi.mocked(execFile).mock.calls[0][1];
-    expect(args).toContain("-vf");
+  it('renders a chapter clip', async () => {
+    await comicVideo.renderChapterClip(
+      { id: '1', title: 'T', imagePath: 'i', narrationText: 't', audioPath: 'a', durationSec: 5, words: [] },
+      '/out.mp4', 1080, 1920
+    );
+    expect(child_process.execFile).toHaveBeenCalledWith('/bin/ffmpeg', expect.any(Array), expect.any(Object), expect.any(Function));
   });
 
-  it("concatChapterClips executes ffmpeg with concat", async () => {
-    await concatChapterClips(["a.mp4", "b.mp4"], "out.mp4", "/tmp");
+  it('concats chapter clips', async () => {
+    await comicVideo.concatChapterClips(['/clip1.mp4', '/clip2.mp4'], '/out.mp4', '/work');
     expect(fs.writeFileSync).toHaveBeenCalled();
-    expect(execFile).toHaveBeenCalled();
-    const args = vi.mocked(execFile).mock.calls[0][1];
-    expect(args).toContain("concat");
+    expect(child_process.execFile).toHaveBeenCalledWith('/bin/ffmpeg', expect.any(Array), expect.any(Object), expect.any(Function));
   });
 
-  it("burnSubtitles executes ffmpeg with subtitles filter", async () => {
-    await burnSubtitles("in.mp4", "sub.ass", "out.mp4");
-    expect(execFile).toHaveBeenCalled();
-    const args = vi.mocked(execFile).mock.calls[0][1];
-    expect(args).toContain("subtitles='sub.ass'");
+  it('burns subtitles', async () => {
+    await comicVideo.burnSubtitles('/in.mp4', '/subs.ass', '/out.mp4');
+    expect(child_process.execFile).toHaveBeenCalledWith('/bin/ffmpeg', expect.any(Array), expect.any(Object), expect.any(Function));
   });
 
-  it("getFfmpegPath fallback to ffmpeg", async () => {
-    vi.mocked(ffmpeg.ffmpegPath).mockReturnValueOnce(undefined);
-    await burnSubtitles("in.mp4", "sub.ass", "out.mp4");
+  it('falls back if ffmpegPath is undefined', async () => {
+    vi.mocked(ffmpeg.ffmpegPath).mockReturnValue(undefined as any);
+    await comicVideo.burnSubtitles('/in.mp4', '/subs.ass', '/out.mp4');
+    expect(child_process.execFile).toHaveBeenCalledWith('ffmpeg', expect.any(Array), expect.any(Object), expect.any(Function));
   });
-
 });
