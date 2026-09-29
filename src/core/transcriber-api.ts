@@ -53,7 +53,7 @@ export async function transcribeRemote(audioPath: string, config: PipelineConfig
           res.on("data", (chunk: Buffer) => chunks.push(chunk));
           res.on("end", () => {
             const text = Buffer.concat(chunks).toString("utf-8");
-            if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) reject(new Error(`[WHISPER HTTP ${res.statusCode}] ${text.slice(0, 200)}`));
+             if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) reject(new Error(`[WHISPER HTTP ${res.statusCode}] ${text.slice(0, 200)}`));
             else { try { resolve(JSON.parse(text)); } catch { reject(new Error(`Invalid JSON from Whisper: ${text.slice(0, 200)}`)); } }
           });
         });
