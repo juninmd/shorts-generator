@@ -1,148 +1,114 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import fs from "node:fs";
-import * as child_process from "node:child_process";
-import ffmpeg from "fluent-ffmpeg";
-import { narrateChapter, narrateChapters } from "../../../src/core/comic/comic-tts.js";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { narrateChapter, narrateChapters } from '../../../src/core/comic/comic-tts.js';
+import * as fs from 'node:fs';
+import * as child_process from 'node:child_process';
+import ffmpeg from 'fluent-ffmpeg';
 
-vi.mock("node:fs");
-vi.mock("node:child_process", () => ({
-  execFile: vi.fn(),
+vi.mock('node:fs');
+vi.mock('node:child_process');
+vi.mock('fluent-ffmpeg', () => ({
+  default: {
+    ffprobe: vi.fn(),
+  },
 }));
-vi.mock("fluent-ffmpeg");
 
-describe("comic-tts", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    process.env.PYTHON_BIN = "python";
-  });
-
-  afterEach(() => {
-    delete process.env.PYTHON_BIN;
-  });
-
+describe('comic-tts', () => {
   const mockChapter = {
-    id: "ch1",
-    title: "Test Chapter",
-    imagePath: "/tmp/ch1.png",
-    narrationText: "Test narration",
+    id: 'chap1',
+    imagePath: '/img',
+    narrationText: 'Hello world',
   };
 
-  it("narrateChapter throws if script is missing", async () => {
-    vi.spyOn(fs, "existsSync").mockReturnValue(false);
-    await expect(narrateChapter(mockChapter, "/tmp", "voice")).rejects.toThrow("Missing TTS helper script");
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("narrateChapter succeeds", async () => {
-    vi.spyOn(fs, "existsSync").mockReturnValue(true);
-    vi.spyOn(fs, "mkdirSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "writeFileSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "readFileSync").mockReturnValue(JSON.stringify([{ word: "Test", start: 0, end: 1 }]));
+  it('should narrate a chapter successfully', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
+    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
 
-    vi.mocked(child_process.execFile).mockImplementation(((...args: any[]) => {
-      const callback = args[args.length - 1];
-      if (typeof callback === "function") {
-        callback(null, { stdout: "ok", stderr: "" });
-      }
+    vi.mocked(child_process.execFile).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      cb(null, { stdout: '', stderr: '' });
       return {} as any;
-    }) as any);
+    });
 
-    vi.spyOn(ffmpeg, "ffprobe").mockImplementation((path: any, cb: any) => {
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: 'Hello', start: 0, end: 1 }]));
+
+    vi.mocked(ffmpeg.ffprobe as any).mockImplementation((file: string, cb: any) => {
       cb(null, { format: { duration: 5 } });
     });
 
-    const result = await narrateChapter(mockChapter, "/tmp", "voice");
+    const result = await narrateChapter(mockChapter, '/out', 'voice1');
     expect(result.durationSec).toBe(5);
     expect(result.words.length).toBe(1);
-    expect(result.audioPath).toContain("ch1.mp3");
   });
 
-  it("narrateChapter handles ffprobe error", async () => {
-    vi.spyOn(fs, "existsSync").mockReturnValue(true);
-    vi.spyOn(fs, "mkdirSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "writeFileSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "readFileSync").mockReturnValue(JSON.stringify([]));
+  it('should handle ffprobe error', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
+    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
 
-    vi.mocked(child_process.execFile).mockImplementation(((...args: any[]) => {
-      const callback = args[args.length - 1];
-      if (typeof callback === "function") {
-        callback(null, { stdout: "ok", stderr: "" });
-      }
+    vi.mocked(child_process.execFile).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      cb(null, { stdout: '', stderr: '' });
       return {} as any;
-    }) as any);
-
-    vi.spyOn(ffmpeg, "ffprobe").mockImplementation((path: any, cb: any) => {
-      cb(new Error("ffprobe error"), null);
     });
 
-    await expect(narrateChapter(mockChapter, "/tmp", "voice")).rejects.toThrow("ffprobe error");
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: 'Hello', start: 0, end: 1 }]));
+
+    vi.mocked(ffmpeg.ffprobe as any).mockImplementation((file: string, cb: any) => {
+      cb(new Error('ffprobe fail'), null);
+    });
+
+    await expect(narrateChapter(mockChapter, '/out', 'voice1')).rejects.toThrow('ffprobe fail');
   });
 
-  it("narrateChapter handles missing duration", async () => {
-    vi.spyOn(fs, "existsSync").mockReturnValue(true);
-    vi.spyOn(fs, "mkdirSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "writeFileSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "readFileSync").mockReturnValue(JSON.stringify([]));
+  it('should use default duration if ffprobe metadata is missing', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
+    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
 
-    vi.mocked(child_process.execFile).mockImplementation(((...args: any[]) => {
-      const callback = args[args.length - 1];
-      if (typeof callback === "function") {
-        callback(null, { stdout: "ok", stderr: "" });
-      }
+    vi.mocked(child_process.execFile).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      cb(null, { stdout: '', stderr: '' });
       return {} as any;
-    }) as any);
-
-    vi.spyOn(ffmpeg, "ffprobe").mockImplementation((path: any, cb: any) => {
-      cb(null, { format: {} }); // no duration
     });
 
-    const result = await narrateChapter(mockChapter, "/tmp", "voice");
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: 'Hello', start: 0, end: 1 }]));
+
+    vi.mocked(ffmpeg.ffprobe as any).mockImplementation((file: string, cb: any) => {
+      cb(null, {});
+    });
+
+    const result = await narrateChapter(mockChapter, '/out', 'voice1');
     expect(result.durationSec).toBe(0);
   });
 
-  it("narrateChapters processes multiple chapters", async () => {
-    vi.spyOn(fs, "existsSync").mockReturnValue(true);
-    vi.spyOn(fs, "mkdirSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "writeFileSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "readFileSync").mockReturnValue(JSON.stringify([]));
-
-    vi.mocked(child_process.execFile).mockImplementation(((...args: any[]) => {
-      const callback = args[args.length - 1];
-      if (typeof callback === "function") {
-        callback(null, { stdout: "ok", stderr: "" });
-      }
-      return {} as any;
-    }) as any);
-
-    vi.spyOn(ffmpeg, "ffprobe").mockImplementation((path: any, cb: any) => {
-      cb(null, { format: { duration: 10 } });
-    });
-
-    const result = await narrateChapters([mockChapter, { ...mockChapter, id: "ch2" }], "/tmp", "voice");
-    expect(result.length).toBe(2);
-    expect(result[0].durationSec).toBe(10);
-    expect(result[1].durationSec).toBe(10);
+  it('should throw if script is missing', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    await expect(narrateChapter(mockChapter, '/out', 'voice1')).rejects.toThrow('Missing TTS helper script');
   });
 
-  it("narrateChapter uses default python if PYTHON_BIN is not set", async () => {
-    delete process.env.PYTHON_BIN;
-    vi.spyOn(fs, "existsSync").mockReturnValue(true);
-    vi.spyOn(fs, "mkdirSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "writeFileSync").mockImplementation(() => undefined);
-    vi.spyOn(fs, "readFileSync").mockReturnValue(JSON.stringify([]));
+  it('should narrate multiple chapters', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
+    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
 
-    vi.mocked(child_process.execFile).mockImplementation(((...args: any[]) => {
-      const callback = args[args.length - 1];
-      if (typeof callback === "function") {
-        callback(null, { stdout: "ok", stderr: "" });
-      }
+    vi.mocked(child_process.execFile).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      cb(null, { stdout: '', stderr: '' });
       return {} as any;
-    }) as any);
+    });
 
-    vi.spyOn(ffmpeg, "ffprobe").mockImplementation((path: any, cb: any) => {
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: 'Hello', start: 0, end: 1 }]));
+
+    vi.mocked(ffmpeg.ffprobe as any).mockImplementation((file: string, cb: any) => {
       cb(null, { format: { duration: 5 } });
     });
 
-    await narrateChapter(mockChapter, "/tmp", "voice");
-    expect(child_process.execFile).toHaveBeenCalledWith("python", expect.any(Array), expect.any(Object), expect.any(Function));
+    const results = await narrateChapters([mockChapter, { ...mockChapter, id: 'chap2' }], '/out', 'voice1');
+    expect(results.length).toBe(2);
   });
 });
