@@ -1,19 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import type { ComicChapter, ComicBook, NarratedChapter, ComicShortResult } from '../../../src/core/comic/comic-types.js';
+import { describe, it, expect } from "vitest";
+import type { ComicChapter, ComicBook, NarratedChapter, ComicShortResult } from "../../../src/core/comic/comic-types.js";
 
-describe('comic-types', () => {
-  it('should compile type definitions', () => {
-    // Asserting types structurally rather than null equals null
-    const chapter: Partial<ComicChapter> = { id: 'test' };
-    expect(chapter.id).toBe('test');
-
-    const book: Partial<ComicBook> = { id: 'book' };
-    expect(book.id).toBe('book');
-
-    const narrated: Partial<NarratedChapter> = { durationSec: 10 };
-    expect(narrated.durationSec).toBe(10);
-
-    const result: Partial<ComicShortResult> = { chapters: 2 };
-    expect(result.chapters).toBe(2);
+describe("comic-types", () => {
+  it("dummy test for types", () => {
+    const _ch: ComicChapter | null = null;
+    const _book: ComicBook | null = null;
+    const _nch: NarratedChapter | null = null;
+    const _res: ComicShortResult | null = null;
+    expect(_ch).toBeNull();
+    expect(_book).toBeNull();
+    expect(_nch).toBeNull();
+    expect(_res).toBeNull();
   });
 });

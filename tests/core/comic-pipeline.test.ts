@@ -22,8 +22,10 @@ vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   const overrides = {
     existsSync: vi.fn((path) => {
-       if(path.includes("missing")) return false;
-       return true;
+        if (typeof path === "string" && path.includes("missing")) {
+            return false;
+        }
+        return true;
     }),
     mkdirSync: vi.fn(),
     writeFileSync: vi.fn(),
@@ -71,10 +73,15 @@ describe("comic-pipeline", () => {
     ).rejects.toThrow("no chapters");
   });
 
-  it("rejects a chapter when image does not exist", async () => {
-    vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+  it("rejects a book with missing chapter images", async () => {
     await expect(
-      runComicPipeline(book, {
+      runComicPipeline({
+        id: "missing",
+        title: "Missing",
+        chapters: [
+            { id: "ch1", title: "Ch1", imagePath: "missing.png", narrationText: "text one" }
+        ]
+      }, {
         outputDir: "output",
         verticalWidth: 1080,
         verticalHeight: 1920,
