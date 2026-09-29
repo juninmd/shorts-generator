@@ -31,6 +31,7 @@ vi.mock("node:fs", async (importOriginal) => {
   return { ...actual, ...overrides, default: { ...(actual as any).default, ...overrides } };
 });
 
+import fs from "node:fs";
 import { runComicPipeline } from "../../src/core/comic/comic-pipeline.js";
 import type { ComicBook } from "../../src/core/comic/comic-types.js";
 
@@ -70,9 +71,10 @@ describe("comic-pipeline", () => {
     ).rejects.toThrow("no chapters");
   });
 
-  it("rejects a book with missing chapter image", async () => {
+  it("rejects a chapter when image does not exist", async () => {
+    vi.mocked(fs.existsSync).mockReturnValueOnce(false);
     await expect(
-      runComicPipeline({ id: "missing", title: "Missing", chapters: [{ id: "ch1", title: "Ch1", imagePath: "missing.png", narrationText: "text one" }] }, {
+      runComicPipeline(book, {
         outputDir: "output",
         verticalWidth: 1080,
         verticalHeight: 1920,
