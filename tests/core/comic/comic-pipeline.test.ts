@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../../src/core/comic/comic-tts.js", () => ({
+vi.mock("../../../src/core/comic/comic-tts.js", () => ({
   narrateChapters: vi.fn(async (chapters: any[], _dir: string, _voice: string) =>
-    chapters.map((chapter, index) => ({
+    chapters.map((chapter: any, index: number) => ({
       ...chapter,
       audioPath: `/tmp/${chapter.id}.mp3`,
       durationSec: 2 + index,
@@ -11,12 +11,13 @@ vi.mock("../../src/core/comic/comic-tts.js", () => ({
   ),
 }));
 
-vi.mock("../../src/core/comic/comic-video.js", () => ({
+vi.mock("../../../src/core/comic/comic-video.js", () => ({
   renderChapterClip: vi.fn(async () => {}),
   concatChapterClips: vi.fn(async () => {}),
   burnSubtitles: vi.fn(async () => {}),
 }));
 
+import fs from "node:fs";
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   const overrides = {
@@ -27,10 +28,12 @@ vi.mock("node:fs", async (importOriginal) => {
   return { ...actual, ...overrides, default: { ...(actual as any).default, ...overrides } };
 });
 
-import { runComicPipeline } from "../../src/core/comic/comic-pipeline.js";
-import type { ComicBook } from "../../src/core/comic/comic-types.js";
+import { runComicPipeline } from "../../../src/core/comic/comic-pipeline.js";
+import type { ComicBook } from "../../../src/core/comic/comic-types.js";
 
 describe("comic-pipeline", () => {
+  beforeEach(() => { vi.clearAllMocks(); vi.mocked(fs.existsSync).mockReturnValue(true); });
+
   const book: ComicBook = {
     id: "book-1",
     title: "Test Comic",
@@ -64,5 +67,17 @@ describe("comic-pipeline", () => {
         ttsVoice: "pt-BR-AntonioNeural",
       }),
     ).rejects.toThrow("no chapters");
+  });
+
+  it("rejects if chapter image is missing", async () => {
+    vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+    await expect(
+      runComicPipeline(book, {
+        outputDir: "output",
+        verticalWidth: 1080,
+        verticalHeight: 1920,
+        ttsVoice: "pt-BR-AntonioNeural",
+      }),
+    ).rejects.toThrow("Chapter image not found");
   });
 });
