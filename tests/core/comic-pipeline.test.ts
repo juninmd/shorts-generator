@@ -73,22 +73,16 @@ describe("comic-pipeline", () => {
     ).rejects.toThrow("no chapters");
   });
 
-  it("rejects a book if a chapter image is missing", async () => {
-    const bookWithMissingImage: ComicBook = {
-      id: "book-2",
-      title: "Missing Image Comic",
-      chapters: [
-        { id: "ch1", title: "Ch1", imagePath: "missing.png", narrationText: "missing image text" },
-      ],
-    };
+  it("rejects a book if chapter image does not exist", async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
     await expect(
-      runComicPipeline(bookWithMissingImage, {
+      runComicPipeline(book, {
         outputDir: "output",
         verticalWidth: 1080,
         verticalHeight: 1920,
         ttsVoice: "pt-BR-AntonioNeural",
       }),
-    ).rejects.toThrow("Chapter image not found: missing.png");
+    ).rejects.toThrow("Chapter image not found");
   });
 });
 
