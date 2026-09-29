@@ -6,7 +6,7 @@ import * as youtubeDownload from '../../src/core/youtube-download.js';
 import * as youtubeSection from '../../src/core/youtube-section.js';
 
 describe('youtube barrel', () => {
-  it('should export all required functions exactly from their source modules', () => {
+  it('should export all required functions with reference equality', () => {
     expect(youtube.verifyYoutubeAccess).toBe(youtubeInfo.verifyYoutubeAccess);
     expect(youtube.getVideoInfo).toBe(youtubeInfo.getVideoInfo);
     expect(youtube.getVideoFileSize).toBe(youtubeInfo.getVideoFileSize);
