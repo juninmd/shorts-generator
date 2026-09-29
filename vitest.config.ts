@@ -17,7 +17,6 @@ export default defineConfig({
         'src/cli-commands/**',
         'src/cli-interactive.ts',
         'src/types/better-sqlite3.d.ts',
-        'src/core/youtube.ts',
         'src/core/comic/comic-types.ts'
       ],
       all: true,

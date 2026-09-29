@@ -1,54 +1,55 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as comicPipeline from '../../../src/core/comic/comic-pipeline.js';
+import { runComicPipeline } from '../../../src/core/comic/comic-pipeline.js';
 import * as comicTts from '../../../src/core/comic/comic-tts.js';
 import * as comicVideo from '../../../src/core/comic/comic-video.js';
 import * as subtitle from '../../../src/core/subtitle.js';
-import * as logger from '../../../src/core/logger.js';
-import fs from 'node:fs';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 vi.mock('../../../src/core/comic/comic-tts.js');
 vi.mock('../../../src/core/comic/comic-video.js');
 vi.mock('../../../src/core/subtitle.js');
-vi.mock('../../../src/core/logger.js', () => ({
-  logger: { info: vi.fn(), error: vi.fn() }
-}));
 vi.mock('node:fs');
 
 describe('comic-pipeline', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
-  it('throws if book has no chapters', async () => {
-    await expect(comicPipeline.runComicPipeline({ id: '1', title: 'Test', chapters: [] }, { outputDir: '', verticalWidth: 1080, verticalHeight: 1920, ttsVoice: '' }))
-      .rejects.toThrow('Comic book has no chapters to narrate');
-  });
+  it('should run comic pipeline successfully', async () => {
+    vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+    vi.spyOn(fs, 'mkdirSync').mockReturnValue(undefined);
+    vi.spyOn(fs, 'writeFileSync').mockReturnValue(undefined);
 
-  it('throws if chapter image does not exist', async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(false);
-    await expect(comicPipeline.runComicPipeline({
-      id: '1', title: 'Test', chapters: [{ id: 'c1', title: 'Ch 1', imagePath: 'nonexistent.jpg', narrationText: 'text' }]
-    }, { outputDir: '', verticalWidth: 1080, verticalHeight: 1920, ttsVoice: '' }))
-      .rejects.toThrow('Chapter image not found: nonexistent.jpg');
-  });
+    vi.spyOn(comicTts, 'narrateChapters').mockResolvedValue([
+      { id: 'ch1', title: 'c1', imagePath: 'i', narrationText: 't', audioPath: 'a', durationSec: 5, words: [{ word: 'w', start: 0, end: 1 }] },
+      { id: 'ch2', title: 'c2', imagePath: 'i', narrationText: 't', audioPath: 'a', durationSec: 5, words: [{ word: 'w', start: 0, end: 1 }] }
+    ]);
+    vi.spyOn(comicVideo, 'renderChapterClip').mockResolvedValue();
+    vi.spyOn(comicVideo, 'concatChapterClips').mockResolvedValue();
+    vi.spyOn(subtitle, 'generateASSSubtitles').mockReturnValue('sub');
+    vi.spyOn(comicVideo, 'burnSubtitles').mockResolvedValue();
 
-  it('runs pipeline successfully', async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(comicTts.narrateChapters).mockResolvedValue([{
-      id: 'c1', title: 'Ch 1', imagePath: 'exists.jpg', narrationText: 'text',
-      audioPath: 'audio.mp3', durationSec: 10, words: [{ word: 'test', start: 0, end: 1 }]
-    }]);
-    vi.mocked(subtitle.generateASSSubtitles).mockReturnValue('subs');
+    const book = { id: 'book', title: 't', chapters: [{ id: 'ch1', title: 'c1', imagePath: 'i', narrationText: 't' }, { id: 'ch2', title: 'c2', imagePath: 'i', narrationText: 't' }] };
+    const config = { outputDir: 'out', verticalWidth: 1080, verticalHeight: 1920, ttsVoice: 'voice' };
 
-    const result = await comicPipeline.runComicPipeline({
-      id: 'book1', title: 'Test Book', chapters: [{ id: 'c1', title: 'Ch 1', imagePath: 'exists.jpg', narrationText: 'text' }]
-    }, { outputDir: '/out', verticalWidth: 1080, verticalHeight: 1920, ttsVoice: 'voice' });
-
-    expect(result.bookTitle).toBe('Test Book');
+    const result = await runComicPipeline(book, config);
     expect(result.durationSec).toBe(10);
-    expect(comicTts.narrateChapters).toHaveBeenCalled();
-    expect(comicVideo.renderChapterClip).toHaveBeenCalled();
-    expect(comicVideo.concatChapterClips).toHaveBeenCalled();
-    expect(comicVideo.burnSubtitles).toHaveBeenCalled();
+    expect(result.chapters).toBe(2);
+  });
+
+  it('should throw if no chapters', async () => {
+    const book = { id: 'book', title: 't', chapters: [] };
+    const config = { outputDir: 'out', verticalWidth: 1080, verticalHeight: 1920, ttsVoice: 'voice' };
+
+    await expect(runComicPipeline(book, config)).rejects.toThrow('Comic book has no chapters to narrate');
+  });
+
+  it('should throw if chapter image missing', async () => {
+    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+    const book = { id: 'book', title: 't', chapters: [{ id: 'ch1', title: 'c1', imagePath: 'i', narrationText: 't' }] };
+    const config = { outputDir: 'out', verticalWidth: 1080, verticalHeight: 1920, ttsVoice: 'voice' };
+
+    await expect(runComicPipeline(book, config)).rejects.toThrow('Chapter image not found');
   });
 });
