@@ -1,114 +1,104 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { narrateChapter, narrateChapters } from '../../../src/core/comic/comic-tts.js';
-import * as fs from 'node:fs';
-import * as child_process from 'node:child_process';
-import ffmpeg from 'fluent-ffmpeg';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock('node:fs');
-vi.mock('node:child_process');
-vi.mock('fluent-ffmpeg', () => ({
-  default: {
-    ffprobe: vi.fn(),
-  },
+vi.mock("node:child_process", () => ({
+  execFile: vi.fn((cmd, args, opts, cb) => {
+    cb(null, { stdout: "", stderr: "" });
+  }),
 }));
 
-describe('comic-tts', () => {
-  const mockChapter = {
-    id: 'chap1',
-    imagePath: '/img',
-    narrationText: 'Hello world',
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal();
+  const overrides = {
+    existsSync: vi.fn(() => true),
+    mkdirSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    readFileSync: vi.fn(() => JSON.stringify([{ word: "test", start: 0, end: 1 }])),
   };
+  return {
+    ...actual,
+    ...overrides,
+    default: {
+      ...(actual.default || actual),
+      ...overrides,
+    },
+  };
+});
 
+vi.mock("fluent-ffmpeg", () => {
+  return {
+    default: {
+      ffprobe: vi.fn((file, cb) => {
+        cb(null, { format: { duration: 5 } });
+      }),
+    },
+  };
+});
+
+import { narrateChapter, narrateChapters } from "../../../src/core/comic/comic-tts.js";
+import * as nodeFs from "node:fs";
+import ffmpeg from "fluent-ffmpeg";
+
+describe("comic-tts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should narrate a chapter successfully', async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
-    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
+  it("narrateChapter generates audio for a chapter", async () => {
+    const chapter = {
+      id: "ch1",
+      title: "Ch1",
+      imagePath: "ch1.png",
+      narrationText: "test narration",
+    };
 
-    vi.mocked(child_process.execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: '', stderr: '' });
-      return {} as any;
-    });
+    const result = await narrateChapter(chapter, "/out", "voice");
 
-    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: 'Hello', start: 0, end: 1 }]));
-
-    vi.mocked(ffmpeg.ffprobe as any).mockImplementation((file: string, cb: any) => {
-      cb(null, { format: { duration: 5 } });
-    });
-
-    const result = await narrateChapter(mockChapter, '/out', 'voice1');
+    expect(result.id).toBe("ch1");
+    expect(result.audioPath).toContain("ch1.mp3");
     expect(result.durationSec).toBe(5);
     expect(result.words.length).toBe(1);
+
+    expect(nodeFs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining("ch1.txt"), "test narration", "utf-8");
   });
 
-  it('should handle ffprobe error', async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
-    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
+  it("narrateChapter throws if tts script is missing", async () => {
+    vi.mocked(nodeFs.existsSync).mockReturnValueOnce(false);
 
-    vi.mocked(child_process.execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: '', stderr: '' });
-      return {} as any;
-    });
-
-    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: 'Hello', start: 0, end: 1 }]));
-
-    vi.mocked(ffmpeg.ffprobe as any).mockImplementation((file: string, cb: any) => {
-      cb(new Error('ffprobe fail'), null);
-    });
-
-    await expect(narrateChapter(mockChapter, '/out', 'voice1')).rejects.toThrow('ffprobe fail');
+    await expect(
+      narrateChapter({ id: "ch1", title: "", imagePath: "", narrationText: "" }, "/out", "voice")
+    ).rejects.toThrow("Missing TTS helper script");
   });
 
-  it('should use default duration if ffprobe metadata is missing', async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
-    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
+  it("narrateChapters processes multiple chapters", async () => {
+    const chapters = [
+      { id: "ch1", title: "Ch1", imagePath: "ch1.png", narrationText: "test 1" },
+      { id: "ch2", title: "Ch2", imagePath: "ch2.png", narrationText: "test 2" },
+    ];
 
-    vi.mocked(child_process.execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: '', stderr: '' });
-      return {} as any;
-    });
+    const results = await narrateChapters(chapters, "/out", "voice");
 
-    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: 'Hello', start: 0, end: 1 }]));
-
-    vi.mocked(ffmpeg.ffprobe as any).mockImplementation((file: string, cb: any) => {
-      cb(null, {});
-    });
-
-    const result = await narrateChapter(mockChapter, '/out', 'voice1');
-    expect(result.durationSec).toBe(0);
-  });
-
-  it('should throw if script is missing', async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(false);
-    await expect(narrateChapter(mockChapter, '/out', 'voice1')).rejects.toThrow('Missing TTS helper script');
-  });
-
-  it('should narrate multiple chapters', async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
-    vi.mocked(fs.writeFileSync).mockImplementation(() => undefined);
-
-    vi.mocked(child_process.execFile).mockImplementation((...args: any[]) => {
-      const cb = args[args.length - 1];
-      cb(null, { stdout: '', stderr: '' });
-      return {} as any;
-    });
-
-    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: 'Hello', start: 0, end: 1 }]));
-
-    vi.mocked(ffmpeg.ffprobe as any).mockImplementation((file: string, cb: any) => {
-      cb(null, { format: { duration: 5 } });
-    });
-
-    const results = await narrateChapters([mockChapter, { ...mockChapter, id: 'chap2' }], '/out', 'voice1');
     expect(results.length).toBe(2);
+    expect(results[0].id).toBe("ch1");
+    expect(results[1].id).toBe("ch2");
+  });
+
+  it("narrateChapter handles ffprobe errors by rejecting", async () => {
+    const err = new Error("ffprobe error");
+    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => {
+      cb(err, null);
+    });
+
+    const chapter = { id: "ch1", title: "Ch1", imagePath: "ch1.png", narrationText: "test narration" };
+    await expect(narrateChapter(chapter, "/out", "voice")).rejects.toThrow("ffprobe error");
+  });
+
+  it("narrateChapter handles ffprobe duration fallbacks", async () => {
+    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => {
+      cb(null, { format: {} }); // no duration
+    });
+
+    const chapter = { id: "ch1", title: "Ch1", imagePath: "ch1.png", narrationText: "test narration" };
+    const result = await narrateChapter(chapter, "/out", "voice");
+    expect(result.durationSec).toBe(0);
   });
 });

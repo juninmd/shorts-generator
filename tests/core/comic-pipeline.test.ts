@@ -73,8 +73,10 @@ describe("comic-pipeline", () => {
     ).rejects.toThrow("no chapters");
   });
 
-  it("rejects a book if chapter image does not exist", async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(false);
+  it("rejects if chapter image is missing", async () => {
+    const fs = await import("node:fs");
+    vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+
     await expect(
       runComicPipeline(book, {
         outputDir: "output",
@@ -84,6 +86,7 @@ describe("comic-pipeline", () => {
       }),
     ).rejects.toThrow("Chapter image not found");
   });
+
 });
 
 
