@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { describe, it, expect, vi } from "vitest";
+import fs from "node:fs";
 
 vi.mock("../../src/core/comic/comic-tts.js", () => ({
   narrateChapters: vi.fn(async (chapters: any[], _dir: string, _voice: string) =>
@@ -48,6 +49,7 @@ describe("comic-pipeline", () => {
   };
 
   it("stitches per-chapter durations into a single timeline and returns a result", async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
     const result = await runComicPipeline(book, {
       outputDir: "output",
       verticalWidth: 1080,
@@ -73,15 +75,10 @@ describe("comic-pipeline", () => {
     ).rejects.toThrow("no chapters");
   });
 
-  it("rejects a book with missing chapter images", async () => {
+  it("rejects when chapter image does not exist", async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
     await expect(
-      runComicPipeline({
-        id: "missing",
-        title: "Missing",
-        chapters: [
-            { id: "ch1", title: "Ch1", imagePath: "missing.png", narrationText: "text one" }
-        ]
-      }, {
+      runComicPipeline(book, {
         outputDir: "output",
         verticalWidth: 1080,
         verticalHeight: 1920,
