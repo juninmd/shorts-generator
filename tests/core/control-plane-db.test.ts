@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("../../src/core/sqlite-db.js", () => ({
+  getLocalPool: vi.fn().mockReturnValue({ isSqlite: true }),
+}));
+
 vi.mock("../../src/core/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
@@ -130,6 +134,7 @@ describe("control-plane-db", () => {
       }
     });
   });
+
 
   describe("getControlPlanePool with sqlite", () => {
     it("calls getLocalPool if url starts with sqlite:", async () => {
