@@ -1,6 +1,5 @@
 // Barrel module — yt-dlp interactions split across focused files to honor the
 // 150-line-per-file constraint. Public API is unchanged.
-
 import * as youtubeInfo from "./youtube-info.js";
 import * as youtubeChannel from "./youtube-channel.js";
 import * as youtubeDownload from "./youtube-download.js";
