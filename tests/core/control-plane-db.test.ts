@@ -20,6 +20,10 @@ vi.mock("pg", () => {
   return { Pool };
 });
 
+vi.mock("../../src/core/sqlite-db.js", () => ({
+  getLocalPool: vi.fn().mockReturnValue({ isSqlite: true }),
+}));
+
 describe("control-plane-db", () => {
   beforeEach(() => {
     vi.clearAllMocks();
