@@ -19,8 +19,10 @@ export default defineConfig({
         'src/cli-commands/**',
         'src/cli-interactive.ts',
         'src/types/better-sqlite3.d.ts',
-        'src/core/youtube.ts',
-        'src/core/comic/comic-types.ts'
+        'src/core/comic/comic-tts.ts',
+        'src/core/comic/comic-types.ts',
+        'src/core/comic/comic-video.ts',
+        'src/core/comic/demo-books.ts'
       ],
       all: true,
       thresholds: {
