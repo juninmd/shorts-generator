@@ -1,77 +1,67 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import * as tts from "../../../src/core/comic/comic-tts.js";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupComicMocks } from './comic-test-utils.js';
+setupComicMocks();
+
+
+vi.mock("fluent-ffmpeg", () => {
+  return {
+    default: {
+      ffprobe: vi.fn((file, cb) => cb(null, { format: { duration: 10 } })),
+    }
+  };
+});
+
+import { narrateChapter, narrateChapters } from "../../../src/core/comic/comic-tts.js";
+import type { ComicChapter } from "../../../src/core/comic/comic-types.js";
 import fs from "node:fs";
 import { execFile } from "node:child_process";
 import ffmpeg from "fluent-ffmpeg";
 
-vi.mock("node:fs", () => ({
-  default: {
-    existsSync: vi.fn(),
-    mkdirSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    readFileSync: vi.fn(),
-  },
-  existsSync: vi.fn(),
-  mkdirSync: vi.fn(),
-  writeFileSync: vi.fn(),
-  readFileSync: vi.fn(),
-}));
-
-vi.mock("node:child_process", () => ({
-  execFile: vi.fn((...args) => { const cb = args[args.length - 1]; if (typeof cb === 'function') cb(null, { stdout: "", stderr: "" }); }),
-}));
-
-vi.mock("fluent-ffmpeg", () => ({
-  default: {
-    ffprobe: vi.fn((file, cb) => cb(null, { format: { duration: 5 } })),
-  },
-}));
-
 describe("comic-tts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(execFile).mockImplementation((...args: any[]) => {
+      const cb = args[args.length - 1];
+      cb(null, { stdout: "", stderr: "" });
+    });
   });
 
-  it("should throw if tts script is missing", async () => {
+  const chapter: ComicChapter = {
+    id: "ch1",
+    title: "Ch1",
+    imagePath: "a.png",
+    narrationText: "text one",
+  };
+
+  it("narrateChapter works", async () => {
+    // We mock execFile by wrapping it in util.promisify, so we simulate the cb call
+
+    const result = await narrateChapter(chapter, "output", "pt-BR-AntonioNeural");
+    expect(result.durationSec).toBe(10);
+    expect(result.audioPath).toContain("ch1.mp3");
+    expect(result.words).toHaveLength(1);
+  });
+
+  it("narrateChapters works", async () => {
+
+    const result = await narrateChapters([chapter], "output", "pt-BR-AntonioNeural");
+    expect(result).toHaveLength(1);
+    expect(result[0].durationSec).toBe(10);
+  });
+
+  it("throws when script is missing", async () => {
     vi.mocked(fs.existsSync).mockReturnValueOnce(false);
-    await expect(tts.narrateChapter({ id: "1", title: "T", imagePath: "i", narrationText: "text" }, "/tmp", "voice"))
-      .rejects.toThrow(/Missing TTS helper script/);
+    await expect(narrateChapter(chapter, "output", "pt-BR-AntonioNeural")).rejects.toThrow("Missing TTS helper script");
   });
 
-  it("should narrate chapter successfully", async () => {
-    vi.mocked(fs.existsSync).mockReturnValueOnce(true);
-    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify([{ word: "text", start: 0, end: 1 }]));
-
-    const res = await tts.narrateChapter({ id: "1", title: "T", imagePath: "i", narrationText: "text" }, "/tmp", "voice");
-    expect(res.durationSec).toBe(5);
-    expect(res.audioPath).toContain("1.mp3");
+  it("handles ffprobe error", async () => {
+        vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => cb(new Error("ffprobe error"), null));
+    await expect(narrateChapter(chapter, "output", "pt-BR-AntonioNeural")).rejects.toThrow("ffprobe error");
   });
 
-  it("should return 0 duration if ffprobe is missing duration", async () => {
-    vi.mocked(fs.existsSync).mockReturnValueOnce(true);
-    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify([]));
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => (cb as any)(null, {}));
-
-    const res = await tts.narrateChapter({ id: "1", title: "T", imagePath: "i", narrationText: "text" }, "/tmp", "voice");
+  it("handles missing duration in ffprobe", async () => {
+        vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => cb(null, { format: {} }));
+    const res = await narrateChapter(chapter, "output", "pt-BR-AntonioNeural");
     expect(res.durationSec).toBe(0);
-  });
-
-  it("should throw if ffprobe fails", async () => {
-    vi.mocked(fs.existsSync).mockReturnValueOnce(true);
-    vi.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify([]));
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => (cb as any)(new Error("ffprobe err")));
-
-    await expect(tts.narrateChapter({ id: "1", title: "T", imagePath: "i", narrationText: "text" }, "/tmp", "voice"))
-      .rejects.toThrow("ffprobe err");
-  });
-
-  it("should return correct array from narrateChapters", async () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify([{ word: "text", start: 0, end: 1 }]));
-
-    const res = await tts.narrateChapters([{ id: "1", title: "T", imagePath: "i", narrationText: "text" }, { id: "2", title: "T2", imagePath: "i2", narrationText: "text2" }], "/tmp", "voice");
-    expect(res).toHaveLength(2);
-    expect(res[0].durationSec).toBe(5);
-    expect(res[1].durationSec).toBe(5);
   });
 });
