@@ -221,7 +221,7 @@ describe("State management", () => {
       expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining("daily_uploads.json"), JSON.stringify({ date: today, count: 9999 }, null, 2));
     });
 
-    it("catches write error", async () => {
+    it("catches write error in setDailyLimitReachedAsync", async () => {
       vi.mocked(getOptionalPool).mockReturnValue(null);
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.writeFileSync).mockImplementation(() => { throw new Error("write fail"); });
@@ -238,7 +238,7 @@ describe("State management", () => {
       expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining("daily_uploads.json"), JSON.stringify({ date: today, count: 2 }, null, 2));
     });
 
-    it("catches write error", async () => {
+    it("catches write error in incrementDailyUploadCountAsync", async () => {
       vi.mocked(getOptionalPool).mockReturnValue(null);
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.writeFileSync).mockImplementation(() => { throw new Error("write fail"); });
