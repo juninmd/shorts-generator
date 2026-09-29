@@ -1,12 +1,15 @@
-import * as metadata from "./youtube-metadata.service.js";
-import * as auth from "./youtube-auth.service.js";
-import * as comment from "./youtube-comment.service.js";
-import * as upload from "./youtube-upload.service.js";
+import * as youtubeMetadata from "./youtube-metadata.service.js";
+import * as youtubeAuth from "./youtube-auth.service.js";
+import * as youtubeComment from "./youtube-comment.service.js";
+import * as youtubeUpload from "./youtube-upload.service.js";
 
-export const generateYoutubeMetadata = metadata.generateYoutubeMetadata;
-export const validateYouTubeToken = auth.validateYouTubeToken;
-export const getYouTubeAuth = auth.getYouTubeAuth;
-export const addCommentToVideo = comment.addCommentToVideo;
-export const buildEngagementComment = comment.buildEngagementComment;
-export const uploadToYouTube = upload.uploadToYouTube;
-export const uploadFullVideoToYouTube = upload.uploadFullVideoToYouTube;
+export const generateYoutubeMetadata = youtubeMetadata.generateYoutubeMetadata;
+
+export const validateYouTubeToken = youtubeAuth.validateYouTubeToken;
+export const getYouTubeAuth = youtubeAuth.getYouTubeAuth;
+
+export const buildEngagementComment = youtubeComment.buildEngagementComment;
+export const addCommentToVideo = youtubeComment.addCommentToVideo;
+
+export const uploadToYouTube = youtubeUpload.uploadToYouTube;
+export const uploadFullVideoToYouTube = youtubeUpload.uploadFullVideoToYouTube;
