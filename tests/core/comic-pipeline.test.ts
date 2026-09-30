@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import { describe, it, expect, vi } from "vitest";
 import fs from "node:fs";
 
@@ -32,7 +31,6 @@ vi.mock("node:fs", async (importOriginal) => {
   return { ...actual, ...overrides, default: { ...(actual as any).default, ...overrides } };
 });
 
-import fs from "node:fs";
 import { runComicPipeline } from "../../src/core/comic/comic-pipeline.js";
 import type { ComicBook } from "../../src/core/comic/comic-types.js";
 
@@ -74,7 +72,6 @@ describe("comic-pipeline", () => {
   });
 
   it("rejects if chapter image is missing", async () => {
-    const fs = await import("node:fs");
     vi.mocked(fs.existsSync).mockReturnValueOnce(false);
 
     await expect(
@@ -86,9 +83,6 @@ describe("comic-pipeline", () => {
       }),
     ).rejects.toThrow("Chapter image not found");
   });
-
-});
-
 
   it("throws if chapter image is missing", async () => {
     const localBook = {
@@ -108,3 +102,4 @@ describe("comic-pipeline", () => {
       }),
     ).rejects.toThrow(/Chapter image not found/);
   });
+});
