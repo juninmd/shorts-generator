@@ -12,15 +12,10 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
       exclude: [
-        'src/types.ts',
-        'src/core/comic/comic-types.ts',
-        'src/core/youtube.ts',
         'src/cli.ts',
         'src/cli-commands/**',
         'src/cli-interactive.ts',
         'src/types/better-sqlite3.d.ts',
-        'src/core/comic/comic-types.ts',
-        'src/core/youtube.ts'
       ],
       all: true,
       thresholds: {
