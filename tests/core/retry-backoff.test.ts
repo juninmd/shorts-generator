@@ -10,6 +10,37 @@ describe("withRetry", () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
+  it("should cover isQuotaOrAuthError falsy fallback branch", async () => {
+    // Pass something that is not an Error instance to cover the first branch
+    const fn = vi.fn().mockRejectedValue("string error");
+    await expect(withRetry(fn, { maxAttempts: 1 })).rejects.toEqual("string error");
+  });
+
+  it("should handle error without message properly via ??", async () => {
+    const err = new Error();
+    Object.defineProperty(err, "message", { get: () => undefined });
+    const fn = vi.fn().mockRejectedValue(err);
+    await expect(withRetry(fn, { maxAttempts: 1 })).rejects.toThrow();
+  });
+
+  it("should cover missing lastError throw", async () => {
+    // maxAttempts is 0, so loop doesn't run, throws lastError (undefined)
+    const fn = vi.fn().mockResolvedValue(true);
+    await expect(withRetry(fn, { maxAttempts: 0 })).rejects.toBeUndefined();
+  });
+
+  it("should cover fallback error loop condition", async () => {
+    const fn = vi.fn().mockRejectedValue(new Error("fail"));
+    await expect(withRetry(fn, { maxAttempts: 0 })).rejects.toBeUndefined();
+  });
+
+  it("should handle Error with undefined message", async () => {
+    const err = new Error();
+    Object.defineProperty(err, "message", { value: undefined });
+    const mockFn = vi.fn().mockRejectedValue(err);
+    await expect(withRetry(mockFn, { maxAttempts: 1 })).rejects.toThrow();
+  });
+
   it("retries on transient error and succeeds", async () => {
     const fn = vi.fn()
       .mockRejectedValueOnce(new Error("network"))
