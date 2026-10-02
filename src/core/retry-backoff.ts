@@ -23,7 +23,8 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     } catch (error: unknown) {
       lastError = error;
       const canRetry = shouldRetry ? shouldRetry(error, attempt) : !isQuotaOrAuthError(error);
-      if (!canRetry || attempt === maxAttempts) throw error;
+      if (!canRetry) throw error;
+      if (attempt === maxAttempts) throw error;
       const delay = baseDelayMs * Math.pow(2, attempt - 1);
       logger.warn({ attempt, maxAttempts, delayMs: delay }, logMessage);
       await new Promise((resolve) => setTimeout(resolve, delay));
