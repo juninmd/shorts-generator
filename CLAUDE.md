@@ -33,11 +33,12 @@ To run a single test file: `pnpm vitest run tests/core/pipeline.test.ts`
 
 ## Architecture
 
-This project is an automated YouTube Shorts generator with three entry points sharing a common pipeline:
+This project is an automated YouTube Shorts generator with several entry points sharing a common pipeline:
 
 1. **CLI** (`src/cli.ts`) — `generate` and `generate:top` commands
 2. **Web Server** (`src/server/`) — Hono REST API on port 3001, async jobs via `POST /api/generate` + polling `GET /api/jobs/:id`
-3. **GitHub Actions** (`.github/workflows/`) — Scheduled daily at 12:00 BRT (`generate-shorts.yml`) and 18:00 BRT (`generate-top-shorts.yml`)
+3. **Queue / Kubernetes** (`src/core/queue*.ts`, `k8s/`) — BullMQ queue (`queue:process`), quiz generation (`generate:quiz`), CronJobs and manifests under `k8s/`
+4. **GitHub Actions** (`.github/workflows/`) — `validate.yml` (secrets scan, typecheck, tests with 100% coverage gate), `deploy.yml` (Docker image), `security.yml` (gitleaks), `update-yt-dlp.yml` (daily yt-dlp lock bump), `dependabot-automerge.yml`, `release-drafter.yml`
 
 ### Pipeline Flow
 
@@ -105,6 +106,13 @@ The pipeline requires these system tools at runtime:
 - **150-line maximum per file** — keep files small and focused
 - Strict TypeScript typing — all types defined in `src/types.ts`
 - Sequential video processing to avoid resource conflicts (no parallelism across videos)
+
+### Dependency Updates
+
+- `.github/dependabot.yml` — weekly grouped minor/patch PRs for npm (root + `web`), GitHub Actions, Docker; daily for `tests/yt-download` (yt-dlp)
+- `dependabot-automerge.yml` — auto-merges non-major Dependabot PRs once required checks pass (requires branch protection with `validate` as a required check); majors stay manual
+- `minimumReleaseAge` (`pnpm-workspace.yaml`, `.npmrc`) — pnpm refuses versions published <24h ago (supply-chain guard)
+- pnpm version is pinned via `packageManager` in `package.json`; keep CI/Dockerfile in sync
 
 ### State Persistence
 
