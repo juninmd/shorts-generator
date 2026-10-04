@@ -9,7 +9,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: juninmd/base-actions/.github/workflows/reusable-docker-build.yml@main
+    uses: juninmd/base-actions/.github/workflows/reusable-docker-build.yml@69b61afe1269666a505bfcefda37ef90c38b8427
     with:
       image-name: ${{ github.repository }}
     secrets:

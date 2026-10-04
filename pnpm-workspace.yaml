@@ -1,7 +1,7 @@
 packages:
   - web
 
-minimumReleaseAge: 0
+minimumReleaseAge: 1440
 
 onlyBuiltDependencies:
   - esbuild
