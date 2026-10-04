@@ -1,6 +1,8 @@
-name: Daily Dependencies Update
+name: Daily yt-dlp Update
 
 on:
+  schedule:
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 jobs:
