@@ -17,26 +17,10 @@ vi.mock("node:fs", () => ({
   },
 }));
 
-vi.mock("fluent-ffmpeg", () => {
-  const fluentMock = {
-    setStartTime: vi.fn().mockReturnThis(),
-    setDuration: vi.fn().mockReturnThis(),
-    videoFilters: vi.fn().mockReturnThis(),
-    outputOptions: vi.fn().mockReturnThis(),
-    output: vi.fn().mockReturnThis(),
-    on: vi.fn().mockReturnThis(),
-    run: vi.fn().mockReturnThis(),
-  };
-
-  const ffprobeMock = vi.fn((path, cb) => cb(null, { format: { duration: 120 } }));
-
-  const ffmpegMock = vi.fn(() => fluentMock) as any;
-  ffmpegMock.ffprobe = ffprobeMock;
-
-  return {
-    default: ffmpegMock,
-  };
-});
+vi.mock("../../src/core/ffmpeg-bin.js", () => ({
+  probeFormat: vi.fn().mockResolvedValue({ duration: "120" }),
+  ffmpegBin: () => "ffmpeg",
+}));
 
 describe("video-processor", () => {
   const mockConfig = {

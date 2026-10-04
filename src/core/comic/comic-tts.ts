@@ -2,24 +2,15 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
-import ffmpeg from "fluent-ffmpeg";
 import type { TranscriptWord } from "../../types.js";
 import type { ComicChapter, NarratedChapter } from "./comic-types.js";
 import { logger } from "../logger.js";
+import { getVideoDuration } from "../video-processor.js";
 
 const execFileAsync = promisify(execFile);
 
 function scriptPath(): string {
   return path.resolve(process.cwd(), "scripts", "comic_tts.py");
-}
-
-function getVideoDuration(filePath: string): Promise<number> {
-  return new Promise((resolve, reject) => {
-    ffmpeg.ffprobe(filePath, (err, metadata) => {
-      if (err) return reject(err);
-      resolve(metadata?.format?.duration ?? 0);
-    });
-  });
 }
 
 /**

@@ -22,41 +22,15 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-vi.mock("fluent-ffmpeg", () => {
-  const mockFfmpeg = () => {};
-  mockFfmpeg.ffmpegPath = vi.fn().mockReturnValue("mock-ffmpeg");
-  return {
-    default: mockFfmpeg,
-  };
-});
+vi.mock("../../../src/core/ffmpeg-bin.js", () => ({ ffmpegBin: () => "mock-ffmpeg" }));
 
 import { renderChapterClip, concatChapterClips, burnSubtitles } from "../../../src/core/comic/comic-video.js";
 import * as nodeFs from "node:fs";
 import * as cp from "node:child_process";
-import ffmpeg from "fluent-ffmpeg";
 
 describe("comic-video", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("renderChapterClip executes ffmpeg to render clip with fallback ffmpeg path", async () => {
-    vi.mocked((ffmpeg as any).ffmpegPath).mockReturnValueOnce(null);
-    const chapter = {
-      id: "ch1",
-      title: "Ch1",
-      imagePath: "ch1.png",
-      narrationText: "text",
-      audioPath: "ch1.mp3",
-      durationSec: 5,
-      words: [],
-    };
-    await renderChapterClip(chapter, "out.mp4", 1080, 1920);
-    expect(cp.execFile).toHaveBeenCalled();
-    const args = vi.mocked(cp.execFile).mock.calls[0];
-    expect(args[0]).toBe("ffmpeg"); // fallback
-    expect(args[1]).toContain(chapter.imagePath);
-    expect(args[1]).toContain(chapter.audioPath);
   });
 
   it("renderChapterClip executes ffmpeg to render clip", async () => {

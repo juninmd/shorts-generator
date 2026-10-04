@@ -2,15 +2,11 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
-import ffmpeg from "fluent-ffmpeg";
 import type { ComicBook } from "./comic-types.js";
 import { buildFontEnv } from "../ffmpeg-env.js";
+import { ffmpegBin } from "../ffmpeg-bin.js";
 
 const execFileAsync = promisify(execFile);
-
-function getFfmpegPath(): string {
-  return (ffmpeg as any).ffmpegPath?.() ?? "ffmpeg";
-}
 
 interface DemoChapter {
   id: string;
@@ -43,7 +39,7 @@ async function buildColorCardBook(
       "-frames:v", "1",
       imagePath,
     ];
-    await execFileAsync(getFfmpegPath(), args, { maxBuffer: 8 * 1024 * 1024, env: buildFontEnv() });
+    await execFileAsync(ffmpegBin(), args, { maxBuffer: 8 * 1024 * 1024, env: buildFontEnv() });
   }
 
   return {
