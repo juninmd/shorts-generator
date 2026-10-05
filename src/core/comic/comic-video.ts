@@ -2,16 +2,12 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
-import ffmpeg from "fluent-ffmpeg";
 import type { NarratedChapter } from "./comic-types.js";
 import { logger } from "../logger.js";
 import { buildFontEnv } from "../ffmpeg-env.js";
+import { ffmpegBin } from "../ffmpeg-bin.js";
 
 const execFileAsync = promisify(execFile);
-
-function getFfmpegPath(): string {
-  return (ffmpeg as any).ffmpegPath?.() ?? "ffmpeg";
-}
 
 function escapeFilterPath(filePath: string): string {
   return filePath.replace(/\\/g, "/").replace(/:/g, "\\:");
@@ -46,7 +42,7 @@ export async function renderChapterClip(
     "-shortest",
     outputPath,
   ];
-  await execFileAsync(getFfmpegPath(), args, { maxBuffer: 16 * 1024 * 1024 });
+  await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024 });
 }
 
 /** Concatenate rendered chapter clips into a single video via the concat demuxer. */
@@ -69,7 +65,7 @@ export async function concatChapterClips(
     "-c", "copy",
     outputPath,
   ];
-  await execFileAsync(getFfmpegPath(), args, { maxBuffer: 16 * 1024 * 1024 });
+  await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024 });
 }
 
 /** Burn ASS subtitles onto the concatenated video. */
@@ -89,5 +85,5 @@ export async function burnSubtitles(
     outputPath,
   ];
   logger.info({ inputPath, outputPath }, "Burning comic subtitles");
-  await execFileAsync(getFfmpegPath(), args, { maxBuffer: 16 * 1024 * 1024, env: buildFontEnv() });
+  await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024, env: buildFontEnv() });
 }

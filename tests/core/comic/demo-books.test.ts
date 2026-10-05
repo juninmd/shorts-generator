@@ -22,13 +22,7 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-vi.mock("fluent-ffmpeg", () => {
-  const mockFfmpeg = () => {};
-  // explicitly not setting a default mock return to allow fallback testing
-  return {
-    default: mockFfmpeg,
-  };
-});
+vi.mock("../../../src/core/ffmpeg-bin.js", () => ({ ffmpegBin: () => "ffmpeg" }));
 
 import {
   buildFlashpointDemoBook,
@@ -66,12 +60,4 @@ describe("demo-books", () => {
       expect(cp.execFile).toHaveBeenCalled();
     });
   }
-
-  it("getFfmpegPath falls back to ffmpeg if not provided by module", async () => {
-    // testing fallback behavior
-    await buildFlashpointDemoBook("/workdir2");
-    expect(cp.execFile).toHaveBeenCalled();
-    const args = vi.mocked(cp.execFile).mock.calls[0];
-    expect(args[0]).toBe("ffmpeg"); // fallback
-  });
 });

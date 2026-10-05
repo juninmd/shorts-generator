@@ -1,34 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import ffmpeg from "fluent-ffmpeg";
+import { probeFormat } from "../../src/core/ffmpeg-bin.js";
 import { getFileStartTime, getVideoDuration } from "../../src/core/video-processor.js";
 
-vi.mock("fluent-ffmpeg", () => {
-  const mocked = vi.fn() as any;
-  mocked.ffprobe = vi.fn();
-  return { default: mocked };
-});
+vi.mock("../../src/core/ffmpeg-bin.js", () => ({
+  probeFormat: vi.fn(),
+  ffmpegBin: () => "ffmpeg",
+}));
 
 describe("video metadata", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns the probed duration", async () => {
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((path, callback) => {
-      callback(null, { format: { duration: 120 } } as any);
-    });
-    await expect(getVideoDuration("test.mp4")).resolves.toBe(120);
+    vi.mocked(probeFormat).mockResolvedValueOnce({ duration: "120.5" });
+    await expect(getVideoDuration("test.mp4")).resolves.toBe(120.5);
   });
 
   it("propagates duration probe errors", async () => {
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((path, callback) => {
-      callback(new Error("ffprobe error"), null as any);
-    });
+    vi.mocked(probeFormat).mockRejectedValueOnce(new Error("ffprobe error"));
     await expect(getVideoDuration("test.mp4")).rejects.toThrow("ffprobe error");
   });
 
-  it("returns zero when duration metadata is missing", async () => {
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((path, callback) => {
-      callback(null, {} as any);
-    });
+  it.each([{}, { duration: "N/A" }])("returns zero for missing/invalid duration %o", async (format) => {
+    vi.mocked(probeFormat).mockResolvedValueOnce(format);
     await expect(getVideoDuration("test.mp4")).resolves.toBe(0);
   });
 
@@ -37,16 +30,12 @@ describe("video metadata", () => {
     { format: { start_time: "invalid" }, expected: 0 },
     { format: {}, expected: 0 },
   ])("maps start metadata to $expected", async ({ format, expected }) => {
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((path, callback) => {
-      callback(null, { format } as any);
-    });
+    vi.mocked(probeFormat).mockResolvedValueOnce(format);
     await expect(getFileStartTime("test.mp4")).resolves.toBe(expected);
   });
 
   it("returns zero when the start-time probe fails", async () => {
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((path, callback) => {
-      callback(new Error("ffprobe error"), null as any);
-    });
+    vi.mocked(probeFormat).mockRejectedValueOnce(new Error("ffprobe error"));
     await expect(getFileStartTime("test.mp4")).resolves.toBe(0);
   });
 });

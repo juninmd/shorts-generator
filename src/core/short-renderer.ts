@@ -2,7 +2,6 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
-import ffmpeg from "fluent-ffmpeg";
 import type { PipelineConfig, ShortClip } from "../types.js";
 import { logger } from "./logger.js";
 import { CENTER_FOCUS, detectSpeakerFocusX } from "./face-framing.js";
@@ -11,15 +10,12 @@ import { assertShortMediaQuality } from "./short-quality.js";
 
 const execFileAsync = promisify(execFile);
 
-function getFfmpegPath(): string {
-  return (ffmpeg as any).ffmpegPath?.() ?? "ffmpeg";
-}
-
 function escapeFilterPath(filePath: string): string {
   return filePath.replace(/\\/g, "/").replace(/:/g, "\\:");
 }
 
 import { buildFontEnv } from "./ffmpeg-env.js";
+import { ffmpegBin } from "./ffmpeg-bin.js";
 
 export function buildSafeFramingFilter(
   subtitlePath: string,
@@ -96,10 +92,10 @@ export async function renderShort(
 }
 
 async function runFfmpeg(args: string[], outputPath: string): Promise<void> {
-  const ffmpegBin = getFfmpegPath();
-  logger.debug({ command: [ffmpegBin, ...args].join(" ") }, "FFmpeg started");
+  const bin = ffmpegBin();
+  logger.debug({ command: [bin, ...args].join(" ") }, "FFmpeg started");
   try {
-    const { stderr } = await execFileAsync(ffmpegBin, args, {
+    const { stderr } = await execFileAsync(bin, args, {
       env: buildFontEnv(),
       maxBuffer: 100 * 1024 * 1024,
     });
@@ -107,7 +103,7 @@ async function runFfmpeg(args: string[], outputPath: string): Promise<void> {
     verifyOutput(outputPath);
   } catch (err: any) {
     logger.error(
-      { err, stderr: err.stderr, stdout: err.stdout, command: [ffmpegBin, ...args].join(" ") },
+      { err, stderr: err.stderr, stdout: err.stdout, command: [bin, ...args].join(" ") },
       "FFmpeg CRASHED! O vídeo gerado provavelmente está corrompido ou vazio.",
     );
     throw new Error(`FFmpeg failed to render short: ${err.message}`);

@@ -24,19 +24,11 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-vi.mock("fluent-ffmpeg", () => {
-  return {
-    default: {
-      ffprobe: vi.fn((file, cb) => {
-        cb(null, { format: { duration: 5 } });
-      }),
-    },
-  };
-});
+vi.mock("../../../src/core/video-processor.js", () => ({ getVideoDuration: vi.fn().mockResolvedValue(5) }));
 
 import { narrateChapter, narrateChapters } from "../../../src/core/comic/comic-tts.js";
 import * as nodeFs from "node:fs";
-import ffmpeg from "fluent-ffmpeg";
+import { getVideoDuration } from "../../../src/core/video-processor.js";
 
 describe("comic-tts", () => {
   beforeEach(() => {
@@ -83,22 +75,9 @@ describe("comic-tts", () => {
   });
 
   it("narrateChapter handles ffprobe errors by rejecting", async () => {
-    const err = new Error("ffprobe error");
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => {
-      cb(err, null);
-    });
+    vi.mocked(getVideoDuration).mockRejectedValueOnce(new Error("ffprobe error"));
 
     const chapter = { id: "ch1", title: "Ch1", imagePath: "ch1.png", narrationText: "test narration" };
     await expect(narrateChapter(chapter, "/out", "voice")).rejects.toThrow("ffprobe error");
-  });
-
-  it("narrateChapter handles ffprobe duration fallbacks", async () => {
-    vi.mocked(ffmpeg.ffprobe).mockImplementationOnce((file, cb) => {
-      cb(null, { format: {} }); // no duration
-    });
-
-    const chapter = { id: "ch1", title: "Ch1", imagePath: "ch1.png", narrationText: "test narration" };
-    const result = await narrateChapter(chapter, "/out", "voice");
-    expect(result.durationSec).toBe(0);
   });
 });
