@@ -1,4 +1,3 @@
-import ffmpeg from "fluent-ffmpeg";
 import fs from "node:fs";
 import path from "node:path";
 import type {
@@ -10,6 +9,7 @@ import type {
 import { generateASSSubtitles } from "./subtitle.js";
 import { logger } from "./logger.js";
 import { renderShort } from "./short-renderer.js";
+import { probeFormat } from "./ffmpeg-bin.js";
 
 /**
  * Process a single clip: cut, convert to vertical, apply subtitles.
@@ -74,13 +74,9 @@ export async function processClip(
  * Get the duration of a video file in seconds.
  */
 
-export function getVideoDuration(filePath: string): Promise<number> {
-  return new Promise((resolve, reject) => {
-    ffmpeg.ffprobe(filePath, (err, metadata) => {
-      if (err) return reject(err);
-      resolve(metadata?.format?.duration ?? 0);
-    });
-  });
+export async function getVideoDuration(filePath: string): Promise<number> {
+  const duration = parseFloat(String((await probeFormat(filePath)).duration ?? "0"));
+  return isNaN(duration) ? 0 : duration;
 }
 
 /**
@@ -88,12 +84,11 @@ export function getVideoDuration(filePath: string): Promise<number> {
  * Returns 0 when yt-dlp resets timestamps (merged DASH streams),
  * or the original video timestamp when timestamps are preserved (single-stream).
  */
-export function getFileStartTime(filePath: string): Promise<number> {
-  return new Promise((resolve) => {
-    ffmpeg.ffprobe(filePath, (err, metadata) => {
-      if (err) return resolve(0);
-      const t = parseFloat(String(metadata?.format?.start_time ?? "0"));
-      resolve(isNaN(t) ? 0 : t);
-    });
-  });
+export async function getFileStartTime(filePath: string): Promise<number> {
+  try {
+    const t = parseFloat(String((await probeFormat(filePath)).start_time ?? "0"));
+    return isNaN(t) ? 0 : t;
+  } catch {
+    return 0;
+  }
 }

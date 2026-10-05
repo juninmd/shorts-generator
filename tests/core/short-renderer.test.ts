@@ -19,13 +19,6 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-let mockFfmpegPath: string | undefined = "mocked_ffmpeg";
-vi.mock("fluent-ffmpeg", () => ({
-  default: {
-    ffmpegPath: () => mockFfmpegPath,
-  },
-}));
-
 const probeJson = JSON.stringify({
   format: { duration: "10" },
   streams: [
@@ -37,7 +30,6 @@ const probeJson = JSON.stringify({
 describe("short-renderer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFfmpegPath = "mocked_ffmpeg";
   });
 
   it("buildSafeFramingFilter fills the screen with zoomed crop and lanczos scaling", () => {
@@ -191,31 +183,6 @@ describe("short-renderer", () => {
         "in.mp4", "out.mp4", "sub.ass",
         { startTime: 0, duration: 10 } as any,
         { managedRun: undefined, videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any
-      );
-    });
-  });
-
-  describe("getFfmpegPath branch coverage", () => {
-    it("falls back to 'ffmpeg' if ffmpegPath is missing", async () => {
-      mockFfmpegPath = undefined;
-      vi.mocked(fs.existsSync).mockImplementation((p) => true);
-      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
-      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
-        const cb = callback || options || args;
-        if (typeof cb === "function") {
-          cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
-        }
-        return {} as any;
-      });
-
-      await renderShort(
-        "in.mp4", "out.mp4", "sub.ass",
-        { startTime: 0, duration: 10 } as any,
-        { managedRun: undefined, videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any
-      );
-
-      expect(execFile).toHaveBeenCalledWith(
-        "ffmpeg", expect.any(Array), expect.any(Object), expect.any(Function),
       );
     });
   });
