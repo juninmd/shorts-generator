@@ -15,9 +15,27 @@ jobs:
         uses: dependabot/fetch-metadata@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Enable auto-merge for minor/patch (waits for required checks)
+      - name: Merge minor/patch once required checks pass
         if: steps.meta.outputs.update-type != 'version-update:semver-major'
-        run: gh pr merge --auto --squash "$PR_URL"
+        run: |
+          for attempt in {1..20}; do
+            set +e
+            gh pr checks "$PR_URL" --watch --interval 30
+            code=$?
+            set -e
+            if [ "$code" -eq 0 ]; then
+              gh pr merge --squash "$PR_URL"
+              exit 0
+            fi
+            if [ "$code" -ne 8 ]; then
+              echo "::error::Required checks did not pass (gh exit $code)"
+              exit "$code"
+            fi
+            echo "No checks reported yet (attempt $attempt), retrying in 15s..."
+            sleep 15
+          done
+          echo "::error::No checks reported on the pull request"
+          exit 1
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
