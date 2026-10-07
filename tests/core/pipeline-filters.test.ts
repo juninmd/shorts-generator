@@ -13,7 +13,8 @@ vi.mock("../../src/core/ai-provider.js", () => ({
   createModel: vi.fn(),
 }));
 
-vi.mock("../../src/core/youtube.js", () => ({
+vi.mock("../../src/core/youtube.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   getVideoFileSize: vi.fn(),
 }));
 
