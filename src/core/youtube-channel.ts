@@ -5,9 +5,7 @@ import type { VideoInfo } from "../types.js";
 import { logger } from "./logger.js";
 import { getYtDlpBaseArgs, withCookies, execYtDlp } from "./youtube-ytdlp.js";
 
-/**
- * Get the list of recent videos from a YouTube channel.
- */
+
 export async function getChannelVideos(
   channelIdentifier: string,
   videoLimit: number,
@@ -36,19 +34,19 @@ export async function getChannelVideos(
 
       const videos: VideoInfo[] = [];
       for (const line of stdout.trim().split("\n")) {
-if (!line.trim()) continue;
+        if (!line.trim()) continue;
         try {
           // yt-dlp might return NA for missing fields, which breaks JSON.parse
           // We sanitize it to null
           const sanitizedLine = line.replace(/:NA([,}])/g, ':null$1');
-const raw = JSON.parse(sanitizedLine);
+          const raw = JSON.parse(sanitizedLine);
           videos.push({
             id: raw.id,
             title: raw.title ?? "Untitled",
             url: raw.url ?? `https://www.youtube.com/watch?v=${raw.id}`,
             channelName: raw.channel ?? channelIdentifier,
             channelUrl: raw.channel_url ?? "",
-duration: typeof raw.duration === "number" ? raw.duration : 0,
+            duration: typeof raw.duration === "number" ? raw.duration : 0,
             publishedAt: raw.upload_date ?? "",
             thumbnailUrl: raw.thumbnail,
             liveStatus: raw.live_status,
@@ -74,9 +72,7 @@ duration: typeof raw.duration === "number" ? raw.duration : 0,
   });
 }
 
-/**
- * Get the top viewed valid non-music videos from a YouTube channel.
- */
+
 export async function getTopChannelVideos(
   channelIdentifier: string,
   limit: number = 20,
@@ -105,10 +101,10 @@ export async function getTopChannelVideos(
 
       const videos: VideoInfo[] = [];
       for (const line of stdout.trim().split("\n")) {
-if (!line.trim()) continue;
+        if (!line.trim()) continue;
         try {
           const sanitizedLine = line.replace(/:NA([,}])/g, ':null$1');
-const raw = JSON.parse(sanitizedLine);
+          const raw = JSON.parse(sanitizedLine);
 
           videos.push({
             id: raw.id,
@@ -116,7 +112,7 @@ const raw = JSON.parse(sanitizedLine);
             url: raw.url ?? `https://www.youtube.com/watch?v=${raw.id}`,
             channelName: raw.channel ?? channelIdentifier,
             channelUrl: raw.channel_url ?? "",
-duration: typeof raw.duration === "number" ? raw.duration : 0,
+            duration: typeof raw.duration === "number" ? raw.duration : 0,
             publishedAt: raw.upload_date ?? "",
             thumbnailUrl: raw.thumbnail,
             liveStatus: raw.live_status,
