@@ -2,47 +2,9 @@
 
 import type { ApiGenerateResponse, PipelineProgress, PipelineResult } from "../types.js";
 import { getOptionalPool, queryRows } from "../core/control-plane-db.js";
+import { createJob, getJob } from "./job-store-funcs.js";
+import { type JobState, jobs, type RunRow, type RunSummaryRow, type RunResultsRow, mapRowToJobState, flattenShorts } from "./job-store-state.js";
 
-export interface JobState {
-  status: ApiGenerateResponse["status"];
-  results: PipelineResult[];
-  progress: PipelineProgress | null;
-  createdAt: string;
-}
-
-export const jobs = new Map<string, JobState>();
-
-export function createJob(jobId: string): void | Promise<void> {
-  const db = getOptionalPool();
-  if (db) {
-    return db.query(
-      `INSERT INTO pipeline_runs (id, channel_id, requested_by, status, snapshot, progress, results, error_message, created_at, updated_at)
-       VALUES ($1, NULL, $2, $3, $4::jsonb, NULL, $5::jsonb, NULL, NOW(), NOW())`,
-      [jobId, "legacy", "processing", JSON.stringify({ source: "legacy-api" }), JSON.stringify([])],
-    ).then(() => undefined);
-  }
-  jobs.set(jobId, {
-    status: "processing",
-    results: [],
-    progress: null,
-    createdAt: new Date().toISOString(),
-  });
-}
-
-export function getJob(jobId: string): JobState | undefined | Promise<JobState | undefined> {
-  const db = getOptionalPool();
-  if (db) {
-    return queryRows<RunRow>(
-      db,
-      "SELECT status, progress, results, created_at FROM pipeline_runs WHERE id = $1 AND requested_by = $2",
-      [jobId, "legacy"],
-    ).then((rows) => {
-      const row = rows[0];
-      return row ? mapRowToJobState(row) : undefined;
-    });
-  }
-  return jobs.get(jobId);
-}
 
 export function updateJobProgress(jobId: string, progress: PipelineProgress): void | Promise<void> {
   const db = getOptionalPool();
@@ -152,51 +114,13 @@ export function getAllShorts() {
     .flatMap((j) => flattenShorts(j.results));
 }
 
-interface RunRow {
-  status: JobState["status"];
-  progress: PipelineProgress | null;
-  results: PipelineResult[];
-  created_at: string;
-}
-
-interface RunSummaryRow extends RunRow {
-  id: string;
-}
-
-interface RunResultsRow {
-  results: PipelineResult[];
-}
-
-function mapRowToJobState(row: RunRow): JobState {
-  return {
-    status: row.status,
-    progress: row.progress,
-    results: row.results,
-    createdAt: row.created_at,
-  };
-}
-
-function flattenShorts(results: readonly PipelineResult[]) {
-  return results.flatMap((result) =>
-    result.shorts.map((short) => ({
-      id: short.id,
-      videoId: result.videoId,
-      title: short.clip.title,
-      description: short.clip.description,
-      viralScore: short.clip.viralScore,
-      duration: short.clip.duration,
-      startTime: short.clip.startTime,
-      endTime: short.clip.endTime,
-      originalVideoUrl: short.originalVideoUrl,
-      originalVideoTitle: short.originalVideoTitle,
-      channelName: short.channelName,
-      status: short.status,
-      createdAt: short.createdAt,
-      downloadUrl: `/api/shorts/${result.videoId}/${short.id}`,
-    })),
-  );
-}
 
 
 
 
+
+
+
+export { type JobState, jobs } from "./job-store-state.js";
+
+export { createJob, getJob } from "./job-store-funcs.js";

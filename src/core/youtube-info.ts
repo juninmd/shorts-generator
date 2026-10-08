@@ -5,10 +5,7 @@ import type { VideoInfo, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 import { getYtDlpBaseArgs, withCookies, execYtDlp } from "./youtube-ytdlp.js";
 
-/**
- * Perform a pre-flight check to see if YouTube is blocking us.
- * Returns true if okay, throws error if blocked.
- */
+
 export async function verifyYoutubeAccess(config: PipelineConfig): Promise<void> {
   logger.info("Performing YouTube access sanity check...");
 
@@ -60,9 +57,7 @@ const msg = (error instanceof Error ? ((error as NodeJS.ErrnoException & { stder
   });
 }
 
-/**
- * Get video info for a specific URL.
- */
+
 export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
   return withCookies(undefined, async (tempCookiePath) => {
     try {
@@ -116,10 +111,7 @@ url: raw.url ?? url,
   });
 }
 
-/**
- * Estimate remote video file size (bytes) using yt-dlp without downloading.
- * Returns null if the size cannot be determined.
- */
+
 export async function getVideoFileSize(
   url: string,
   config: PipelineConfig,
