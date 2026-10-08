@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runQuizPipeline, buildOutputFileName, buildTelegramCaption, buildYoutubeMetadata, buildRevealNarration, buildOutroNarration } from "../../../src/core/quiz/quiz-pipeline.js";
+import { runQuizPipeline } from "../../../src/core/quiz/quiz-pipeline.js";
+import { buildOutputFileName, buildTelegramCaption, buildYoutubeMetadata, buildRevealNarration, buildOutroNarration } from "../../../src/core/quiz/quiz-pipeline-helpers.js";
 import * as content from "../../../src/core/quiz/quiz-content.service.js";
 import * as tts from "../../../src/core/quiz/quiz-tts.service.js";
 import * as video from "../../../src/core/quiz/quiz-video.service.js";
