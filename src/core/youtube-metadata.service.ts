@@ -24,17 +24,34 @@ export const generateYoutubeMetadata = async (
 
   const tags = ["shorts", "viral"];
 
-  const prompt = `Você é um especialista em YouTube Shorts focados em viralização.
-Crie um título chamativo (máx 60 caracteres) e uma lista de 5 a 10 tags relevantes para este short.
+  const prompt = `Você é um especialista em YouTube Shorts focados em viralização. Responda em Português do Brasil (pt-BR).
+Crie um título, uma descrição e tags otimizados para este short.
 
 TÍTULO ORIGINAL DO SHORT: ${title}
 ASSUNTO: ${clip.description}
-APRESENTADOR: ${presenter || "Não informado"}
+APRESENTADOR (quem está falando no vídeo): ${presenter || "Não informado"}
 FOCO: ${(config.managedRun?.focusLabels ?? []).join(", ")}
+TRANSCRIÇÃO DO TRECHO: "${(clip.transcript ?? []).map((s) => s.text).join(" ").slice(0, 1500)}"
+
+INSTRUÇÕES PARA O TÍTULO:
+1. Máximo 70 caracteres, chamativo e instigante (curiosidade, polêmica, urgência ou número).
+2. Inicie ou termine com 1 ou 2 emojis relevantes ao tema (ex: 🔥, 😱, 🙏, 💡, ⚠️).
+3. Se o apresentador for informado, inclua o nome dele no título. Não use as palavras "corte", "clipe", "short", "vídeo" ou "parte".
+
+INSTRUÇÕES PARA A DESCRIÇÃO:
+1. Comece com um teaser de 2 a 4 frases que gere curiosidade e cite o apresentador quando houver.
+2. Inclua de 3 a 5 tópicos curtos com "•" destacando os pontos altos do trecho.
+3. Inclua uma chamada para ação: inscrever-se no canal, deixar o like e comentar.
+4. Termine com 5 a 10 hashtags em uma linha, incluindo #shorts, #viral e o nome do apresentador sem espaços.
+
+INSTRUÇÕES PARA AS TAGS:
+1. Gere de 20 a 30 palavras-chave de busca em minúsculas, sem "#", da mais relevante para a menos relevante.
+2. Cubra o nome do apresentador e variações, o tema, termos da transcrição e termos amplos (head tags) e específicos (long-tail).
 
 RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto extra:
 {
-  "title": "TÍTULO CHAMATIVO AQUI",
+  "title": "TÍTULO AQUI",
+  "description": "DESCRIÇÃO AQUI",
   "tags": ["tag1", "tag2", "tag3"]
 }`;
 
@@ -68,7 +85,10 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto ex
             if (parsed.title) {
               const enhancedTitle = buildPresenterTitle(parsed.title.slice(0, 80), presenter);
               const uniqueTags = Array.from(new Set([...tags, ...(parsed.tags || [])]));
-              return { title: enhancedTitle, description, tags: uniqueTags };
+              const aiDescription = typeof parsed.description === "string" && parsed.description.trim()
+                ? `${parsed.description.trim()}\n\n🎥 Vídeo Original: ${short.originalVideoUrl}\n📱 Shorts gerado por IA - Cortado e editado automaticamente`
+                : description;
+              return { title: enhancedTitle, description: aiDescription, tags: uniqueTags };
             }
           }
           throw new Error("Invalid AI JSON structure");
