@@ -209,4 +209,35 @@ describe("youtube-metadata.service", () => {
       const metadata = await generateYoutubeMetadata({ clip, originalVideoUrl: "url" } as any, { managedRun: {} } as any);
       expect(metadata.title).toBe("Base Title");
   });
+
+  it("should use AI generated description and include transcript in the prompt", async () => {
+      process.env.VITEST = "false";
+      process.env.ENABLE_YOUTUBE = "true";
+
+      const mockModel = {};
+      vi.mocked(createModel).mockReturnValue(mockModel as any);
+      vi.mocked(generateText).mockResolvedValue({
+        text: JSON.stringify({
+          title: "AI Described Title",
+          description: "AI described body",
+          tags: ["aiTag"],
+        }),
+      } as any);
+
+      const clip = {
+        title: "Title",
+        description: "Desc",
+        transcript: [
+          { start: 0, end: 1, text: "Primeira fala" },
+          { start: 1, end: 2, text: "Segunda fala" },
+        ],
+      };
+      const config = { managedRun: {} } as any;
+
+      const metadata = await generateYoutubeMetadata({ clip, originalVideoUrl: "url" } as any, config);
+      expect(metadata.title).toBe("AI Described Title");
+      expect(metadata.description).toContain("AI described body");
+      expect(metadata.description).toContain("url");
+      expect(metadata.tags).toEqual(["shorts", "viral", "aiTag"]);
+  });
 });
