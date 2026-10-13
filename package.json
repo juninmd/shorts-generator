@@ -4,7 +4,7 @@
   "private": true,
   "description": "Automated YouTube Shorts generator — downloads videos, transcribes with Whisper, identifies viral moments via LLM, generates vertical shorts with captions, and sends to Telegram.",
   "type": "module",
-  "packageManager": "pnpm@12.11.2",
+  "packageManager": "pnpm@12.12.1",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -32,30 +32,30 @@
     "diagnose:cluster": "tsx scripts/diagnose-cluster.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.67",
+    "@ai-sdk/openai-compatible": "^3.0.68",
     "@hono/node-server": "^2.1.4",
-    "ai": "^7.0.137",
+    "ai": "^7.0.138",
     "better-sqlite3": "^13.0.3",
-    "bullmq": "^6.3.12",
+    "bullmq": "^6.3.13",
     "dotenv": "^18.0.7",
     "googleapis": "^185.0.0",
     "grammy": "^1.46.0",
-    "hono": "^4.13.13",
+    "hono": "^5.0.0-rc.1",
     "ioredis": "^6.0.0",
     "nanoid": "^6.0.2",
     "p-limit": "^7.3.3",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
     "pino-pretty": "^13.2.0",
-    "zod": "^4.6.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
-    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/coverage-v8": "^5.0.4",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.3"
+    "typescript": "^7.1.0-dev.20261012.1",
+    "vitest": "^5.0.4"
   },
   "license": "MIT"
 }
