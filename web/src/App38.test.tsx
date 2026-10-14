@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it,  vi, beforeEach } from "vitest";
 import App from "./App";
 import * as useAdminConsoleModule from "./hooks/useAdminConsole";
 
