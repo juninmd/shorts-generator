@@ -5,7 +5,7 @@ import { ShortCard } from './ShortCard';
 describe('ShortCard', () => {
   it('renders short card details correctly', () => {
     const short = {
-      id: '1',
+      id: '1', videoId: 'v1', originalVideoTitle: 't1',
       title: 'Awesome Short',
       description: 'This is a description',
       channelName: 'Test Channel',
@@ -29,7 +29,7 @@ describe('ShortCard', () => {
 
   it('renders score badge colors correctly', () => {
     const short = {
-      id: '1',
+      id: '1', videoId: 'v1', originalVideoTitle: 't1',
       title: 'Mid Short',
       description: '',
       channelName: '',

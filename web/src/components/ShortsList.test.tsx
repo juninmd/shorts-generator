@@ -12,7 +12,7 @@ describe('ShortsList', () => {
   it('renders a list of sorted shorts', () => {
     const shorts: ShortItem[] = [
       {
-        id: '1',
+        id: '1', videoId: 'v1', originalVideoTitle: 't1',
         title: 'Short 1',
         description: 'D1',
         channelName: 'C1',
@@ -26,7 +26,7 @@ describe('ShortsList', () => {
         status: 'completed'
       },
       {
-        id: '2',
+        id: '2', videoId: 'v1', originalVideoTitle: 't1',
         title: 'Short 2',
         description: 'D2',
         channelName: 'C2',
