@@ -12,8 +12,8 @@ importers:
         specifier: ^3.0.68
         version: 3.0.68(zod@4.6.7)
       '@hono/node-server':
-        specifier: ^2.1.4
-        version: 2.1.4(hono@4.13.13)
+        specifier: ^2.1.5
+        version: 2.1.5(hono@4.13.13)
       ai:
         specifier: ^7.0.138
         version: 7.0.138(zod@4.6.7)
@@ -21,8 +21,8 @@ importers:
         specifier: ^13.0.3
         version: 13.0.3
       bullmq:
-        specifier: ^6.3.13
-        version: 6.3.13(ioredis@6.0.0)(pg@8.23.1)
+        specifier: ^6.3.14
+        version: 6.3.14(ioredis@6.0.0)(pg@8.23.1)
       dotenv:
         specifier: ^18.0.7
         version: 18.0.7
@@ -401,8 +401,8 @@ packages:
   '@grammyjs/types@5.0.0':
     resolution: {integrity: sha512-iq1Qrq1iPKkB8yAa0qSuIURMZOCuqTY5pWy5gHpCeL1oQ+GPadGhw/cDTVE8waJwuCzacUzuIjRv1sESvk7u7A==}
 
-  '@hono/node-server@2.1.4':
-    resolution: {integrity: sha512-2g1qeHl4BduwDn6L8nkAvDrPUWPMlkQ//a5NhP/zIyaXKMjZNRV+cG9Csu+BiJFf6+68pqzjf4Hi5sJGKHuS1g==}
+  '@hono/node-server@2.1.5':
+    resolution: {integrity: sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4 || ^5.0.0-0
@@ -962,8 +962,8 @@ packages:
   buffer-equal-constant-time@1.0.1:
     resolution: {integrity: sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==}
 
-  bullmq@6.3.13:
-    resolution: {integrity: sha512-OG5moMkm6e+3mOH4/MpQQ1O8tdh41ybHUJq3+b1br4WTp4pDR8OMGQ1ij4py0xZplVXdcxK2dLS+h1kuASnCFA==}
+  bullmq@6.3.14:
+    resolution: {integrity: sha512-iXpDyX45fonQugWAHw+FNPH/YIjqzmzi/xxs31dzWGNP7j6b4jAVN0oNWU5cz0mVi1RofEkrlRwRbLqhqNkjHw==}
     engines: {node: '>=14.17.0'}
     peerDependencies:
       bullmq-otel: '>=2.0.0'
@@ -1002,8 +1002,8 @@ packages:
   colorette@2.0.20:
     resolution: {integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==}
 
-  cron-parser@5.10.1:
-    resolution: {integrity: sha512-pKRrRagItwk9rGIStcUyMxFX34x56zoX3KDf9HJ4ttwkXIK1qxK63EvXvEDmlxI9AdPJ+Y7TEKRftRlW5eSS7A==}
+  cron-parser@5.10.2:
+    resolution: {integrity: sha512-JfAYMY0LZaWQTuict8PhtF/ksSnq8xefSDmQUnnoqvkPYkU/y3UP0DTWzJKFBz0P1IXsDG8q0vY3zHkoFZOhvw==}
     engines: {node: '>=18'}
 
   css-tree@3.2.1:
@@ -2120,7 +2120,7 @@ snapshots:
 
   '@grammyjs/types@5.0.0': {}
 
-  '@hono/node-server@2.1.4(hono@4.13.13)':
+  '@hono/node-server@2.1.5(hono@4.13.13)':
     dependencies:
       hono: 4.13.13
 
@@ -2514,9 +2514,9 @@ snapshots:
 
   buffer-equal-constant-time@1.0.1: {}
 
-  bullmq@6.3.13(ioredis@6.0.0)(pg@8.23.1):
+  bullmq@6.3.14(ioredis@6.0.0)(pg@8.23.1):
     dependencies:
-      cron-parser: 5.10.1
+      cron-parser: 5.10.2
       msgpackr: 2.1.0
       node-abort-controller: 3.1.1
       semver: 7.8.5
@@ -2543,7 +2543,7 @@ snapshots:
 
   colorette@2.0.20: {}
 
-  cron-parser@5.10.1:
+  cron-parser@5.10.2:
     dependencies:
       luxon: 3.7.2
 
