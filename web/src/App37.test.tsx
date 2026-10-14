@@ -29,7 +29,7 @@ describe("App Edge Cases and SVG Icons", () => {
   it("should render token config message and icons", async () => {
     vi.spyOn(useAdminConsoleModule, "useAdminConsole").mockReturnValue(getMockContext() as any);
 
-    const { container } = render(<App />);
+    render(<App />);
 
     // Line 534
     expect(screen.getByText(/Configure o token para ver os canais/i)).toBeInTheDocument();
