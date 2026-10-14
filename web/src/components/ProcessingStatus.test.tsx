@@ -5,7 +5,7 @@ import type { JobStatus } from '../types';
 
 describe('ProcessingStatus', () => {
   it('returns null if no progress', () => {
-    const { container } = render(<ProcessingStatus job={{ jobId: '1', status: 'queued' }} />);
+    const { container } = render(<ProcessingStatus job={{ jobId: '1', status: 'queued', progress: 0, createdAt: new Date().toISOString() }} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -14,7 +14,7 @@ describe('ProcessingStatus', () => {
       jobId: '1',
       status: 'processing',
       progress: {
-        stage: 'downloading',
+        stage: 'downloading', videoId: 'v1', videoTitle: 't1',
         progress: 50,
         message: 'Downloading stuff',
         videoTitle: 'Test Video',
@@ -34,7 +34,7 @@ describe('ProcessingStatus', () => {
     const job: JobStatus = {
       jobId: '1',
       status: 'completed',
-      results: [{ videoId: '1', videoUrl: 'v1', shorts: [{ id: 's1', title: 'T1' } as any] }],
+      results: [{ videoId: '1', originalVideoUrl: 'v1', shorts: [{ id: 's1', title: 'T1' } as any] }],
       progress: { stage: 'done', progress: 100, message: 'Done' }
     };
     const { container } = render(<ProcessingStatus job={job} />);
