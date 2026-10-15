@@ -12,9 +12,6 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
       exclude: [
-        'src/cli.ts',
-        'src/cli-commands/**',
-        'src/cli-interactive.ts',
         'src/types/better-sqlite3.d.ts',
         'src/types.ts',
         'src/types-api.ts',
