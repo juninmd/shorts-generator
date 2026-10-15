@@ -1,5 +1,5 @@
 import { describe,  it, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook,  } from '@testing-library/re';
+import { renderHook } from '@testing-library/react';
 import { useDashboardData } from './useDashboardData';
 import * as api from '../api';
 
