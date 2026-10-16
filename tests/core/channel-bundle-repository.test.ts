@@ -1,12 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChannelBundleRepository } from "../../src/core/channel-bundle-repository.js";
 import { withTransaction, queryRows } from "../../src/core/control-plane-db.js";
-import type { ManagedChannelBundle } from "../../src/core/channel-domain.js";
+import { upsertPublishingAccount } from "../../src/core/publishing-accounts.js";
+import type { ManagedChannelBundle, PublishingAccount, PublishingProvider } from "../../src/core/channel-domain.js";
 
 vi.mock("../../src/core/control-plane-db.js", () => ({
   withTransaction: vi.fn(),
   queryRows: vi.fn(),
 }));
+
+function account(provider: PublishingProvider, id: string): PublishingAccount {
+  return {
+    id, channelId: "ch1", provider, label: id, status: "active", accountIdentifier: id,
+    clientId: null, clientSecret: null,
+    encryptedToken: { keyVersion: "k", iv: "i", authTag: "a", ciphertext: "c" },
+    createdAt: "c", updatedAt: "c",
+  };
+}
 
 describe("ChannelBundleRepository", () => {
   let mockDb: any;
@@ -169,6 +179,30 @@ describe("ChannelBundleRepository", () => {
       expect(mockClient.query).toHaveBeenCalledWith(
         "DELETE FROM publishing_accounts WHERE channel_id = $1",
         ["ch1"]
+      );
+    });
+
+    it("keeps every provider when rotating the youtube token through upsertPublishingAccount", async () => {
+      const mockClient = { query: vi.fn() };
+      vi.mocked(withTransaction).mockImplementation(async (db, cb) => cb(mockClient as any));
+
+      // This is what a token-rotation script must do: replace only YouTube.
+      // Rebuilding the array as [youtube] would make saveBundle delete the
+      // channel's telegram account.
+      const existing = [account("telegram", "tg"), account("youtube", "yt-old")];
+      const bundle: ManagedChannelBundle = {
+        channel: { id: "ch1", channelType: "cuts" } as any,
+        profile: { channelId: "ch1" } as any,
+        focuses: [],
+        sources: [],
+        publishingAccounts: upsertPublishingAccount(existing, account("youtube", "yt-new")),
+      };
+
+      await repo.saveBundle(bundle);
+
+      expect(mockClient.query).toHaveBeenCalledWith(
+        expect.stringContaining("provider != ALL($2::text[])"),
+        ["ch1", ["telegram", "youtube"]]
       );
     });
   });
