@@ -31,34 +31,24 @@
 
 ## 🔑 YouTube Token Renewal
 
-Tokens por canal ficam no PostgreSQL do cluster (`publishing_accounts`), criptografados com AES-256-GCM. O k8s secret `shorts-generator-secret` contém apenas a `CONTROL_PLANE_ENCRYPTION_KEY`.
+Tokens por canal ficam no PostgreSQL do cluster (`publishing_accounts`), criptografados com AES-256-GCM. O k8s secret `shorts-generator-secret` contém `CONTROL_PLANE_ENCRYPTION_KEY`, `YOUTUBE_CLIENT_ID`/`YOUTUBE_CLIENT_SECRET`, `DATABASE_URL`, `ADMIN_API_TOKEN` e `TELEGRAM_*`.
 
-**Sintoma:** pod falha com `invalid_grant` no upload.
+**Sintoma:** upload falha com `invalid_grant` (não confundir com crash do pod — `invalid_grant` cancela apenas o upload).
 
-### Procedimento
+### 1. Caminho preferido — botão no Telegram (não exige acesso ao cluster)
 
-**1. Gerar novo refresh_token (rodar localmente, por canal):**
+O pipeline detecta `invalid_grant` e envia um botão **🔗 Autorizar YouTube** no Telegram do canal. Clique e escolha a conta Google **do canal**; o callback grava o novo token no banco e confirma no Telegram qual conta do YouTube foi vinculada.
 
-```powershell
-# Liberar porta 3000
-Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue |
-  Select-Object -ExpandProperty OwningProcess |
-  ForEach-Object { Stop-Process -Id $_ -Force }
+- O callback é `${SERVER_PUBLIC_URL}/api/youtube/callback` e **precisa ser público**. Ele vem de um redirect do navegador (sem header `Authorization` e sem `Origin`), então não pode ficar atrás de middleware de auth — se responder `401 {"error":"Unauthorized"}`, alguma rota/middleware está interceptando-o.
+- Reenviar o botão manualmente: `npx tsx scripts/send-reauth-button.ts <channelId>` (requer `SERVER_PUBLIC_URL` + config do control plane abaixo).
 
-# Iniciar servidor OAuth capturando output
-$outFile = "C:\Users\jr_ac\AppData\Local\Temp\yt-token-output.txt"
-"" | Set-Content $outFile
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c","cd /d D:\Solutions\pessoal\shorts-generator && npx tsx scripts/get-youtube-token.ts > `"$outFile`" 2>&1" -NoNewWindow -PassThru | Out-Null
-Start-Sleep 6
+### 2. Gerar um refresh_token novo (por canal, localmente)
 
-# Abrir link OAuth no browser (fazer login com a conta do canal)
-Start-Process "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.upload&prompt=consent&response_type=code&client_id=439580606674-vufk9e744vv3155c6kt48ncn2bikib37.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback"
+`scripts/get-youtube-token.ts` sobe um servidor em `localhost:3000/callback` e imprime o token. Exige `YOUTUBE_CLIENT_ID`/`YOUTUBE_CLIENT_SECRET` no `.env`. Use `prompt=consent`; se o Google não devolver `refresh_token`, revogue o acesso do app na conta e repita.
 
-# Ler token gerado
-Get-Content $outFile | Select-String "REFRESH_TOKEN"
-```
+### 3. Gravar no cluster
 
-**2. Atualizar `scripts/update-cluster-tokens.ts`** com o novo token e rodar:
+`scripts/update-cluster-tokens.ts` aceita um token por canal via env e **preserva as demais contas** (Telegram/OpenRouter) do canal. Só os canais com env var preenchida são alterados.
 
 ```powershell
 # Port-forward postgres
@@ -66,15 +56,27 @@ kubectl port-forward svc/postgres 5433:5432 -n databases &
 Start-Sleep 3
 
 cd D:\Solutions\pessoal\shorts-generator
-$env:DATABASE_URL = "postgresql://postgres:<DB_PASSWORD>@localhost:5433/shorts_generator"  # senha no k8s secret shorts-generator-secret → DATABASE_URL
+# As 3 variáveis abaixo são obrigatórias (loadControlPlaneConfig):
+$env:DATABASE_URL = "postgresql://postgres:<DB_PASSWORD>@localhost:5433/shorts_generator"
+$env:ADMIN_API_TOKEN = "<valor do secret shorts-generator-secret → ADMIN_API_TOKEN>"
+$env:CONTROL_PLANE_ENCRYPTION_KEY = "<valor do secret shorts-generator-secret → CONTROL_PLANE_ENCRYPTION_KEY>"
+$env:YOUTUBE_CLIENT_ID = "<valor do secret>"
+$env:YOUTUBE_CLIENT_SECRET = "<valor do secret>"
+
+# Só os canais que você quer renovar:
+$env:SANTIDADE_REFRESH_TOKEN = "1//..."
+$env:QUIZ_REFRESH_TOKEN = "1//..."
+$env:AKITEMQUIZ_REFRESH_TOKEN = "1//..."
+
 npx tsx scripts/update-cluster-tokens.ts
 ```
 
-**3. Validar forçando execução do cron:**
+> Não monte `publishingAccounts` só com a conta do YouTube: `saveBundle` apaga as contas cujo provider não está no bundle. Use `upsertPublishingAccount` (`src/core/publishing-accounts.ts`).
 
-```bash
-kubectl create job --from=cronjob/shorts-generator-daily token-validate -n shorts-generator
-kubectl logs -f -n shorts-generator -l job-name=token-validate
+### 4. Validar (read-only)
+
+```powershell
+npx tsx scripts/check-youtube-identity.ts   # valida os 3 canais e mostra o canal do YouTube de cada token
 ```
 
 ### Canais gerenciados
