@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { registerYouTubeOAuthRoutes } from "../../src/server/admin-oauth-routes.js";
+import { registerYouTubeAuthUrlRoute } from "../../src/server/admin-oauth-routes.js";
+import { registerYouTubeOAuthCallbackRoute } from "../../src/server/admin-oauth-callback-routes.js";
 import { google } from "googleapis";
 
 vi.mock("googleapis", () => ({
@@ -48,7 +49,8 @@ describe("Admin OAuth Routes", () => {
         })
       }
     };
-    registerYouTubeOAuthRoutes(app, mockDeps);
+    registerYouTubeAuthUrlRoute(app, mockDeps);
+    registerYouTubeOAuthCallbackRoute(app, mockDeps);
   });
 
   it("GET /channels/:channelId/youtube/auth-url returns 404 if channel not found", async () => {
