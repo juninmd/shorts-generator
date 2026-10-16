@@ -1,101 +1,108 @@
 import { config as dotenvConfig } from "dotenv";
 dotenvConfig();
 
+import { randomUUID } from "node:crypto";
 import { getControlPlanePool } from "../src/core/control-plane-db.js";
 import { createSecretStore } from "../src/core/secret-store.js";
 import { loadControlPlaneConfig } from "../src/core/control-plane-config.js";
 import { ChannelBundleRepository } from "../src/core/channel-bundle-repository.js";
+import { upsertPublishingAccount } from "../src/core/publishing-accounts.js";
 import { logger } from "../src/core/logger.js";
-import { randomUUID } from "node:crypto";
+import type { PublishingAccount } from "../src/core/channel-domain.js";
+
+/**
+ * Rotates the YouTube refresh token of a managed channel.
+ *
+ * Run it with the token(s) you just minted, one env var per channel — only the
+ * channels whose env var is set are touched:
+ *
+ *   $env:SANTIDADE_REFRESH_TOKEN = "1//..."
+ *   $env:QUIZ_REFRESH_TOKEN      = "1//..."
+ *   $env:AKITEMQUIZ_REFRESH_TOKEN = "1//..."
+ *   npx tsx scripts/update-cluster-tokens.ts
+ *
+ * It preserves every other publishing account (Telegram, OpenRouter) and reuses
+ * the existing YouTube account id, so it is safe to re-run.
+ */
+interface ChannelTarget {
+  readonly id: string;
+  readonly envToken: string;
+}
+
+const CHANNELS: readonly ChannelTarget[] = [
+  { id: "santidade-catolica", envToken: "SANTIDADE_REFRESH_TOKEN" },
+  { id: "quiz-channel", envToken: "QUIZ_REFRESH_TOKEN" },
+  { id: "akitemquiz", envToken: "AKITEMQUIZ_REFRESH_TOKEN" },
+];
 
 async function main() {
+  const pending = CHANNELS.filter((channel) => process.env[channel.envToken]?.trim());
+  if (pending.length === 0) {
+    throw new Error(
+      `No refresh token provided. Set at least one of: ${CHANNELS.map((c) => c.envToken).join(", ")}`,
+    );
+  }
+
   const config = loadControlPlaneConfig();
   const db = getControlPlanePool(config);
   const secretStore = createSecretStore(config);
   const repo = new ChannelBundleRepository(db);
 
-  const santidadeId = "santidade-catolica";
-  const quizId = "quiz-channel";
-
-  const santidadeRefreshToken = process.env.SANTIDADE_REFRESH_TOKEN!;
-  const quizRefreshToken = process.env.QUIZ_REFRESH_TOKEN!;
-
-  if (!santidadeRefreshToken || !quizRefreshToken) {
-    throw new Error("Missing SANTIDADE_REFRESH_TOKEN or QUIZ_REFRESH_TOKEN in env");
+  const clientId = process.env.YOUTUBE_CLIENT_ID?.trim();
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) {
+    throw new Error("YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET are required");
   }
 
-  const clientId = process.env.YOUTUBE_CLIENT_ID!;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET!;
+  for (const channel of pending) {
+    const refreshToken = process.env[channel.envToken]!.trim();
+    const existing = await repo.getBundle(channel.id);
+    if (!existing) {
+      throw new Error(
+        `Channel ${channel.id} not found in the control plane — create it in the admin panel first`,
+      );
+    }
 
-  async function upsertChannel(id: string, slug: string, name: string, refreshToken: string, channelType: "cuts" | "quiz" = "cuts") {
-    const existing = await repo.getBundle(id);
+    const current = existing.publishingAccounts.find((a) => a.provider === "youtube");
+    const accountId = current?.id ?? randomUUID();
     const now = new Date().toISOString();
 
-    const accountId = randomUUID();
-    const encrypted = secretStore.encryptToken(id, accountId, refreshToken);
-
-    const bundle = {
-      channel: {
-        id,
-        slug,
-        name,
-        description: `Canal ${name}`,
-        status: "active" as const,
-        logoPath: null,
-        watermarkText: name,
-        channelType,
-        createdAt: existing?.channel.createdAt || now,
-        updatedAt: now,
-      },
-      profile: {
-        channelId: id,
-        videoLimit: 3,
-        minShortDuration: 15,
-        maxShortDuration: 59,
-        targetShorts: 3,
-        videoQuery: null,
-        sortByViews: false,
-        aiProvider: "openrouter",
-        aiModel: "google/gemini-2.0-flash-lite-001",
-      },
-      focuses: (existing?.focuses || []).map(f => ({
-        ...f,
-        id: f.id,
-        key: f.key || (f as any).focus_key,
-        label: f.label || (f as any).focus_label
-      })),
-      sources: (existing?.sources || []).map(s => ({
-        ...s,
-        createdAt: s.createdAt || (s as any).created_at || now
-      })),
-      publishingAccounts: [
-        {
-          id: accountId,
-          channelId: id,
-          provider: "youtube",
-          label: "Principal",
-          status: "active" as const,
-          accountIdentifier: name,
-          clientId,
-          clientSecret,
-          encryptedToken: encrypted,
-          createdAt: now,
-          updatedAt: now,
-        }
-      ],
+    const youtube: PublishingAccount = {
+      id: accountId,
+      channelId: channel.id,
+      provider: "youtube",
+      label: current?.label ?? "Principal",
+      status: "active",
+      accountIdentifier: current?.accountIdentifier ?? existing.channel.name,
+      clientId,
+      clientSecret,
+      encryptedToken: secretStore.encryptToken(channel.id, accountId, refreshToken),
+      createdAt: current?.createdAt ?? now,
+      updatedAt: now,
     };
 
-    await repo.saveBundle(bundle);
-    logger.info({ id, name, channelType }, "Channel upserted with YouTube credentials");
-  }
+    await repo.saveBundle({
+      ...existing,
+      channel: { ...existing.channel, updatedAt: now },
+      publishingAccounts: upsertPublishingAccount(existing.publishingAccounts, youtube),
+    });
 
-  await upsertChannel(santidadeId, "santidade-catolica", "Santidade Católica", santidadeRefreshToken, "cuts");
-  await upsertChannel(quizId, "quiz-channel", "Quiz Channel", quizRefreshToken, "quiz");
+    logger.info(
+      {
+        channelId: channel.id,
+        accountId,
+        preservedProviders: existing.publishingAccounts
+          .filter((a) => a.provider !== "youtube")
+          .map((a) => a.provider),
+      },
+      "YouTube refresh token updated",
+    );
+  }
 
   await db.end();
 }
 
-main().catch(err => {
-  console.error(err);
+main().catch((err) => {
+  console.error(err?.message || err);
   process.exit(1);
 });
