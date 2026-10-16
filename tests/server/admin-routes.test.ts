@@ -35,7 +35,11 @@ vi.mock("../../src/server/admin-channel-routes.js", () => ({
 }));
 
 vi.mock("../../src/server/admin-oauth-routes.js", () => ({
-  registerYouTubeOAuthRoutes: vi.fn()
+  registerYouTubeAuthUrlRoute: vi.fn()
+}));
+
+vi.mock("../../src/server/admin-oauth-callback-routes.js", () => ({
+  registerYouTubeOAuthCallbackRoute: vi.fn()
 }));
 
 vi.mock("../../src/server/admin-run-routes.js", () => ({

@@ -21,7 +21,12 @@ export function registerDashboardRoutes(app: Hono): void {
  */
 function registerDashboardRoutesWith(app: Hono, config: ControlPlaneConfig): void {
   const dashboard = new Hono();
-  dashboard.use("/*", createLinkAuthMiddleware(config));
+  const requireLinkToken = createLinkAuthMiddleware(config);
+
+  // Scope the link-auth middleware to the dashboard's own paths. A bare
+  // use("/*") on an app mounted at "/" also intercepts every route registered
+  // afterwards (e.g. /api/youtube/callback), turning them into 401s.
+  dashboard.use("/api/dashboard/*", requireLinkToken);
 
   dashboard.get("/api/dashboard/data", async (c) => {
     try {
@@ -35,7 +40,7 @@ function registerDashboardRoutesWith(app: Hono, config: ControlPlaneConfig): voi
   });
 
   // Serves the built SPA so the same link works standalone (not just from the admin console).
-  dashboard.get("/dashboard", (c) => {
+  dashboard.get("/dashboard", requireLinkToken, (c) => {
     const indexPath = path.resolve("web/dist/index.html");
     if (!fs.existsSync(indexPath)) {
       return c.json({ error: "Web build not found. Run `pnpm web:build` first." }, 404);

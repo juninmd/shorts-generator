@@ -35,6 +35,7 @@ import {
 
 import * as nodeFs from "node:fs";
 import * as cp from "node:child_process";
+import path from "node:path";
 
 describe("demo-books", () => {
   beforeEach(() => {
@@ -55,7 +56,7 @@ describe("demo-books", () => {
       const book = await fn("/workdir");
       expect(book.id).toBe(expectedId);
       expect(book.chapters.length).toBe(3);
-      expect(book.chapters[0].imagePath).toContain("/workdir");
+      expect(book.chapters[0].imagePath).toBe(path.join("/workdir", "ch1.png"));
       expect(nodeFs.mkdirSync).toHaveBeenCalledWith("/workdir", { recursive: true });
       expect(cp.execFile).toHaveBeenCalled();
     });
