@@ -32,9 +32,9 @@
     "diagnose:cluster": "tsx scripts/diagnose-cluster.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.68",
+    "@ai-sdk/openai-compatible": "^3.0.70",
     "@hono/node-server": "^2.1.5",
-    "ai": "^7.0.140",
+    "ai": "^7.0.142",
     "better-sqlite3": "^13.0.3",
     "bullmq": "^6.3.15",
     "dotenv": "^18.0.8",
@@ -52,10 +52,10 @@
   "devDependencies": {
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
-    "@vitest/coverage-v8": "^5.0.4",
+    "@vitest/coverage-v8": "^5.0.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   },
   "license": "MIT"
 }
