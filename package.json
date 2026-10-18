@@ -4,7 +4,7 @@
   "private": true,
   "description": "Automated YouTube Shorts generator — downloads videos, transcribes with Whisper, identifies viral moments via LLM, generates vertical shorts with captions, and sends to Telegram.",
   "type": "module",
-  "packageManager": "pnpm@12.14.0",
+  "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -36,7 +36,7 @@
     "@hono/node-server": "^2.1.5",
     "ai": "^7.0.143",
     "better-sqlite3": "^13.0.3",
-    "bullmq": "^6.3.16",
+    "bullmq": "^6.3.15",
     "dotenv": "^18.0.8",
     "googleapis": "^186.0.0",
     "grammy": "^1.46.0",
