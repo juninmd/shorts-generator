@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { DashboardPage } from "./components/DashboardPage";
+import { parseSources, stringifySources, parseFocuses, stringifyFocuses, dotClass, badgeClass, timeAgo } from "./utils";
 import { useAdminConsole } from "./hooks/useAdminConsole";
 import type { AdminChannelBundle } from "./types";
 
@@ -18,12 +19,12 @@ const Ico = {
   Key:      ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
   Book:     ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
   Zap:      ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/></svg>,
-/* v8 ignore start */
+
   Arrow:    ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>,
   Channel:  ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17,2 12,7 7,2"/></svg>,
   Wifi:     ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
 };
-/* v8 ignore stop */
+
 
 // ─── Small building blocks ────────────────────────────────────────────────────
 function Tooltip({ tip, children }: { tip: string; children: ReactNode }) {
@@ -112,39 +113,6 @@ function createEmptyBundle(): AdminChannelBundle {
 }
 const ch = (d: AdminChannelBundle, p: Partial<AdminChannelBundle["channel"]>): AdminChannelBundle => ({ ...d, channel: { ...d.channel, ...p } });
 const pr = (d: AdminChannelBundle, p: Partial<AdminChannelBundle["profile"]>): AdminChannelBundle => ({ ...d, profile: { ...d.profile, ...p } });
-
-/* v8 ignore start */
-function parseSources(raw: string): AdminChannelBundle["sources"] {
-  return raw.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
-    const [kind, label, value] = l.split("|");
-    return { kind: (kind as AdminChannelBundle["sources"][number]["kind"]) || "youtube_channel", label: label || value || "", value: value || label || "" };
-  });
-}
-/* v8 ignore stop */
-function stringifySources(d: AdminChannelBundle) { return d.sources.map(s => `${s.kind}|${s.label}|${s.value}`).join("\n"); }
-/* v8 ignore start */
-function parseFocuses(raw: string): AdminChannelBundle["focuses"] {
-  return raw.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
-    const [key, label] = l.split("|");
-    return { key: (key as AdminChannelBundle["focuses"][number]["key"]) || "tecnologia", label: label || key };
-  });
-}
-/* v8 ignore stop */
-function stringifyFocuses(d: AdminChannelBundle) { return d.focuses.map(f => `${f.key}|${f.label}`).join("\n"); }
-
-/* v8 ignore start */
-function dotClass(s: string) { return s === "processing" ? "dot dot-processing" : s === "completed" ? "dot dot-completed" : s === "failed" ? "dot dot-failed" : "dot dot-pending"; }
-/* v8 ignore stop */
-/* v8 ignore start */
-function badgeClass(s: string) { return s === "processing" ? "badge badge-amber" : s === "completed" ? "badge badge-green" : s === "failed" ? "badge badge-red" : "badge badge-slate"; }
-/* v8 ignore stop */
-/* v8 ignore start */
-function timeAgo(iso: string) {
-  const d = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (d < 60) return `${Math.round(d)}s atrás`;
-  if (d < 3600) return `${Math.round(d / 60)}m atrás`;
-  return `${Math.round(d / 3600)}h atrás`;
-}
 
 // ─── Setup checklist ─────────────────────────────────────────────────────────
 function SetupChecklist({ hasToken, hasChannel }: { hasToken: boolean; hasChannel: boolean }) {
@@ -242,7 +210,7 @@ function ChannelCard({ bundle, selected, onClick }: { bundle: AdminChannelBundle
 }
 
 // ─── Run card ─────────────────────────────────────────────────────────────────
-/* v8 ignore start */
+
 function RunCard({ r }: { r: { id: string; channelId: string; status: string; progress: { message?: string } | null; errorMessage: string | null; createdAt: string } }) {
   return (
     <div className="glass-inset" style={{ padding: "13px 15px", marginBottom: 10 }}>
@@ -414,7 +382,7 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
       <p className="section-sub">Configure onde os vídeos gerados serão publicados. YouTube é obrigatório; os demais são opcionais.</p>
 
       {/* YouTube */}
-/* v8 ignore start */
+
       <div className="glass-inset" style={{ padding: 20, marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(239,68,68,.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -438,7 +406,7 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
           <Field label="Canal Handle ou ID" tip="O @handle ou UCxxxxx do canal onde os vídeos serão publicados." value={yt.accountIdentifier} onChange={e => upd("youtube", "accountIdentifier", e.target.value)} placeholder="@MeuCanal ou UCxxxxxxxxx" />
         </div>
       </div>
-/* v8 ignore stop */
+
 
       {/* Telegram */}
       <div className="glass-inset" style={{ padding: 20, marginBottom: 16 }}>
