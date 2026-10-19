@@ -10,6 +10,8 @@ import { sendToTelegram, sendSummary } from "../../src/core/telegram.js";
 import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment } from "../../src/core/youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "../../src/core/state.js";
 import { enqueueYoutubeUpload } from "../../src/core/queue.js";
+import { enqueueSocialPosts } from "../../src/core/social-queue.js";
+import { logger } from "../../src/core/logger.js";
 import type { VideoInfo, PipelineConfig } from "../../src/types.js";
 
 vi.mock("../../src/core/youtube.js");
@@ -25,6 +27,7 @@ vi.mock("../../src/core/telegram.js");
 vi.mock("../../src/core/youtube.service.js");
 vi.mock("../../src/core/state.js");
 vi.mock("../../src/core/queue.js");
+vi.mock("../../src/core/social-queue.js", () => ({ enqueueSocialPosts: vi.fn().mockResolvedValue(0) }));
 
 describe("processVideo (pipeline-video-processor)", () => {
   const mockVideoInfo: VideoInfo = {
@@ -80,6 +83,44 @@ describe("processVideo (pipeline-video-processor)", () => {
     vi.mocked(analyzeTranscript).mockResolvedValue([]);
     await processVideo(mockVideoInfo, mockConfig);
     expect(vi.mocked(analyzeTranscript).mock.calls.at(-1)![0].fullText).toBe("Kubernetes");
+  });
+
+  describe("social posts", () => {
+    const setup = () => {
+      vi.mocked(analyzeTranscript).mockResolvedValue([{ id: "clip1", startTime: 0, endTime: 10, title: "T", viralScore: 9, reason: "R", duration: 10 } as any]);
+      vi.mocked(downloadVideoSection).mockResolvedValue({ ...mockVideoInfo, audioPath: "a", filePath: "/tmp/v.mp4", fileSize: 1 } as any);
+      vi.mocked(getFileStartTime).mockResolvedValue(0);
+      vi.mocked(processClip).mockResolvedValue({ id: "clip1", clip: {} as any, outputPath: "/out/clip1.mp4", subtitlePath: "s", originalVideoUrl: "u", originalVideoTitle: "t", channelName: "c", status: "completed", createdAt: "n" });
+      vi.mocked(sendToTelegram).mockResolvedValue(1);
+    };
+
+    it("queues posts for the extra platforms with the generated metadata", async () => {
+      setup();
+      await processVideo(mockVideoInfo, mockConfig);
+      expect(enqueueSocialPosts).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "clip1" }), { title: "Title", description: "Desc", tags: ["tags"] }, mockConfig,
+      );
+    });
+
+    it("still sends to Telegram when queueing the posts fails", async () => {
+      setup();
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => undefined as any);
+      vi.mocked(enqueueSocialPosts).mockRejectedValueOnce(new Error("redis down"));
+      const res = await processVideo(mockVideoInfo, mockConfig);
+      expect(sendToTelegram).toHaveBeenCalled();
+      expect(res.errors).toEqual([]);
+      expect(warn).toHaveBeenCalledWith(expect.objectContaining({ error: "redis down" }), "Falha ao enfileirar posts sociais");
+      warn.mockRestore();
+    });
+
+    it("reports non-Error failures too", async () => {
+      setup();
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => undefined as any);
+      vi.mocked(enqueueSocialPosts).mockRejectedValueOnce("plain");
+      await processVideo(mockVideoInfo, mockConfig);
+      expect(warn).toHaveBeenCalledWith(expect.objectContaining({ error: "plain" }), "Falha ao enfileirar posts sociais");
+      warn.mockRestore();
+    });
   });
 
   it("handles video with no clips found", async () => {

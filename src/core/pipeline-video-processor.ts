@@ -11,6 +11,7 @@ import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngag
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
 import { enqueueYoutubeUpload } from "./queue.js";
+import { enqueueSocialPosts } from "./social-queue.js";
 import pLimit from "p-limit";
 export type ProgressCallback = (progress: PipelineProgress) => void;
 export async function processVideo(
@@ -112,6 +113,7 @@ export async function processVideo(
             await enqueueYoutubeUpload(short, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags);
           }
         }
+        await enqueueSocialPosts(short, youtubeMeta, config).catch((err) => logger.warn({ clipId: short.id, error: err instanceof Error ? err.message : String(err) }, "Falha ao enfileirar posts sociais"));
         sendStage = "telegram";
         const pendingRateLimit = youtubeEnabled && !youtubeUrl;
         const msgId = await sendToTelegram(short, config, youtubeUrl, pendingRateLimit);

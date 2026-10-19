@@ -8,6 +8,7 @@ import { logger } from "../src/core/logger.js";
 import * as queueClient from "../src/core/queue-client.js";
 import * as queue from "../src/core/queue.js";
 import * as comic from "../src/cli-commands/cli-comic.js";
+import * as socialQueue from "../src/core/social-queue.js";
 import * as faceless from "../src/cli-commands/cli-faceless.js";
 
 vi.mock("../src/cli-interactive.js");
@@ -19,6 +20,8 @@ vi.mock("../src/core/logger.js", () => ({ logger: { fatal: vi.fn(), info: vi.fn(
 vi.mock("../src/core/queue-client.js", () => ({ closeQueueConnections: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../src/core/queue.js", () => ({ processQueueUntilEmpty: vi.fn().mockResolvedValue(undefined), retryFailedWithExistingFiles: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../src/cli-commands/cli-comic.js", () => ({ runComicCommand: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("../src/core/social-queue.js", () => ({ processSocialQueue: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("../src/core/config.js", () => ({ loadConfig: vi.fn(() => ({ outputDir: "out" })) }));
 vi.mock("../src/cli-commands/cli-faceless.js", () => ({ runFacelessCommand: vi.fn().mockResolvedValue(undefined) }));
 
 const originalArgv = process.argv;
@@ -80,6 +83,7 @@ describe("cli", () => {
   it("should run queue:process command", async () => {
     await runCli(["queue:process"]);
     expect(queue.processQueueUntilEmpty).toHaveBeenCalled();
+    expect(socialQueue.processSocialQueue).toHaveBeenCalledWith({ outputDir: "out" });
   });
 
   it("should run queue:retry command", async () => {

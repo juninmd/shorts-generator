@@ -26,7 +26,7 @@ function editDistance(a: string, b: string): number {
 
 /** Corrects one token to the closest brand term (same first letter, small edit distance), keeping punctuation. */
 export function correctToken(token: string, terms: string[]): string {
-  const [, lead = "", core = "", tail = ""] = token.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u) ?? [];
+  const [, lead, core, tail] = token.match(/^([^\p{L}\p{N}]*)([\s\S]*?)([^\p{L}\p{N}]*)$/u)!;
   const key = fold(core);
   if (key.length < 3) return token;
   for (const term of terms) {

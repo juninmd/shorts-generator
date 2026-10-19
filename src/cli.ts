@@ -51,7 +51,10 @@ async function main() {
 
     case "queue:process": {
       const { processQueueUntilEmpty } = await import("./core/queue.js");
+      const { processSocialQueue } = await import("./core/social-queue.js");
+      const { loadConfig } = await import("./core/config.js");
       await processQueueUntilEmpty();
+      await processSocialQueue(loadConfig());
       break;
     }
 
