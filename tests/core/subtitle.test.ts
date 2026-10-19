@@ -9,8 +9,8 @@ describe("subtitle", () => {
     transcript: [],
   };
 
-  beforeEach(() => { process.env.SUBTITLE_STYLE = "highlight"; });
-  afterEach(() => { delete process.env.SUBTITLE_STYLE; });
+  beforeEach(() => { process.env.SUBTITLE_STYLE = "highlight"; process.env.HOOK_OVERLAY = "false"; });
+  afterEach(() => { delete process.env.SUBTITLE_STYLE; delete process.env.HOOK_OVERLAY; });
 
   it("generates estimated karaoke subtitles if words array is empty", () => {
     const clip = {

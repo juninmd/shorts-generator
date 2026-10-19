@@ -3,6 +3,8 @@ import type { PipelineConfig, PipelineProgress, PipelineResult, VideoInfo, Gener
 import { downloadAudioOnly, downloadVideoSection, cleanupVideo } from "./youtube.js";
 import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
+import { computeAudioSignals } from "./audio-signals.js";
+import { applyBrandVocabulary, loadBrandVocabulary } from "./brand-vocabulary.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
 import { sendToTelegram, sendSummary } from "./telegram.js";
 import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment } from "./youtube.service.js";
@@ -28,7 +30,7 @@ export async function processVideo(
     const downloadedAudio = await downloadAudioOnly(video, config);
     let lastProgress = 20;
     emitProgress("transcribing", "Transcrevendo com Whisper...", lastProgress);
-    const transcript = await transcribeVideo(downloadedAudio, {
+    const transcript = applyBrandVocabulary(await transcribeVideo(downloadedAudio, {
       ...config,
       onProgress: (percent: number) => {
         const mapped = 20 + (percent / 100) * 20;
@@ -37,9 +39,9 @@ export async function processVideo(
           emitProgress("transcribing", `Transcrevendo com Whisper... (${percent.toFixed(1)}%)`, mapped);
         }
       },
-    });
+    }), loadBrandVocabulary());
     emitProgress("analyzing", "Analisando momentos virais...", 40);
-    let clips = await analyzeTranscript(transcript, video.title, video.channelName, config);
+    let clips = await analyzeTranscript(transcript, video.title, video.channelName, config, await computeAudioSignals(downloadedAudio.filePath));
     if (maxShorts !== undefined && maxShorts > 0 && clips.length > maxShorts) {
       clips = clips.slice(0, maxShorts);
     }

@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { generateASSSubtitles } from "../../src/core/subtitle.js";
 import { karaokeEvents } from "../../src/core/subtitle-karaoke.js";
 import { resolveSubtitleStyle } from "../../src/core/subtitle-format.js";
+import { DEFAULT_BRAND } from "../../src/core/brand-template.js";
 import type { ShortClip } from "../../src/types.js";
 
 const clip = {
@@ -38,5 +39,56 @@ describe("karaoke subtitles", () => {
     process.env.SUBTITLE_STYLE = "highlight";
     expect(resolveSubtitleStyle()).toBe("highlight");
     expect(generateASSSubtitles(clip)).toContain("\\c&H00FFFF&");
+  });
+});
+
+describe("karaoke emphasis", () => {
+  const words = [
+    { word: "Só", start: 0, end: 0.4 },
+    { word: "quatro", start: 0.5, end: 1.0 },
+    { word: "dinheiro", start: 1.0, end: 1.4 },
+    { word: "agora", start: 1.5, end: 2.0 },
+  ];
+  const brand = { ...DEFAULT_BRAND, emoji: true };
+  const emphasis = new Set([words[1]!, words[2]!]);
+
+  it("colours, enlarges and pops emphasised words, then resets the next word", () => {
+    const line = karaokeEvents(words, { brand, emphasis });
+    expect(line).toContain("{\\kf50}Só");
+    expect(line).toContain("{\\kf50\\1c&H008AFF&\\fscx115\\fscy115\\t(500,620,\\fscx128\\fscy128)\\t(620,760,\\fscx115\\fscy115)}quatro");
+    expect(line).toContain("{\\kf50\\1c&H008AFF&\\fscx115\\fscy115\\t(1000,1120,");
+    expect(line).toContain("{\\kf50\\1c&H00FFFF&\\fscx100\\fscy100}agora");
+  });
+
+  it("appends the phrase emoji only when enabled", () => {
+    expect(karaokeEvents(words, { brand, emphasis })).toMatch(/agora 💰$/);
+    expect(karaokeEvents(words, { brand: { ...brand, emoji: false }, emphasis })).not.toContain("💰");
+  });
+
+  it("can disable the pop animation", () => {
+    expect(karaokeEvents(words, { brand: { ...brand, pop: false }, emphasis })).not.toContain("\\t(");
+  });
+});
+
+describe("generateASSSubtitles overlays", () => {
+  afterEach(() => { delete process.env.CTA_TEXT; });
+
+  it("adds the hook title, presenter tag and CTA from the brand template", () => {
+    process.env.CTA_TEXT = "Siga!";
+    const ass = generateASSSubtitles({ ...clip, presenter: "Ana", duration: 12, title: "Meu título" } as ShortClip);
+    expect(ass).toContain(",Hook,,0,0,0,,");
+    expect(ass).toContain("LowerThird,,0,0,0,,{\\move(");
+    expect(ass).toContain("Cta,,0,0,0,,");
+  });
+
+  it("omits overlays when the template turns them off or the clip is too short for a CTA", () => {
+    process.env.CTA_TEXT = "Siga!";
+    const ass = generateASSSubtitles(
+      { ...clip, duration: 5 } as ShortClip, 1080, 1920, undefined, "karaoke",
+      { ...DEFAULT_BRAND, hook: false, cta: "Siga!" },
+    );
+    expect(ass).not.toContain(",Hook,,");
+    expect(ass).not.toContain(",Cta,,");
+    expect(ass).not.toContain("LowerThird,,");
   });
 });

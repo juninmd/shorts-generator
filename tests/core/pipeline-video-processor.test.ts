@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { processVideo } from "../../src/core/pipeline-video-processor.js";
 import { analyzeTranscript } from "../../src/core/analyzer.js";
 import { downloadAudioOnly, downloadVideoSection, cleanupVideo } from "../../src/core/youtube.js";
+import { loadBrandVocabulary } from "../../src/core/brand-vocabulary.js";
+import { computeAudioSignals } from "../../src/core/audio-signals.js";
 import { transcribeVideo } from "../../src/core/transcriber.js";
 import { processClip, getFileStartTime } from "../../src/core/video-processor.js";
 import { sendToTelegram, sendSummary } from "../../src/core/telegram.js";
@@ -13,6 +15,11 @@ import type { VideoInfo, PipelineConfig } from "../../src/types.js";
 vi.mock("../../src/core/youtube.js");
 vi.mock("../../src/core/transcriber.js");
 vi.mock("../../src/core/analyzer.js");
+vi.mock("../../src/core/audio-signals.js");
+vi.mock("../../src/core/brand-vocabulary.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/core/brand-vocabulary.js")>()),
+  loadBrandVocabulary: vi.fn(() => []),
+}));
 vi.mock("../../src/core/video-processor.js");
 vi.mock("../../src/core/telegram.js");
 vi.mock("../../src/core/youtube.service.js");
@@ -53,6 +60,26 @@ describe("processVideo (pipeline-video-processor)", () => {
     });
     vi.mocked(sendSummary).mockResolvedValue();
     vi.mocked(cleanupVideo).mockReturnValue();
+  });
+
+  it("hands the audio energy signals to the analyzer", async () => {
+    const signals = { rmsPerSecond: [-20] };
+    vi.mocked(computeAudioSignals).mockResolvedValue(signals);
+    vi.mocked(analyzeTranscript).mockResolvedValue([]);
+    await processVideo(mockVideoInfo, mockConfig);
+    expect(computeAudioSignals).toHaveBeenCalledWith("/tmp/vid1.mp4");
+    expect(analyzeTranscript).toHaveBeenCalledWith(expect.anything(), "Test Video", "Test Channel", mockConfig, signals);
+  });
+
+  it("applies the brand vocabulary to the transcript before analysis", async () => {
+    vi.mocked(loadBrandVocabulary).mockReturnValueOnce(["Kubernetes"]);
+    vi.mocked(transcribeVideo).mockResolvedValueOnce({
+      videoId: "vid1", duration: 10, language: "pt", fullText: "kubernets",
+      segments: [{ start: 0, end: 10, text: "kubernets" }], words: [{ word: "kubernets", start: 0, end: 1 }],
+    } as any);
+    vi.mocked(analyzeTranscript).mockResolvedValue([]);
+    await processVideo(mockVideoInfo, mockConfig);
+    expect(vi.mocked(analyzeTranscript).mock.calls.at(-1)![0].fullText).toBe("Kubernetes");
   });
 
   it("handles video with no clips found", async () => {

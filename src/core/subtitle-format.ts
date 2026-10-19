@@ -50,3 +50,14 @@ export function groupWords(words: TranscriptWord[], targetSize = 4): TranscriptW
   }
   return phrases;
 }
+
+/** "#RRGGBB" -> ASS style colour "&H00BBGGRR". */
+export function assStyleColor(hex: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => hex.slice(i, i + 2).toUpperCase());
+  return `&H00${b}${g}${r}`;
+}
+
+/** "#RRGGBB" -> ASS inline override colour "&HBBGGRR&". */
+export function assInlineColor(hex: string): string {
+  return `${assStyleColor(hex).replace("&H00", "&H")}&`;
+}

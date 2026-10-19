@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import type {
+  BrollCue,
   PipelineConfig,
   ShortClip,
   Transcript,
@@ -9,8 +10,13 @@ import type {
 import type { ClipItem } from "./analyzer-schema.js";
 import { snapToSentenceBoundaries } from "./clip-boundary.js";
 import { logger } from "./logger.js";
+import { energyBonus, type AudioSignals } from "./audio-signals.js";
 
 const SPEECH_TAIL_SECONDS = 0.6;
+
+/** Editor score plus up to +0.5 for clips whose delivery is more energetic than the video's average. */
+const rankScore = (clip: ClipItem, signals?: AudioSignals): number =>
+  clip.viralScore + (signals ? energyBonus(clip.startTime, clip.endTime, signals) : 0);
 
 const normalizeTitle = (title: string): string =>
   title.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
@@ -40,11 +46,21 @@ function wordsInRange(words: TranscriptWord[], start: number, end: number): Tran
     }));
 }
 
+const BROLL_EDGE_SECONDS = 3;
+
+function brollInRange(clip: ClipItem, start: number, duration: number): BrollCue[] | undefined {
+  const cues = (clip.broll ?? [])
+    .map((cue) => ({ at: cue.at - start, query: cue.query }))
+    .filter((cue) => cue.at >= BROLL_EDGE_SECONDS && cue.at <= duration - BROLL_EDGE_SECONDS);
+  return cues.length > 0 ? cues : undefined;
+}
+
 export function processClips(
   clips: ClipItem[],
   transcript: Transcript,
   config: PipelineConfig,
   maxCuts: number,
+  signals?: AudioSignals,
 ): ShortClip[] {
   const valid = clips.filter((clip) => {
     const duration = clip.endTime - clip.startTime;
@@ -57,7 +73,7 @@ export function processClips(
   const seenTitles = new Set<string>();
   const selected = valid
     .filter((clip) => clip.viralScore >= minimumScore)
-    .sort((a, b) => b.viralScore - a.viralScore)
+    .sort((a, b) => rankScore(b, signals) - rankScore(a, signals))
     .filter((clip) => {
       const key = normalizeTitle(clip.title);
       if (seenTitles.has(key)) return false;
@@ -91,6 +107,9 @@ export function processClips(
       transcript: segmentsInRange(transcript.segments, snapped.startTime, endTime),
       words: wordsInRange(transcript.words, snapped.startTime, endTime),
       hashtags: clip.hashtags,
+      scoreBreakdown: clip.scoreBreakdown,
+      keywords: clip.keywords,
+      broll: brollInRange(clip, snapped.startTime, endTime - snapped.startTime),
     };
   });
 }
