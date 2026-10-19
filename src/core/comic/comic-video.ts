@@ -6,6 +6,7 @@ import type { NarratedChapter } from "./comic-types.js";
 import { logger } from "../logger.js";
 import { buildFontEnv } from "../ffmpeg-env.js";
 import { ffmpegBin } from "../ffmpeg-bin.js";
+import { buildDuckingGraph } from "../audio-ducking.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -23,6 +24,7 @@ export async function renderChapterClip(
   width: number,
   height: number,
 ): Promise<void> {
+  if (chapter.videoPath) return renderFootageClip(chapter, chapter.videoPath, outputPath, width, height);
   const frames = Math.max(1, Math.round(chapter.durationSec * 30));
   const zoomFilter =
     `scale=${width * 2}:${height * 2}:force_original_aspect_ratio=increase,` +
@@ -40,6 +42,32 @@ export async function renderChapterClip(
     "-c:a", "aac",
     "-pix_fmt", "yuv420p",
     "-shortest",
+    outputPath,
+  ];
+  await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024 });
+}
+
+/** Faceless chapter: looped stock footage cropped to vertical, under the narration. */
+async function renderFootageClip(
+  chapter: NarratedChapter,
+  videoPath: string,
+  outputPath: string,
+  width: number,
+  height: number,
+): Promise<void> {
+  const fit = `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,fps=30`;
+  const args = [
+    "-y",
+    "-stream_loop", "-1",
+    "-i", videoPath,
+    "-i", chapter.audioPath,
+    "-vf", fit,
+    "-map", "0:v",
+    "-map", "1:a",
+    "-t", String(chapter.durationSec),
+    "-c:v", "libx264",
+    "-c:a", "aac",
+    "-pix_fmt", "yuv420p",
     outputPath,
   ];
   await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024 });
@@ -68,22 +96,43 @@ export async function concatChapterClips(
   await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024 });
 }
 
-/** Burn ASS subtitles onto the concatenated video. */
+/**
+ * Burn ASS subtitles onto the concatenated video. With a music track, the
+ * narration is mixed over it and the music ducks whenever the narrator speaks.
+ */
 export async function burnSubtitles(
   inputPath: string,
   subtitlePath: string,
   outputPath: string,
+  music?: { path: string; durationSec: number },
 ): Promise<void> {
-  const assPath = escapeFilterPath(subtitlePath);
-  const args = [
-    "-y",
-    "-i", inputPath,
-    "-vf", `subtitles='${assPath}'`,
-    "-c:v", "libx264",
-    "-c:a", "copy",
-    "-pix_fmt", "yuv420p",
-    outputPath,
-  ];
-  logger.info({ inputPath, outputPath }, "Burning comic subtitles");
+  const subtitles = `subtitles='${escapeFilterPath(subtitlePath)}'`;
+  const args = music
+    ? [
+      "-y",
+      "-i", inputPath,
+      "-stream_loop", "-1",
+      "-i", music.path,
+      "-filter_complex", `[0:v]${subtitles}[v];${buildDuckingGraph({
+        speechInput: "[0:a]", musicInput: "[1:a]", duration: music.durationSec,
+      })}`,
+      "-map", "[v]",
+      "-map", "[aout]",
+      "-t", String(music.durationSec),
+      "-c:v", "libx264",
+      "-c:a", "aac",
+      "-pix_fmt", "yuv420p",
+      outputPath,
+    ]
+    : [
+      "-y",
+      "-i", inputPath,
+      "-vf", subtitles,
+      "-c:v", "libx264",
+      "-c:a", "copy",
+      "-pix_fmt", "yuv420p",
+      outputPath,
+    ];
+  logger.info({ inputPath, outputPath, music: music?.path }, "Burning comic subtitles");
   await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024, env: buildFontEnv() });
 }

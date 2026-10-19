@@ -43,9 +43,18 @@ async function main() {
       break;
     }
 
+    case "generate:faceless": {
+      const { runFacelessCommand } = await import("./cli-commands/cli-faceless.js");
+      await runFacelessCommand(args);
+      break;
+    }
+
     case "queue:process": {
       const { processQueueUntilEmpty } = await import("./core/queue.js");
+      const { processSocialQueue } = await import("./core/social-queue.js");
+      const { loadConfig } = await import("./core/config.js");
       await processQueueUntilEmpty();
+      await processSocialQueue(loadConfig());
       break;
     }
 
@@ -73,6 +82,7 @@ Usage:
   pnpm generate:top [options]
   pnpm generate:quiz [options]
   pnpm generate:metrics-digest
+  pnpm generate:faceless --topic "assunto"
   pnpm queue:process
   pnpm queue:retry
   pnpm server

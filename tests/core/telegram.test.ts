@@ -45,6 +45,17 @@ describe("telegram", () => {
     createdAt: "now",
   };
 
+  it("shows the virality sub-scores when the clip has them", async () => {
+    mockSendVideo.mockResolvedValue({ message_id: 7 });
+    vi.mocked(fs.statSync).mockReturnValue({ size: 1024 } as any);
+    const short = {
+      ...mockShort,
+      clip: { ...mockShort.clip, viralScore: 8, scoreBreakdown: { hook: 9, flow: 8, engagement: 7, trend: 6 } },
+    };
+    await sendToTelegram(short, mockConfig);
+    expect(mockSendVideo.mock.calls[0]![2].caption).toContain("📊 Gancho 9 · Fluxo 8 · Engajamento 7 · Tendência 6");
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

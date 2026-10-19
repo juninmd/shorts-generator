@@ -69,11 +69,22 @@ TÍTULO pt-BR:
 
 HASHTAGS: 3-5 específicas do tema/pessoa, nunca genéricas.
 
+SUBNOTAS (1-10, rigorosas e coerentes com viralScore): hook (força dos 3 primeiros
+segundos), flow (ritmo e clareza até o fim), engagement (chance de comentar,
+compartilhar ou assistir de novo), trend (aderência a assuntos em alta).
+
+KEYWORDS: 3-6 palavras literais do corte que merecem destaque visual na legenda
+(números, nomes, termos-chave, palavras de impacto).
+
+BROLL: 0-3 momentos explicativos (nunca nos 3 primeiros nem nos 3 últimos segundos)
+que ficariam melhores com vídeo de acervo; "at" = segundo do vídeo original e
+"query" = busca curta EM INGLÊS.
+
 APRESENTADOR: identifique quem fala pelo título, canal ou transcrição. Se não
 houver segurança, deixe "presenter" vazio.
 
 JSON EXATO:
-{"clips":[{"title":"...","presenter":"","description":"...","contentValue":"...","hookText":"primeira frase literal","payoffText":"última frase literal","startTime":0,"endTime":40,"viralScore":8,"reason":"...","hashtags":["#exemplo"]}]}
+{"clips":[{"title":"...","presenter":"","description":"...","contentValue":"...","hookText":"primeira frase literal","payoffText":"última frase literal","startTime":0,"endTime":40,"viralScore":8,"reason":"...","hashtags":["#exemplo"],"scoreBreakdown":{"hook":8,"flow":8,"engagement":7,"trend":6},"keywords":["palavra"],"broll":[{"at":12,"query":"city night"}]}]}
 
 TRANSCRIÇÃO:
 ${transcript}`;

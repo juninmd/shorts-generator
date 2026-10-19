@@ -39,6 +39,20 @@ export interface Transcript {
   duration: number;
 }
 
+/** Virality sub-scores, each 1-10 (Opus-style hook / flow / engagement / trend). */
+export interface ScoreBreakdown {
+  hook: number;
+  flow: number;
+  engagement: number;
+  trend: number;
+}
+
+/** B-roll cue: show stock footage matching `query` (English) starting at `at` seconds into the clip. */
+export interface BrollCue {
+  at: number;
+  query: string;
+}
+
 export interface ShortClip {
   id: string;
   videoId: string;
@@ -54,6 +68,10 @@ export interface ShortClip {
   transcript: TranscriptSegment[];
   words: TranscriptWord[];
   hashtags: string[];
+  scoreBreakdown?: ScoreBreakdown;
+  /** Words worth emphasising in captions. */
+  keywords?: string[];
+  broll?: BrollCue[];
 }
 
 export interface GeneratedShort {
