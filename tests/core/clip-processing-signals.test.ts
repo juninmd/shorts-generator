@@ -42,4 +42,24 @@ describe("processClips extras", () => {
     ], transcript, config, 2, signals);
     expect(clips.map((c) => c.title)).toEqual(["Animado", "Calmo"]);
   });
+
+  it("ends the short on a full stop instead of mid-sentence", () => {
+    const withWords: Transcript = {
+      ...transcript, duration: 100,
+      segments: [{ start: 0, end: 30, text: "Primeiro trecho completo." }, { start: 30, end: 50, text: "Segunda parte sem fim" }],
+      words: [
+        { word: "completo.", start: 20, end: 29.5 },
+        { word: "Segunda", start: 30, end: 40 },
+        { word: "parte", start: 40, end: 44 },
+        { word: "sem", start: 44, end: 48 },
+        { word: "fim.", start: 48, end: 56 },
+      ],
+    };
+    const [early, late] = [
+      processClips([item({ startTime: 0, endTime: 31 })], withWords, config, 1)[0]!,
+      processClips([item({ startTime: 0, endTime: 52 })], withWords, config, 1)[0]!,
+    ];
+    expect(early.endTime).toBeCloseTo(30.1); // the snapped end was 30 → nearest full stop is 29.5 (within 0.6s) → +0.6s tail
+    expect(late.endTime).toBeCloseTo(56.6);  // extends forward to "fim." (56) instead of cutting at 50
+  });
 });

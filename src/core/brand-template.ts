@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
+/** Heavy geometric sans bundled in assets/fonts (OFL): reads well over video at small sizes. */
+export const DEFAULT_FONT = "Poppins ExtraBold";
+
 /** Per-channel caption/overlay look. Colors are "#RRGGBB". */
 export interface BrandTemplate {
   font: string;
@@ -23,7 +26,7 @@ export interface BrandTemplate {
 }
 
 export const DEFAULT_BRAND: BrandTemplate = {
-  font: "sans-serif",
+  font: DEFAULT_FONT,
   textColor: "#FFFFFF",
   highlightColor: "#FFFF00",
   keywordColor: "#FF8A00",
@@ -54,7 +57,7 @@ const slug = (value: string): string =>
 /**
  * Template resolution: built-in defaults < `<BRAND_TEMPLATES_DIR>/default.json`
  * < the first matching `<dir>/<channel id or name slug>.json` < env switches
- * (CAPTION_EMOJI, HOOK_OVERLAY, LOWER_THIRD, CTA_TEXT).
+ * (CAPTION_FONT, CAPTION_EMOJI, HOOK_OVERLAY, LOWER_THIRD, CTA_TEXT).
  */
 export function loadBrandTemplate(channelKeys: Array<string | undefined> = []): BrandTemplate {
   const dir = process.env.BRAND_TEMPLATES_DIR || "brand-templates";
@@ -65,6 +68,7 @@ export function loadBrandTemplate(channelKeys: Array<string | undefined> = []): 
     ...readTemplateFile(path.join(dir, "default.json")),
     ...(channelFile ? readTemplateFile(channelFile) : {}),
   };
+  if (process.env.CAPTION_FONT) brand.font = process.env.CAPTION_FONT;
   if (process.env.CAPTION_EMOJI) brand.emoji = process.env.CAPTION_EMOJI === "true";
   if (process.env.HOOK_OVERLAY) brand.hook = process.env.HOOK_OVERLAY !== "false";
   if (process.env.LOWER_THIRD) brand.lowerThird = process.env.LOWER_THIRD !== "false";

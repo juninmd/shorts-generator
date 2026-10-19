@@ -8,7 +8,7 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 const files: Record<string, string> = {};
-const ENV = ["BRAND_TEMPLATES_DIR", "CAPTION_EMOJI", "HOOK_OVERLAY", "LOWER_THIRD", "CTA_TEXT"];
+const ENV = ["BRAND_TEMPLATES_DIR", "CAPTION_FONT", "CAPTION_EMOJI", "HOOK_OVERLAY", "LOWER_THIRD", "CTA_TEXT"];
 
 describe("loadBrandTemplate", () => {
   beforeEach(() => {
@@ -22,8 +22,15 @@ describe("loadBrandTemplate", () => {
   });
   afterEach(() => ENV.forEach((name) => delete process.env[name]));
 
-  it("returns the defaults when there are no template files", () => {
+  it("returns the defaults (a bundled heavy sans) when there are no template files", () => {
     expect(loadBrandTemplate()).toEqual(DEFAULT_BRAND);
+    expect(DEFAULT_BRAND.font).toBe("Poppins ExtraBold");
+  });
+
+  it("lets CAPTION_FONT override the font", () => {
+    files["brand-templates/default.json"] = JSON.stringify({ font: "Cinzel" });
+    process.env.CAPTION_FONT = "Montserrat Black";
+    expect(loadBrandTemplate().font).toBe("Montserrat Black");
   });
 
   it("layers default.json then the channel's file (id or name slug)", () => {

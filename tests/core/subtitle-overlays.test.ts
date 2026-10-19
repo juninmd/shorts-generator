@@ -40,14 +40,21 @@ describe("assembly of the ASS header", () => {
       ...DEFAULT_BRAND, font: "Inter", textColor: "#102030", highlightColor: "#AABBCC", outlineColor: "#010203", fontScale: 0.5,
     });
     expect(header).toContain("Title: Linha1 Linha2");
-    expect(header).toContain("Style: Default,Inter,56,&H00302010,&H000000FF,&H00030201");
-    expect(header).toContain("Style: Karaoke,Inter,56,&H00CCBBAA,&H00302010");
-    expect(header).toContain(",2,40,40,614,1");
+    expect(header).toContain("Style: Default,Inter,65,&H00302010,&H000000FF,&H00030201,&H80000000,-1,0,0,0,100,100,1,0,1,4,3,2,50,50,614,1");
+    expect(header).toContain("Style: Karaoke,Inter,65,&H00CCBBAA,&H00302010");
+  });
+
+  it("does not ask libass to embolden fonts that are already heavy", () => {
+    const header = buildAssHeader("T", 1080, 1920, DEFAULT_BRAND);
+    expect(header).toContain("Style: Default,Poppins ExtraBold,131,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,");
+    expect(header).toMatch(/Style: Hook,Poppins ExtraBold,\d+,&H0000FFFF,&H000000FF,&HC8000000,&H00000000,0,/);
+    expect(buildAssHeader("T", 1080, 1920, { ...DEFAULT_BRAND, font: "Inter Black" })).toContain(",Inter Black,131,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,");
+    expect(buildAssHeader("T", 1080, 1920, { ...DEFAULT_BRAND, font: "Inter" })).toContain("Style: Default,Inter,131,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,");
   });
 
   it("centres captions vertically when asked", () => {
     const header = buildAssHeader("T", 1080, 1920, { ...DEFAULT_BRAND, captionPosition: "center" });
-    expect(header).toContain(",5,40,40,0,1");
+    expect(header).toContain(",5,50,50,0,1");
   });
 });
 

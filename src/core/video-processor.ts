@@ -10,6 +10,7 @@ import { generateASSSubtitles } from "./subtitle.js";
 import { logger } from "./logger.js";
 import { loadBrandTemplate } from "./brand-template.js";
 import { resolveBroll } from "./broll.js";
+import { endAtSentence } from "./sentence-end.js";
 import { cutRanges, remapClip } from "./silence-cuts.js";
 import { renderShort } from "./short-renderer.js";
 import { probeFormat } from "./ffmpeg-bin.js";
@@ -46,8 +47,9 @@ export async function processClip(
   );
 
   // Silence/filler cuts first: captions, B-roll and the render all use the edited timeline.
-  const ranges = cutRanges(clip);
-  const edited = ranges ? remapClip(clip, ranges) : clip;
+  const trimmed = endAtSentence(clip);
+  const ranges = cutRanges(trimmed);
+  const edited = ranges ? remapClip(trimmed, ranges) : trimmed;
   const broll = await resolveBroll(edited.broll, outputDir, clip.id);
   const brand = loadBrandTemplate([config.managedRun?.channelId, config.managedRun?.channelName]);
 
@@ -65,7 +67,7 @@ export async function processClip(
   // Process video with safe vertical framing, burnt captions and the planned edits.
   await renderShort(video.filePath, outputPath, subtitlePath, edited, config, {
     ranges,
-    sourceDuration: clip.duration,
+    sourceDuration: trimmed.duration,
     broll,
   });
 

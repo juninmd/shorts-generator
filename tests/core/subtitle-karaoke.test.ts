@@ -30,7 +30,7 @@ describe("karaoke subtitles", () => {
 
   it("is the default style and defines Karaoke colours (yellow sweep over white)", () => {
     const ass = generateASSSubtitles(clip);
-    expect(ass).toContain("Style: Karaoke,sans-serif,111,&H0000FFFF,&H00FFFFFF");
+    expect(ass).toContain("Style: Karaoke,Poppins ExtraBold,131,&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,1,0,1,7,3,2,50,50,614,1");
     expect(ass).toContain("{\\kf50}Olá");
     expect(ass).not.toContain("\\c&H00FFFF&");
   });

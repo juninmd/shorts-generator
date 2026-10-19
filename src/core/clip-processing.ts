@@ -11,6 +11,7 @@ import type { ClipItem } from "./analyzer-schema.js";
 import { snapToSentenceBoundaries } from "./clip-boundary.js";
 import { logger } from "./logger.js";
 import { energyBonus, type AudioSignals } from "./audio-signals.js";
+import { findSentenceEnd } from "./sentence-end.js";
 
 const SPEECH_TAIL_SECONDS = 0.6;
 
@@ -88,10 +89,17 @@ export function processClips(
   );
   return selected.map((clip) => {
     const snapped = snapToSentenceBoundaries(clip, transcript.segments, config);
+    // End on a full stop (nearest sentence end within the allowed length), not mid-thought.
+    const sentenceEnd = findSentenceEnd(
+      transcript.words,
+      snapped.endTime,
+      snapped.startTime + config.minShortDuration,
+      snapped.startTime + config.maxShortDuration - SPEECH_TAIL_SECONDS,
+    );
     const endTime = Math.min(
       transcript.duration,
       snapped.startTime + config.maxShortDuration,
-      snapped.endTime + SPEECH_TAIL_SECONDS,
+      (sentenceEnd ?? snapped.endTime) + SPEECH_TAIL_SECONDS,
     );
     return {
       id: nanoid(10),

@@ -59,4 +59,19 @@ describe("processClip edits", () => {
     expect(vi.mocked(fs.writeFileSync).mock.calls[0]![1]).not.toContain(",Hook,,");
     spy.mockRestore();
   });
+
+  it("stops the short on the last full stop when the clip ends mid-sentence", async () => {
+    process.env.SILENCE_CUT = "false";
+    const unfinished = {
+      ...clip, duration: 30, endTime: 40, broll: undefined,
+      words: [w("Primeira", 0, 8), w("frase.", 8, 20), w("segunda", 21, 27), w("sem", 27, 29.9)],
+      transcript: [{ start: 0, end: 30, text: "Primeira frase. segunda sem" }],
+    };
+    const short = await processClip(video, unfinished, config);
+    const [, , , edited, , plan] = vi.mocked(renderShort).mock.calls[0]!;
+    expect(edited.duration).toBeCloseTo(20.35);
+    expect(edited.words.map((x: any) => x.word)).toEqual(["Primeira", "frase."]);
+    expect(plan!.sourceDuration).toBeCloseTo(20.35);
+    expect(short.clip.endTime).toBeCloseTo(30.35);
+  });
 });
