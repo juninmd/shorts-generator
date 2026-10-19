@@ -74,6 +74,16 @@ describe("buildAudioRouting", () => {
     expect(routing.outputArgs.slice(0, 3)).toEqual(["-map", "0:a?", "-af"]);
   });
 
+  it("keeps silence-cut audio in the graph when there is no music", () => {
+    const routing = buildAudioRouting(10, null, 1, "[ca]");
+    expect(routing.graph).toMatch(/^\[ca\]highpass=f=70.*\[aout\]$/);
+    expect(routing.outputArgs).toEqual(["-map", "[aout]"]);
+  });
+
+  it("feeds silence-cut audio into the ducking mix", () => {
+    expect(buildAudioRouting(10, "bgm.mp3", 2, "[ca]").graph).toContain("[ca]highpass=f=70");
+  });
+
   it("loops the music input and maps the ducked mix", () => {
     const routing = buildAudioRouting(10, "bgm.mp3", 2);
     expect(routing.inputArgs).toEqual(["-stream_loop", "-1", "-i", "bgm.mp3"]);

@@ -133,6 +133,12 @@ describe("resolveSpeakerFocus", () => {
     expect(await resolveSpeakerFocus("in.mp4", clip)).toEqual([{ t: 0.25, x: 0.3 }]);
   });
 
+  it("passes camera cuts to the keyframe simplifier", async () => {
+    mockExec({ stdout: "[[0.25,0.2],[0.75,0.2],[1.25,0.2],[1.75,0.8],[2.25,0.8]]" });
+    const frames = await resolveSpeakerFocus("in.mp4", clip, [1.5]) as { t: number; x: number }[];
+    expect(frames.map((f) => f.t)).toContain(1.5);
+  });
+
   it("falls back to the static single-position focus", async () => {
     process.env.SPEAKER_TRACKING = "false";
     mockExec({ stdout: "0.6" });

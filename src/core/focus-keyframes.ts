@@ -8,6 +8,7 @@ export interface FocusKeyframe {
 const MAX_KEYFRAMES = 16;
 const PAN_SECONDS = 0.3;
 const BIG_JUMP = 0.15;
+const CUT_GUARD = 0.04;
 
 /** Median of each sample with its neighbours; the two ends keep their own value. */
 function median3(samples: FocusKeyframe[]): FocusKeyframe[] {
@@ -19,13 +20,18 @@ function median3(samples: FocusKeyframe[]): FocusKeyframe[] {
   });
 }
 
-function dropSmallMoves(samples: FocusKeyframe[], deadZone: number): FocusKeyframe[] {
+function dropSmallMoves(samples: FocusKeyframe[], deadZone: number, cuts: number[]): FocusKeyframe[] {
   const kept: FocusKeyframe[] = [samples[0]!];
   for (const sample of samples.slice(1)) {
     const last = kept.at(-1)!;
-    if (Math.abs(sample.x - last.x) <= deadZone) continue;
-    // A speaker change pans quickly instead of drifting slowly across the gap.
-    if (Math.abs(sample.x - last.x) > BIG_JUMP && sample.t - last.t > PAN_SECONDS) {
+    const jump = Math.abs(sample.x - last.x);
+    if (jump <= deadZone) continue;
+    const cut = cuts.find((time) => time > last.t + CUT_GUARD && time <= sample.t);
+    if (jump > BIG_JUMP && cut !== undefined) {
+      // A camera cut: jump with it rather than panning across the shot change.
+      kept.push({ t: cut - CUT_GUARD, x: last.x }, { t: cut, x: sample.x });
+    } else if (jump > BIG_JUMP && sample.t - last.t > PAN_SECONDS) {
+      // A speaker change pans quickly instead of drifting slowly across the gap.
       kept.push({ t: sample.t - PAN_SECONDS, x: last.x });
     }
     kept.push(sample);
@@ -36,16 +42,17 @@ function dropSmallMoves(samples: FocusKeyframe[], deadZone: number): FocusKeyfra
 /**
  * Turns raw per-sample speaker positions into a short, smooth list of
  * keyframes: median-filters outliers, ignores sub-dead-zone jitter, and widens
- * the dead zone until the list fits the FFmpeg expression budget.
+ * the dead zone until the list fits the FFmpeg expression budget. Camera cuts
+ * (seconds from the clip start) make the crop jump instead of pan.
  */
-export function simplifyKeyframes(samples: FocusKeyframe[]): FocusKeyframe[] {
+export function simplifyKeyframes(samples: FocusKeyframe[], cuts: number[] = []): FocusKeyframe[] {
   if (samples.length === 0) return [];
   const smooth = median3([...samples].sort((a, b) => a.t - b.t));
   let deadZone = 0.03;
-  let kept = dropSmallMoves(smooth, deadZone);
+  let kept = dropSmallMoves(smooth, deadZone, cuts);
   while (kept.length > MAX_KEYFRAMES) {
     deadZone *= 1.6;
-    kept = dropSmallMoves(smooth, deadZone);
+    kept = dropSmallMoves(smooth, deadZone, cuts);
   }
   return kept;
 }

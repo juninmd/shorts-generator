@@ -62,6 +62,7 @@ export async function detectSpeakerFocusX(
 export async function trackSpeakerFocus(
   inputPath: string,
   clip: Pick<ShortClip, "startTime" | "duration">,
+  cuts: number[] = [],
 ): Promise<FocusKeyframe[]> {
   if (process.env.SPEAKER_FOCUS === "false" || process.env.SPEAKER_TRACKING === "false") return [];
   const script = path.resolve(process.cwd(), "scripts", "track_speaker.py");
@@ -72,7 +73,7 @@ export async function trackSpeakerFocus(
       [script, inputPath, String(clip.startTime), String(clip.duration)],
       { timeout: 120_000, maxBuffer: 4 * 1024 * 1024 },
     );
-    const keyframes = simplifyKeyframes(parseTrackerOutput(String(stdout)));
+    const keyframes = simplifyKeyframes(parseTrackerOutput(String(stdout)), cuts);
     logger.info({ inputPath, keyframes: keyframes.length }, "Speaker tracked, panning crop");
     return keyframes;
   } catch (err) {
@@ -88,8 +89,9 @@ export async function trackSpeakerFocus(
 export async function resolveSpeakerFocus(
   inputPath: string,
   clip: Pick<ShortClip, "startTime" | "duration">,
+  cuts: number[] = [],
 ): Promise<number | FocusKeyframe[]> {
-  const keyframes = await trackSpeakerFocus(inputPath, clip);
+  const keyframes = await trackSpeakerFocus(inputPath, clip, cuts);
   return keyframes.length > 0 ? keyframes : detectSpeakerFocusX(inputPath, clip);
 }
 

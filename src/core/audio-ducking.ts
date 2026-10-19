@@ -58,15 +58,19 @@ export function buildAudioRouting(
   duration: number,
   musicPath: string | null,
   musicInputIndex: number,
+  speechInput = "[0:a]",
 ): AudioRouting {
   const speechFilter = buildSpeechAudioFilter(duration);
   if (!musicPath) {
-    return { inputArgs: [], graph: "", outputArgs: ["-map", "0:a?", "-af", speechFilter] };
+    // Silence-cut audio arrives as a filtergraph label, so it must stay in the graph.
+    return speechInput === "[0:a]"
+      ? { inputArgs: [], graph: "", outputArgs: ["-map", "0:a?", "-af", speechFilter] }
+      : { inputArgs: [], graph: `${speechInput}${speechFilter}[aout]`, outputArgs: ["-map", "[aout]"] };
   }
   return {
     inputArgs: ["-stream_loop", "-1", "-i", musicPath],
     graph: buildDuckingGraph({
-      speechInput: "[0:a]",
+      speechInput,
       musicInput: `[${musicInputIndex}:a]`,
       duration,
       speechFilter,

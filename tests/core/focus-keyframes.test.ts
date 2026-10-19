@@ -44,6 +44,24 @@ describe("simplifyKeyframes", () => {
   });
 });
 
+describe("simplifyKeyframes with camera cuts", () => {
+  const speakers = [at(0.25, 0.2), at(0.75, 0.2), at(1.25, 0.2), at(1.75, 0.8), at(2.25, 0.8), at(2.75, 0.8)];
+
+  it("jumps at the cut instead of panning across it", () => {
+    const kept = simplifyKeyframes(speakers, [1.5]);
+    expect(kept).toEqual([at(0.25, 0.2), at(1.46, 0.2), at(1.5, 0.8), at(1.75, 0.8)]);
+  });
+
+  it("ignores cuts that do not fall inside a speaker change", () => {
+    expect(simplifyKeyframes(speakers, [0.1, 2.6])).toEqual(simplifyKeyframes(speakers));
+  });
+
+  it("treats a cut right after the previous keyframe like an ordinary speaker change", () => {
+    const kept = simplifyKeyframes([at(0.25, 0.2), at(0.3, 0.8)], [0.27]);
+    expect(kept).toEqual([at(0.25, 0.2), at(0.3, 0.8)]);
+  });
+});
+
 describe("parseTrackerOutput", () => {
   it("parses and clamps [t, x] pairs", () => {
     expect(parseTrackerOutput("[[0.25, 0.4], [0.75, 1.7], [1.25, -2]]"))

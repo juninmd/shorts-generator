@@ -8,6 +8,9 @@ import type {
 } from "../types.js";
 import { generateASSSubtitles } from "./subtitle.js";
 import { logger } from "./logger.js";
+import { loadBrandTemplate } from "./brand-template.js";
+import { resolveBroll } from "./broll.js";
+import { cutRanges, remapClip } from "./silence-cuts.js";
 import { renderShort } from "./short-renderer.js";
 import { probeFormat } from "./ffmpeg-bin.js";
 
@@ -42,21 +45,33 @@ export async function processClip(
     "Processing clip",
   );
 
+  // Silence/filler cuts first: captions, B-roll and the render all use the edited timeline.
+  const ranges = cutRanges(clip);
+  const edited = ranges ? remapClip(clip, ranges) : clip;
+  const broll = await resolveBroll(edited.broll, outputDir, clip.id);
+  const brand = loadBrandTemplate([config.managedRun?.channelId, config.managedRun?.channelName]);
+
   // Generate ASS subtitles (watermark embedded to avoid drawtext filter dependency)
   const assContent = generateASSSubtitles(
-    clip,
+    edited,
     config.verticalWidth,
     config.verticalHeight,
     config.watermarkText || undefined,
+    undefined,
+    brand,
   );
   fs.writeFileSync(subtitlePath, assContent, "utf-8");
 
-  // Process video with safe vertical framing and burnt subtitles.
-  await renderShort(video.filePath, outputPath, subtitlePath, clip, config);
+  // Process video with safe vertical framing, burnt captions and the planned edits.
+  await renderShort(video.filePath, outputPath, subtitlePath, edited, config, {
+    ranges,
+    sourceDuration: clip.duration,
+    broll,
+  });
 
   const result: GeneratedShort = {
     id: clip.id,
-    clip,
+    clip: edited,
     outputPath,
     subtitlePath,
     originalVideoUrl: video.url,
