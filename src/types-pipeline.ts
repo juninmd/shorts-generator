@@ -55,6 +55,12 @@ export interface PipelineConfig {
   maxVideoDurationSec: number;
   /** Optional query string to filter videos by title (case-insensitive substring match) */
   videoQuery?: string;
+  /** Content genre steering clip selection (podcast, qa, vlog, listicle, webinar, sermon, gaming, sports, news, comedy) */
+  videoGenre?: string;
+  /** Natural-language request, e.g. "momentos engraçados sobre dinheiro" */
+  clipPrompt?: string;
+  /** Extra analysis guidance (audio energy peaks) injected into the LLM prompt */
+  analysisHints?: string;
   youtubeAuth?: YouTubeAuthConfig;
   managedRun?: ManagedRunContext;
   /** Public base URL of this server — used to build the YouTube OAuth callback URL */

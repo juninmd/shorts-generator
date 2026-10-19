@@ -16,6 +16,7 @@ pnpm cli generate:bio --demo           # Narrate the built-in biography smoke-te
 pnpm cli generate:news --demo          # Narrate the built-in news-digest smoke-test book (example headlines)
 pnpm cli generate:book --demo          # Narrate the built-in book-recap smoke-test book (Dom Casmurro)
 pnpm cli generate:<kind> --book <path.json>  # Any kind: narrate a custom ComicBook definition
+pnpm cli generate:faceless --topic "assunto"  # Faceless short: LLM script + Pexels stock footage + edge-tts narration
 
 # Testing
 pnpm test                   # Run all tests once
@@ -75,6 +76,25 @@ ComicBook { id, title, chapters: [{ id, title, imagePath, narrationText }] }
 
 `pnpm cli generate:<kind> --demo` (kind: `comic`/`movie`/`series`/`bio`/`news`/`book`) runs the matching built-in smoke-test book from `demo-books.ts` (Flashpoint / Shrek / The Flash 1x01 / Ada Lovelace / example headlines / Dom Casmurro) — plain color chapter cards with an original synopsis, no copyrighted stills/panels/dialogue, since those must be supplied by the user for their own licensed use. `--book <path.json>` narrates a custom `ComicBook`. Requires `pip install edge-tts`; voice via `COMIC_TTS_VOICE` (default `pt-BR-AntonioNeural`), optional watermark via `COMIC_WATERMARK_TEXT` (unset by default).
 
+### Faceless Mode (`src/core/faceless/`)
+
+`pnpm cli generate:faceless --topic "..." [--lang pt-BR]` — topic in, finished short out, no source video. It reuses the narrated-story engine: `faceless-script.ts` (LLM → scenes of narration + English stock-footage keywords) → `stock-footage.ts` (Pexels portrait clips via `PEXELS_API_KEY`; plain color cards when there is no key/match) → `faceless-pipeline.ts` builds a `ComicBook` whose chapters carry `videoPath` and hands it to `runComicPipeline`. Narration is edge-tts; captions are karaoke; `BGM_FILE`/`BGM_DIR` adds ducked background music.
+
+### Captions, Speaker Tracking, Ducking
+
+- **Karaoke captions** (`subtitle-karaoke.ts`): one ASS event per phrase with `\kf` sweeps (white → yellow as each word is spoken). `SUBTITLE_STYLE=highlight` restores the legacy one-word-at-a-time highlight.
+- **Speaker tracking** (`scripts/track_speaker.py`, `face-framing.ts`, `focus-keyframes.ts`): OpenCV Haar faces + mouth-motion scoring pick the active speaker every 0.5s; keyframes are smoothed (median, dead zone, quick pan on speaker change) and become a time-varying ffmpeg `crop` x expression. Falls back to the static `detect_face.py` focus, then to a centered crop. `SPEAKER_TRACKING=false` disables panning, `SPEAKER_FOCUS=false` disables all face logic. Needs `opencv-python` (<5: OpenCV 5 dropped the Haar cascade API).
+- **Ducking** (`audio-ducking.ts`): `BGM_FILE` or a random file in `BGM_DIR` is looped under the speech and sidechain-compressed by it (`BGM_VOLUME`, default 0.18). Used by `short-renderer.ts` (clips) and the narrated-story pipeline (comic/faceless). No music configured = speech only.
+
+### Clip Editing & Analysis (Opus-style)
+
+- **Analysis** (`analyzer-guidance.ts`, `audio-signals.ts`): the LLM also returns `scoreBreakdown` (hook/flow/engagement/trend), `keywords` and `broll` cues. `VIDEO_GENRE` / `--genre` (podcast, qa, vlog, listicle, webinar, sermon, gaming, sports, news, comedy) steers selection; `CLIP_PROMPT` / `--prompt` ("momentos engraçados sobre dinheiro") restricts it to a natural-language request. Per-second audio loudness (ffmpeg `astats`) names the most energetic spans in the prompt and breaks score ties (+0.5 max).
+- **Captions** (`caption-emphasis.ts`, `subtitle-overlays.ts`, `subtitle-header.ts`): bundled heavy sans `Poppins ExtraBold` (`assets/fonts`, OFL; override with `CAPTION_FONT`), size 6.8% of the height with a proportional outline — `fonts.conf` includes the system config so fallbacks stay sans; keywords/numbers/power words get their own colour, size and pop; `CAPTION_EMOJI=true` appends an emoji (libass draws it monochrome); hook title card (first 2.8s), presenter lower third and closing CTA (`CTA_TEXT`).
+- **Brand templates** (`brand-template.ts`): `brand-templates/default.json` then `<channel id or name slug>.json` (font, `#RRGGBB` colours, `fontScale`, `captionPosition`, `hook`, `cta`, `lowerThird`, `emoji`, `pop`); env switches `CAPTION_EMOJI`, `HOOK_OVERLAY`, `LOWER_THIRD`, `CTA_TEXT` win. **Brand vocabulary** (`brand-vocabulary.ts`): `BRAND_VOCABULARY` / `BRAND_VOCABULARY_FILE` fix near-miss transcriptions before analysis.
+- **Endings on a full stop** (`sentence-end.ts`): `processClips` moves the end to the nearest sentence end (`.`/`!`/`?`, not abbreviations or `...`) within the allowed length, and `processClip` cuts back to the last full stop (≥ half the clip, 8s min) when a clip still ends mid-sentence, leaving a 0.35s breath.
+- **Edits at render time** (`silence-cuts.ts`, `cut-graph.ts`, `broll.ts`, `letterbox.ts`, `scene-changes.ts`, `short-framing.ts`, `short-renderer.ts`): pauses >0.45s and filler words are cut (`SILENCE_CUT=false` disables) by concatenating `trim`/`atrim` pieces, and captions, tracking keyframes and B-roll cues are remapped to the edited timeline; baked-in black bars are cropped (`AUTO_CROP=false`); camera cuts make the speaker-tracking crop jump instead of pan; B-roll (`BROLL_DIR` library named after what it shows, else Pexels) is overlaid under the captions (`BROLL`, `BROLL_SECONDS`, `BROLL_MAX`); speech gets `afftdn` noise reduction (`SPEECH_DENOISE=false`).
+- **Publishing** (`social-copy.ts`, `publishers/`, `social-queue.ts`, `publish-schedule.ts`, `server/social-media-routes.ts`): `TITLE_STYLE` (catchy/curious/serious/question) steers the title prompt; platform-sized copy for Bluesky, Instagram Reels, Threads, TikTok and Pinterest; one BullMQ job per platform in the `social-posts` queue, delayed to the next `PEAK_HOURS` slot (`PUBLISH_TZ`; `SOCIAL_SCHEDULE=false` = next run) and drained by `queue:process`. Instagram/Threads/TikTok pull the video from `SERVER_PUBLIC_URL/public/social/<unguessable>.mp4`. Credentials per platform: `BLUESKY_HANDLE`+`BLUESKY_APP_PASSWORD`, `INSTAGRAM_USER_ID`+`INSTAGRAM_ACCESS_TOKEN`, `THREADS_USER_ID`+`THREADS_ACCESS_TOKEN`, `TIKTOK_ACCESS_TOKEN` (`TIKTOK_PRIVACY`, default `SELF_ONLY`), `PINTEREST_ACCESS_TOKEN`+`PINTEREST_BOARD_ID`; `PUBLISH_PLATFORMS` limits the set. The platform HTTP flows are unit-tested against mocks only — verify against each live API before relying on them.
+
 ### Configuration
 
 All config is environment-driven via `src/core/config.ts`. Copy `.env.example` to `.env`. Key variables:
@@ -91,6 +111,10 @@ All config is environment-driven via `src/core/config.ts`. Copy `.env.example` t
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | — | Telegram delivery |
 | `MAX_VIDEO_SIZE_MB` | `500` | Skip videos larger than this |
 | `VIDEO_ENCODER` | `libx264` | FFmpeg codec |
+| `SUBTITLE_STYLE` | `karaoke` | `karaoke` (`\kf` sweep) or `highlight` (legacy) |
+| `SPEAKER_TRACKING` | `true` | Pan the crop between speakers (`false` = static focus) |
+| `BGM_FILE` / `BGM_DIR` / `BGM_VOLUME` | — / — / `0.18` | Background music with speech ducking |
+| `PEXELS_API_KEY` | — | Stock footage for `generate:faceless` |
 
 ### External Tool Dependencies
 

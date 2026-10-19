@@ -4,6 +4,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 import type { ShortClip } from "../types.js";
 import { logger } from "./logger.js";
+import {
+  buildFocusExpression, parseTrackerOutput, simplifyKeyframes, type FocusKeyframe,
+} from "./focus-keyframes.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -48,4 +51,54 @@ export async function detectSpeakerFocusX(
     );
     return CENTER_FOCUS;
   }
+}
+
+/**
+ * Follow the active speaker through the clip: face detection plus mouth-motion
+ * analysis (scripts/track_speaker.py) yields focus keyframes so the vertical
+ * crop pans between people as they take turns. Returns [] when tracking is
+ * disabled or unavailable so the caller falls back to the static focus.
+ */
+export async function trackSpeakerFocus(
+  inputPath: string,
+  clip: Pick<ShortClip, "startTime" | "duration">,
+  cuts: number[] = [],
+): Promise<FocusKeyframe[]> {
+  if (process.env.SPEAKER_FOCUS === "false" || process.env.SPEAKER_TRACKING === "false") return [];
+  const script = path.resolve(process.cwd(), "scripts", "track_speaker.py");
+  if (!fs.existsSync(script)) return [];
+  try {
+    const { stdout } = await execFileAsync(
+      process.env.PYTHON_BIN || "python3",
+      [script, inputPath, String(clip.startTime), String(clip.duration)],
+      { timeout: 120_000, maxBuffer: 4 * 1024 * 1024 },
+    );
+    const keyframes = simplifyKeyframes(parseTrackerOutput(String(stdout)), cuts);
+    logger.info({ inputPath, keyframes: keyframes.length }, "Speaker tracked, panning crop");
+    return keyframes;
+  } catch (err) {
+    logger.debug(
+      { err: err instanceof Error ? err.message : String(err) },
+      "Speaker tracking unavailable, using static focus",
+    );
+    return [];
+  }
+}
+
+/** Tracked keyframes when available, otherwise the static single-position focus. */
+export async function resolveSpeakerFocus(
+  inputPath: string,
+  clip: Pick<ShortClip, "startTime" | "duration">,
+  cuts: number[] = [],
+): Promise<number | FocusKeyframe[]> {
+  const keyframes = await trackSpeakerFocus(inputPath, clip, cuts);
+  return keyframes.length > 0 ? keyframes : detectSpeakerFocusX(inputPath, clip);
+}
+
+/** ffmpeg crop `x` expression keeping the focus point centered, clamped to the frame. */
+export function buildCropXExpression(width: number, focus: number | FocusKeyframe[]): string {
+  const position = typeof focus === "number"
+    ? Math.max(0, Math.min(1, focus)).toFixed(4)
+    : `(${buildFocusExpression(focus)})`;
+  return `'clip((in_w*${position})-(${width}/2)\\,0\\,in_w-${width})'`;
 }

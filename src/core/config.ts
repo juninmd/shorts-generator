@@ -64,6 +64,8 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     videoQuery,
     minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "1"), 10),
     minViralScore: parseFloat(optionalEnv("MIN_VIRAL_SCORE", "7")),
+    videoGenre: optionalEnv("VIDEO_GENRE", "") || undefined,
+    clipPrompt: optionalEnv("CLIP_PROMPT", "") || undefined,
     channelHandle: optionalEnv("CHANNEL_HANDLE", "") || undefined,
     targetShorts: Number(optionalEnv("TARGET_SHORTS", "0")) || undefined,
     fullVideoCount: Number(optionalEnv("FULL_VIDEO_COUNT", "0")) || undefined,

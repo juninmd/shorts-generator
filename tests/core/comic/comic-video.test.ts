@@ -69,4 +69,25 @@ describe("comic-video", () => {
     expect(args[1]).toContain("-vf");
     expect(args[1]).toContain("subtitles='sub.ass'");
   });
+
+  it("renderChapterClip loops stock footage under the narration when videoPath is set", async () => {
+    await renderChapterClip({
+      id: "s1", title: "s", imagePath: "", videoPath: "stock.mp4", narrationText: "t",
+      audioPath: "s1.mp3", durationSec: 4, words: [],
+    }, "out.mp4", 1080, 1920);
+    const args = vi.mocked(cp.execFile).mock.calls[0][1] as string[];
+    expect(args).toEqual(expect.arrayContaining(["-stream_loop", "-1", "stock.mp4", "s1.mp3", "0:v", "1:a", "4"]));
+    expect(args.join(" ")).toContain("force_original_aspect_ratio=increase,crop=1080:1920");
+    expect(args).not.toContain("-loop");
+  });
+
+  it("burnSubtitles mixes ducked background music when a track is given", async () => {
+    await burnSubtitles("input.mp4", "sub.ass", "output.mp4", { path: "bgm.mp3", durationSec: 30 });
+    const args = vi.mocked(cp.execFile).mock.calls[0][1] as string[];
+    expect(args).toEqual(expect.arrayContaining(["-stream_loop", "-1", "bgm.mp3", "[v]", "[aout]", "30"]));
+    const graph = args[args.indexOf("-filter_complex") + 1]!;
+    expect(graph).toContain("[0:v]subtitles='sub.ass'[v];[0:a]anull");
+    expect(graph).toContain("sidechaincompress");
+    expect(args).not.toContain("copy");
+  });
 });

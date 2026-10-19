@@ -12,6 +12,17 @@ export const ClipItemSchema = z.object({
   viralScore: z.number().describe("Pontuação de relevância narrativa de 1 a 10"),
   reason: z.string().describe("Por que este momento foi escolhido?"),
   hashtags: z.array(z.string()).describe("Hashtags relevantes para o Shorts"),
+  scoreBreakdown: z.object({
+    hook: z.number(),
+    flow: z.number(),
+    engagement: z.number(),
+    trend: z.number(),
+  }).optional().describe("Subnotas de 1 a 10: gancho, fluxo, engajamento, tendência"),
+  keywords: z.array(z.string()).optional().describe("3-6 palavras literais do corte que merecem destaque na legenda"),
+  broll: z.array(z.object({
+    at: z.number().describe("Segundo (do vídeo original) em que a cena entra"),
+    query: z.string().describe("Busca curta EM INGLÊS por vídeo de acervo"),
+  })).optional().describe("0-3 momentos explicativos que ganham B-roll"),
 });
 
 export const ClipSchema = z.object({

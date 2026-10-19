@@ -7,7 +7,7 @@ import { logger } from "./logger.js";
 import { withRetry } from "./retry-backoff.js";
 import { buildPresenterTitle } from "./presenter-title.js";
 import { getBot, sendTelegramMessage } from "./telegram-bot.js";
-import { escapeHtml } from "./telegram-formatting.js";
+import { escapeHtml, formatScoreBreakdown } from "./telegram-formatting.js";
 
 export * from "./telegram-alerts.js";
 
@@ -89,6 +89,7 @@ export async function sendToTelegram(
     `📺 <b>Canal:</b> ${escapeHtml(short.channelName)}`,
     `⏱ <b>Duração:</b> ${clip.duration}s`,
     `📈 <b>Viral Score:</b> ${scoreText}`,
+    clip.scoreBreakdown ? `📊 ${formatScoreBreakdown(clip.scoreBreakdown)}` : "",
     ``,
     `💡 <b>Motivo:</b> <i>${escapeHtml(clip.reason || clip.description)}</i>`,
     ``,

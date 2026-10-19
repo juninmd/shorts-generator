@@ -25,6 +25,16 @@ describe("config", () => {
       expect(config.tempDir).toContain("temp");
     });
 
+    it("reads VIDEO_GENRE and CLIP_PROMPT from env", () => {
+      process.env.VIDEO_GENRE = "qa";
+      process.env.CLIP_PROMPT = "dicas de dinheiro";
+      const config = loadConfig();
+      expect(config.videoGenre).toBe("qa");
+      expect(config.clipPrompt).toBe("dicas de dinheiro");
+      delete process.env.VIDEO_GENRE;
+      delete process.env.CLIP_PROMPT;
+    });
+
     it("should allow overrides", () => {
       const config = loadConfig({ watermarkText: "custom watermark", videoLimit: 10 });
       expect(config.watermarkText).toBe("custom watermark");

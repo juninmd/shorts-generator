@@ -22,3 +22,8 @@ export function formatTagsPreview(tags: string[] | undefined, maxShown = 12): st
   const list = shown.map((t) => escapeHtml(t)).join(", ");
   return rest > 0 ? `${list} <i>(+${rest})</i>` : list;
 }
+
+/** "Gancho 9 · Fluxo 8 · Engajamento 8 · Tendência 7" */
+export function formatScoreBreakdown(score: { hook: number; flow: number; engagement: number; trend: number }): string {
+  return `Gancho ${score.hook} · Fluxo ${score.flow} · Engajamento ${score.engagement} · Tendência ${score.trend}`;
+}

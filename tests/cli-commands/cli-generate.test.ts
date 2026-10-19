@@ -32,6 +32,11 @@ describe("cli-generate", () => {
     expect(runPipeline).toHaveBeenCalled();
   });
 
+  it("passes --genre and --prompt to the analyzer config", async () => {
+    await runGenerateCommand("generate", ["--genre", "podcast", "--prompt", "momentos engraçados"]);
+    expect(loadConfig).toHaveBeenCalledWith(expect.objectContaining({ videoGenre: "podcast", clipPrompt: "momentos engraçados" }));
+  });
+
   it("should handle url without channel", async () => {
     await runGenerateCommand("generate", ["--url", "url1"]);
     expect(loadConfig).toHaveBeenCalledWith(expect.objectContaining({ specificUrls: ["url1"], channels: [] }));

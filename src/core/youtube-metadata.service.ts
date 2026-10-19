@@ -5,6 +5,7 @@ import { logger } from "./logger.js";
 import { createModel } from "./ai-provider.js";
 import { buildPresenterTitle } from "./presenter-title.js";
 import { getChannelFeedback, formatFeedbackForPrompt } from "./viral-feedback.js";
+import { TITLE_STYLE_GUIDE, resolveTitleStyle } from "./social-copy.js";
 
 const DEFAULT_MAX_RETRIES = 2;
 
@@ -23,6 +24,7 @@ export const generateYoutubeMetadata = async (
   description += `📱 Shorts gerado por IA - Cortado e editado automaticamente\n\n`;
 
   const tags = ["shorts", "viral"];
+  const titleStyle = resolveTitleStyle();
 
   const prompt = `Você é um especialista em YouTube Shorts focados em viralização. Responda em Português do Brasil (pt-BR).
 Crie um título, uma descrição e tags otimizados para este short.
@@ -36,7 +38,7 @@ TRANSCRIÇÃO DO TRECHO: "${(clip.transcript ?? []).map((s) => s.text).join(" ")
 INSTRUÇÕES PARA O TÍTULO:
 1. Máximo 70 caracteres, chamativo e instigante (curiosidade, polêmica, urgência ou número).
 2. Inicie ou termine com 1 ou 2 emojis relevantes ao tema (ex: 🔥, 😱, 🙏, 💡, ⚠️).
-3. Se o apresentador for informado, inclua o nome dele no título. Não use as palavras "corte", "clipe", "short", "vídeo" ou "parte".
+3. Se o apresentador for informado, inclua o nome dele no título. Não use as palavras "corte", "clipe", "short", "vídeo" ou "parte".${titleStyle ? `\n4. Estilo do título: ${TITLE_STYLE_GUIDE[titleStyle]}.` : ""}
 
 INSTRUÇÕES PARA A DESCRIÇÃO:
 1. Comece com um teaser de 2 a 4 frases que gere curiosidade e cite o apresentador quando houver.
