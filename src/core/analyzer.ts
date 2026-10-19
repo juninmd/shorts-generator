@@ -10,6 +10,7 @@ import { reviewClipCandidates } from "./clip-quality.js";
 import { processClips } from "./clip-processing.js";
 import { repairClipCandidates } from "./clip-repair.js";
 import { discoverTextualCandidates } from "./candidate-discovery.js";
+import { buildEnergyHint, type AudioSignals } from "./audio-signals.js";
 import { getMaxCuts, getMinCuts } from "./config.js";
 import { logger } from "./logger.js";
 
@@ -19,8 +20,12 @@ export async function analyzeTranscript(
   transcript: Transcript,
   videoTitle: string,
   channelName: string,
-  config: PipelineConfig,
+  baseConfig: PipelineConfig,
+  signals?: AudioSignals | null,
 ): Promise<ShortClip[]> {
+  const config = signals
+    ? { ...baseConfig, analysisHints: buildEnergyHint(signals) || baseConfig.analysisHints }
+    : baseConfig;
   const minCuts = config.maxClipsOverride ?? getMinCuts(transcript.duration);
   const maxCuts = config.maxClipsOverride ?? getMaxCuts(transcript.duration);
   const candidateMax = Math.min(12, maxCuts * 2);
@@ -62,13 +67,13 @@ export async function analyzeTranscript(
   const reviewed = deduplicateClips(
     await reviewClipCandidates(candidates, transcript, config),
   );
-  let result = processClips(reviewed, transcript, config, maxCuts);
+  let result = processClips(reviewed, transcript, config, maxCuts, signals ?? undefined);
   if (result.length === 0 && candidates.length > 0) {
     const repaired = deduplicateClips(
       await repairClipCandidates(candidates, transcript, config, candidateMax),
     );
     const reviewedRepairs = await reviewClipCandidates(repaired, transcript, config);
-    result = processClips(reviewedRepairs, transcript, config, maxCuts);
+    result = processClips(reviewedRepairs, transcript, config, maxCuts, signals ?? undefined);
     logger.info(
       { repairedCandidates: repaired.length, approvedRepairs: result.length },
       "Clip repair pass completed",

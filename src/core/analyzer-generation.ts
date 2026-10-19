@@ -2,6 +2,7 @@ import { generateText } from "ai";
 import type { PipelineConfig } from "../types.js";
 import { scheduleAbort } from "./abort-timeout.js";
 import { createModel } from "./ai-provider.js";
+import { buildGuidanceBlock } from "./analyzer-guidance.js";
 import { buildAnalysisPrompt } from "./analyzer-prompt.js";
 import { ClipSchema, type ClipItem } from "./analyzer-schema.js";
 import { generateJsonObject } from "./generate-json.js";
@@ -37,7 +38,7 @@ async function promptFor(
   const feedback = formatFeedbackForPrompt(await getChannelFeedback(config));
   return buildAnalysisPrompt(
     transcript, videoTitle, channelName, minCuts, maxCuts,
-    config.minShortDuration, config.maxShortDuration, feedback,
+    config.minShortDuration, config.maxShortDuration, feedback + buildGuidanceBlock(config),
   );
 }
 

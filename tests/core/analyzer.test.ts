@@ -68,4 +68,25 @@ describe("analyzer", () => {
     await expect(analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig))
       .resolves.toEqual([]);
   });
+
+  it("feeds audio energy hints to the prompt and favours energetic clips", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue({
+      clips: [
+        { title: "Calmo", description: "D", startTime: 10, endTime: 40, viralScore: 8, reason: "R", hashtags: [] },
+        { title: "Animado", description: "D", startTime: 40, endTime: 70, viralScore: 8, reason: "R", hashtags: [] },
+      ],
+    } as any);
+    const rmsPerSecond = [...Array(40).fill(-40), ...Array(30).fill(-14), ...Array(50).fill(-40)];
+
+    const clips = await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig, { rmsPerSecond });
+
+    expect(clips[0]!.title).toBe("Animado");
+    expect(vi.mocked(gjModule.generateJsonObject).mock.calls[0]![0].prompt).toContain("SINAIS DE ÁUDIO");
+  });
+
+  it("keeps existing hints when the audio is too short to name a peak", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue({ clips: [] } as any);
+    await analyzeTranscript(mockTranscript, "Title", "Channel", { ...mockConfig, analysisHints: "DICA FIXA" }, { rmsPerSecond: [-20] });
+    expect(vi.mocked(gjModule.generateJsonObject).mock.calls.at(-1)![0].prompt).toContain("DICA FIXA");
+  });
 });

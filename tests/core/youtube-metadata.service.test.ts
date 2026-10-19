@@ -75,6 +75,33 @@ describe("youtube-metadata.service", () => {
     expect(metadata.tags).toEqual(["shorts", "viral", "aiTag"]);
   });
 
+  it.each([
+    ["question", "formulado como uma pergunta"],
+    ["serious", "sóbrio e informativo"],
+  ])("asks for a %s title when TITLE_STYLE is set", async (style, expected) => {
+    process.env.VITEST = "false";
+    process.env.ENABLE_YOUTUBE = "true";
+    process.env.TITLE_STYLE = style;
+    vi.mocked(createModel).mockReturnValue({} as any);
+    vi.mocked(generateText).mockResolvedValue({ text: JSON.stringify({ title: "T" }) } as any);
+
+    await generateYoutubeMetadata({ clip: { title: "Title", description: "D" }, originalVideoUrl: "url" } as any, { managedRun: {} } as any);
+
+    expect(vi.mocked(generateText).mock.calls[0]![0].prompt).toContain(`4. Estilo do título: ${expected}`);
+  });
+
+  it("leaves the prompt untouched for an unknown TITLE_STYLE", async () => {
+    process.env.VITEST = "false";
+    process.env.ENABLE_YOUTUBE = "true";
+    process.env.TITLE_STYLE = "whatever";
+    vi.mocked(createModel).mockReturnValue({} as any);
+    vi.mocked(generateText).mockResolvedValue({ text: JSON.stringify({ title: "T" }) } as any);
+
+    await generateYoutubeMetadata({ clip: { title: "Title", description: "D" }, originalVideoUrl: "url" } as any, { managedRun: {} } as any);
+
+    expect(vi.mocked(generateText).mock.calls[0]![0].prompt).not.toContain("Estilo do título");
+  });
+
   it("should handle missing tags in AI JSON", async () => {
       process.env.VITEST = "false";
       process.env.ENABLE_YOUTUBE = "true";

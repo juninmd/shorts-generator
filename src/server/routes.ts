@@ -11,6 +11,7 @@ import { runPipeline } from "../core/pipeline.js";
 import { logger } from "../core/logger.js";
 import { registerAdminRoutes } from "./admin-routes.js";
 import { registerDashboardRoutes } from "./dashboard-routes.js";
+import { registerSocialMediaRoutes } from "./social-media-routes.js";
 import { registerYoutubeOAuthRoutes } from "./youtube-oauth-routes.js";
 import {
   createJob,
@@ -133,6 +134,7 @@ app.get("/api/shorts", async (c) => {
 registerAdminRoutes(app);
 registerDashboardRoutes(app);
 registerYoutubeOAuthRoutes(app);
+registerSocialMediaRoutes(app);
 
 
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { generateASSSubtitles } from "../../src/core/subtitle.js";
 import type { ShortClip } from "../../src/types.js";
 
@@ -8,6 +8,9 @@ describe("subtitle", () => {
     words: [],
     transcript: [],
   };
+
+  beforeEach(() => { process.env.SUBTITLE_STYLE = "highlight"; process.env.HOOK_OVERLAY = "false"; });
+  afterEach(() => { delete process.env.SUBTITLE_STYLE; delete process.env.HOOK_OVERLAY; });
 
   it("generates estimated karaoke subtitles if words array is empty", () => {
     const clip = {

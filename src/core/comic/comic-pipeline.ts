@@ -14,6 +14,8 @@ export interface ComicPipelineConfig {
   verticalHeight: number;
   ttsVoice: string;
   watermarkText?: string;
+  /** Background track; mixed under the narration with ducking when set. */
+  musicPath?: string;
 }
 
 /** Offsets each chapter's word timestamps onto the shared, concatenated timeline. */
@@ -47,8 +49,9 @@ export async function runComicPipeline(
     throw new Error("Comic book has no chapters to narrate");
   }
   for (const chapter of book.chapters) {
-    if (!fs.existsSync(chapter.imagePath)) {
-      throw new Error(`Chapter image not found: ${chapter.imagePath}`);
+    const visual = chapter.videoPath ?? chapter.imagePath;
+    if (!fs.existsSync(visual)) {
+      throw new Error(`Chapter image not found: ${visual}`);
     }
   }
 
@@ -91,7 +94,12 @@ export async function runComicPipeline(
   );
 
   const outputPath = path.join(workDir, `${book.id}.mp4`);
-  await burnSubtitles(concatPath, subtitlePath, outputPath);
+  await burnSubtitles(
+    concatPath,
+    subtitlePath,
+    outputPath,
+    config.musicPath ? { path: config.musicPath, durationSec: totalDuration } : undefined,
+  );
 
   logger.info({ bookId: book.id, outputPath, totalDuration }, "Comic short generated");
   return {

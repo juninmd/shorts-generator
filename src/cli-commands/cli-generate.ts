@@ -13,6 +13,8 @@ export async function runGenerateCommand(command: string, args: string[]) {
   const targetShortsIndex = args.indexOf("--target-shorts");
   const fullCountIndex = args.indexOf("--full");
   const queryIndex = args.indexOf("--query");
+  const genreIndex = args.indexOf("--genre");
+  const promptIndex = args.indexOf("--prompt");
   const managedChannelIndex = args.indexOf("--managed-channel");
 
   const overrides: Record<string, any> = {};
@@ -63,6 +65,9 @@ export async function runGenerateCommand(command: string, args: string[]) {
     overrides.videoQuery = args[queryIndex + 1]!;
     logger.info({ videoQuery: overrides.videoQuery }, "🔍 Filtro de título definido via --query");
   }
+
+  if (genreIndex !== -1 && args[genreIndex + 1]) overrides.videoGenre = args[genreIndex + 1]!;
+  if (promptIndex !== -1 && args[promptIndex + 1]) overrides.clipPrompt = args[promptIndex + 1]!;
 
   const managedChannelId = managedChannelIndex !== -1 ? args[managedChannelIndex + 1]?.trim() : undefined;
   const baseConfig = loadConfig(overrides);
