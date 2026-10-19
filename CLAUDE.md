@@ -16,6 +16,7 @@ pnpm cli generate:bio --demo           # Narrate the built-in biography smoke-te
 pnpm cli generate:news --demo          # Narrate the built-in news-digest smoke-test book (example headlines)
 pnpm cli generate:book --demo          # Narrate the built-in book-recap smoke-test book (Dom Casmurro)
 pnpm cli generate:<kind> --book <path.json>  # Any kind: narrate a custom ComicBook definition
+pnpm cli generate:faceless --topic "assunto"  # Faceless short: LLM script + Pexels stock footage + edge-tts narration
 
 # Testing
 pnpm test                   # Run all tests once
@@ -75,6 +76,16 @@ ComicBook { id, title, chapters: [{ id, title, imagePath, narrationText }] }
 
 `pnpm cli generate:<kind> --demo` (kind: `comic`/`movie`/`series`/`bio`/`news`/`book`) runs the matching built-in smoke-test book from `demo-books.ts` (Flashpoint / Shrek / The Flash 1x01 / Ada Lovelace / example headlines / Dom Casmurro) — plain color chapter cards with an original synopsis, no copyrighted stills/panels/dialogue, since those must be supplied by the user for their own licensed use. `--book <path.json>` narrates a custom `ComicBook`. Requires `pip install edge-tts`; voice via `COMIC_TTS_VOICE` (default `pt-BR-AntonioNeural`), optional watermark via `COMIC_WATERMARK_TEXT` (unset by default).
 
+### Faceless Mode (`src/core/faceless/`)
+
+`pnpm cli generate:faceless --topic "..." [--lang pt-BR]` — topic in, finished short out, no source video. It reuses the narrated-story engine: `faceless-script.ts` (LLM → scenes of narration + English stock-footage keywords) → `stock-footage.ts` (Pexels portrait clips via `PEXELS_API_KEY`; plain color cards when there is no key/match) → `faceless-pipeline.ts` builds a `ComicBook` whose chapters carry `videoPath` and hands it to `runComicPipeline`. Narration is edge-tts; captions are karaoke; `BGM_FILE`/`BGM_DIR` adds ducked background music.
+
+### Captions, Speaker Tracking, Ducking
+
+- **Karaoke captions** (`subtitle-karaoke.ts`): one ASS event per phrase with `\kf` sweeps (white → yellow as each word is spoken). `SUBTITLE_STYLE=highlight` restores the legacy one-word-at-a-time highlight.
+- **Speaker tracking** (`scripts/track_speaker.py`, `face-framing.ts`, `focus-keyframes.ts`): OpenCV Haar faces + mouth-motion scoring pick the active speaker every 0.5s; keyframes are smoothed (median, dead zone, quick pan on speaker change) and become a time-varying ffmpeg `crop` x expression. Falls back to the static `detect_face.py` focus, then to a centered crop. `SPEAKER_TRACKING=false` disables panning, `SPEAKER_FOCUS=false` disables all face logic. Needs `opencv-python` (<5: OpenCV 5 dropped the Haar cascade API).
+- **Ducking** (`audio-ducking.ts`): `BGM_FILE` or a random file in `BGM_DIR` is looped under the speech and sidechain-compressed by it (`BGM_VOLUME`, default 0.18). Used by `short-renderer.ts` (clips) and the narrated-story pipeline (comic/faceless). No music configured = speech only.
+
 ### Configuration
 
 All config is environment-driven via `src/core/config.ts`. Copy `.env.example` to `.env`. Key variables:
@@ -91,6 +102,10 @@ All config is environment-driven via `src/core/config.ts`. Copy `.env.example` t
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | — | Telegram delivery |
 | `MAX_VIDEO_SIZE_MB` | `500` | Skip videos larger than this |
 | `VIDEO_ENCODER` | `libx264` | FFmpeg codec |
+| `SUBTITLE_STYLE` | `karaoke` | `karaoke` (`\kf` sweep) or `highlight` (legacy) |
+| `SPEAKER_TRACKING` | `true` | Pan the crop between speakers (`false` = static focus) |
+| `BGM_FILE` / `BGM_DIR` / `BGM_VOLUME` | — / — / `0.18` | Background music with speech ducking |
+| `PEXELS_API_KEY` | — | Stock footage for `generate:faceless` |
 
 ### External Tool Dependencies
 

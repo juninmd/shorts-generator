@@ -5,6 +5,8 @@ export interface ComicChapter {
   id: string;
   title: string;
   imagePath: string;
+  /** Optional stock/B-roll footage shown instead of the still image (faceless mode). */
+  videoPath?: string;
   narrationText: string;
 }
 

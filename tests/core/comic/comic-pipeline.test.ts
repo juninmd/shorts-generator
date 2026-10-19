@@ -68,4 +68,25 @@ describe("comic-pipeline", () => {
     expect(comicVideo.burnSubtitles).toHaveBeenCalled();
     expect(subtitle.generateASSSubtitles).toHaveBeenCalled();
   });
+
+  it("checks the stock footage path instead of the image for faceless chapters", async () => {
+    vi.spyOn(fs, "existsSync").mockReturnValueOnce(false);
+    const faceless = { ...mockBook, chapters: [{ ...mockBook.chapters[0]!, imagePath: "", videoPath: "stock.mp4" }] };
+    await expect(runComicPipeline(faceless, mockConfig)).rejects.toThrow("Chapter image not found: stock.mp4");
+  });
+
+  it("passes the background music track to the subtitle burn", async () => {
+    vi.spyOn(fs, "existsSync").mockReturnValue(true);
+    vi.mocked(comicTts.narrateChapters).mockResolvedValue([
+      { ...mockBook.chapters[0], audioPath: "ch1.mp3", durationSec: 5, words: [] },
+    ] as any);
+    vi.mocked(comicVideo.renderChapterClip).mockResolvedValue();
+    vi.mocked(comicVideo.concatChapterClips).mockResolvedValue();
+    vi.mocked(comicVideo.burnSubtitles).mockResolvedValue();
+    vi.mocked(subtitle.generateASSSubtitles).mockReturnValue("ass");
+    await runComicPipeline(mockBook, { ...mockConfig, musicPath: "bgm.mp3" });
+    expect(comicVideo.burnSubtitles).toHaveBeenCalledWith(
+      expect.any(String), expect.any(String), expect.any(String), { path: "bgm.mp3", durationSec: 5 },
+    );
+  });
 });

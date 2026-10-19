@@ -4,8 +4,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 import type { PipelineConfig, ShortClip } from "../types.js";
 import { logger } from "./logger.js";
-import { CENTER_FOCUS, detectSpeakerFocusX } from "./face-framing.js";
-import { buildSpeechAudioFilter } from "./audio-polish.js";
+import { CENTER_FOCUS, buildCropXExpression, resolveSpeakerFocus } from "./face-framing.js";
+import type { FocusKeyframe } from "./focus-keyframes.js";
+import { buildAudioRouting, pickBackgroundMusic } from "./audio-ducking.js";
 import { assertShortMediaQuality } from "./short-quality.js";
 
 const execFileAsync = promisify(execFile);
@@ -22,13 +23,12 @@ export function buildSafeFramingFilter(
   width: number,
   height: number,
   logoPath?: string | null,
-  focusX: number = CENTER_FOCUS,
+  focus: number | FocusKeyframe[] = CENTER_FOCUS,
 ): string {
   const assPath = escapeFilterPath(subtitlePath);
-  // Horizontal crop offset biased toward the speaker (focusX in [0,1]); clamped
-  // so the crop window never leaves the frame. focusX=0.5 yields a centered crop.
-  const fx = Math.max(0, Math.min(1, focusX)).toFixed(4);
-  const cropX = `'clip((in_w*${fx})-(${width}/2)\\,0\\,in_w-${width})'`;
+  // Horizontal crop offset biased toward the speaker (a fixed 0..1 position or
+  // tracked keyframes that pan between speakers); clamped to stay inside the frame.
+  const cropX = buildCropXExpression(width, focus);
   // Gentle "breathing" punch-in (up to +7% over an 8s cycle): constant subtle
   // motion counters the static-pulpit retention drop without distracting from
   // the speaker. Applied before subtitles so caption text stays fixed.
@@ -50,25 +50,26 @@ export async function renderShort(
   const logoPath = config.managedRun?.logoPath && fs.existsSync(config.managedRun.logoPath)
     ? config.managedRun.logoPath
     : null;
-  const focusX = await detectSpeakerFocusX(inputPath, clip);
+  const focus = await resolveSpeakerFocus(inputPath, clip);
   const filter = buildSafeFramingFilter(
     subtitlePath,
     config.verticalWidth,
     config.verticalHeight,
     logoPath,
-    focusX,
+    focus,
   );
+  const audio = buildAudioRouting(clip.duration, pickBackgroundMusic(), logoPath ? 2 : 1);
   const isNvenc = config.videoEncoder.includes("nvenc");
   const qualityArgs = isNvenc ? ["-cq", "18"] : ["-crf", "18"];
   const args = [
     "-ss", String(clip.startTime),
     "-i", inputPath,
     ...(logoPath ? ["-i", logoPath] : []),
+    ...audio.inputArgs,
     "-y",
-    "-filter_complex", filter,
+    "-filter_complex", audio.graph ? `${filter};${audio.graph}` : filter,
     "-map", "[v]",
-    "-map", "0:a?",
-    "-af", buildSpeechAudioFilter(clip.duration),
+    ...audio.outputArgs,
     "-t", String(clip.duration),
     "-c:v", config.videoEncoder,
     "-preset", isNvenc ? "p7" : "slow",

@@ -43,6 +43,12 @@ async function main() {
       break;
     }
 
+    case "generate:faceless": {
+      const { runFacelessCommand } = await import("./cli-commands/cli-faceless.js");
+      await runFacelessCommand(args);
+      break;
+    }
+
     case "queue:process": {
       const { processQueueUntilEmpty } = await import("./core/queue.js");
       await processQueueUntilEmpty();
@@ -73,6 +79,7 @@ Usage:
   pnpm generate:top [options]
   pnpm generate:quiz [options]
   pnpm generate:metrics-digest
+  pnpm generate:faceless --topic "assunto"
   pnpm queue:process
   pnpm queue:retry
   pnpm server

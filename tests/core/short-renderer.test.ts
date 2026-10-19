@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { buildSafeFramingFilter, renderShort } from "../../src/core/short-renderer.js";
 import fs from "node:fs";
 import { execFile } from "node:child_process";
@@ -68,10 +68,44 @@ describe("short-renderer", () => {
     expect(buildSafeFramingFilter("clip.ass", 1080, 1920, null, -1)).toContain("in_w*0.0000");
   });
 
+  it("buildSafeFramingFilter pans the crop with tracked speaker keyframes", () => {
+    const filter = buildSafeFramingFilter("clip.ass", 1080, 1920, null, [
+      { t: 0.25, x: 0.2 }, { t: 1.75, x: 0.8 },
+    ]);
+    expect(filter).toContain("crop=1080:1920:'clip((in_w*(if(lt(t\\,0.2500)");
+    expect(filter).toContain("(t-0.2500)/1.5000");
+  });
+
   it("buildSafeFramingFilter includes logo overlay when logoPath is provided", () => {
     const filter = buildSafeFramingFilter("C:\\tmp\\clip.ass", 1080, 1920, "/logos/wm.png");
     expect(filter).toContain("[1:v]scale=180:-1[logo]");
     expect(filter).toContain("[base][logo]overlay=W-w-36:36[v]");
+  });
+
+  describe("renderShort with background music", () => {
+    afterEach(() => { delete process.env.BGM_FILE; });
+
+    it("ducks the music under the speech through the filter graph", async () => {
+      process.env.BGM_FILE = "bgm.mp3";
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
+        return {} as any;
+      });
+      await renderShort(
+        "in.mp4", "out.mp4", "sub.ass",
+        { startTime: 0, duration: 10 } as any,
+        { managedRun: { logoPath: "logo.png" }, videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any,
+      );
+      const call = vi.mocked(execFile).mock.calls.find((c) => (c[1] as string[]).includes("-filter_complex"))!;
+      const args = call[1] as string[];
+      expect(args.slice(args.indexOf("-stream_loop"), args.indexOf("-stream_loop") + 4)).toEqual(["-stream_loop", "-1", "-i", "bgm.mp3"]);
+      expect(args[args.indexOf("-filter_complex") + 1]).toContain("[2:a]aresample=44100,volume=");
+      expect(args).toContain("[aout]");
+      expect(args).not.toContain("-af");
+    });
   });
 
   describe("renderShort validation", () => {

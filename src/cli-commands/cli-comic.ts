@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { loadConfig } from "../core/config.js";
 import { logger } from "../core/logger.js";
+import { pickBackgroundMusic } from "../core/audio-ducking.js";
 import { runComicPipeline } from "../core/comic/comic-pipeline.js";
 import {
   buildFlashpointDemoBook,
@@ -57,6 +58,7 @@ export async function runComicCommand(kind: StoryKind, args: string[]): Promise<
     verticalHeight: config.verticalHeight,
     ttsVoice: process.env.COMIC_TTS_VOICE || "pt-BR-AntonioNeural",
     watermarkText: process.env.COMIC_WATERMARK_TEXT || undefined,
+    musicPath: pickBackgroundMusic() ?? undefined,
   });
 
   logger.info(result, `generate:${kind} completed`);
