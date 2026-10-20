@@ -19,6 +19,7 @@ export default defineConfig({
         'src/core/comic/comic-types.ts',
         'src/core/youtube.ts',
         'src/core/comic/demo-books.ts',
+        'src/core/publishers/types.ts',
       ],
       all: true,
       thresholds: {
