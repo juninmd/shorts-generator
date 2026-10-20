@@ -26,8 +26,9 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Copy package files and install Node dependencies
-COPY pnpm-lock.yaml package.json .npmrc* ./
-RUN pnpm config set onlyBuiltDependencies esbuild,msgpackr-extract && pnpm install --frozen-lockfile
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml* .npmrc* ./
+COPY web/package.json ./web/package.json
+RUN pnpm install --frozen-lockfile
 
 # Copy Python dependency files and install them using uv
 COPY tests/yt-download/pyproject.toml ./tests/yt-download/
