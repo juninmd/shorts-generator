@@ -1,2 +1,9 @@
-# False positive: historical documentation used an explicit low-entropy API key placeholder.
+844b3662f3fbc001d3c3a03d9fd84401ffd3e999:tests/core/control-plane-db.test.ts:juninmd-db-uri-credentials:144
+844b3662f3fbc001d3c3a03d9fd84401ffd3e999:tests/core/control-plane-db.test.ts:juninmd-db-uri-credentials:145
+844b3662f3fbc001d3c3a03d9fd84401ffd3e999:tests/server/auth-middleware.test.ts:juninmd-authorization-header:104
+aeccd63444e9d84a133cc761630e882dcc1e5a71:tests/core/control-plane-db.test.ts:juninmd-db-uri-credentials:115
+7d34154e104d08530c2cdd5656640e77f4ee4304:tests/core/control-plane-db.test.ts:juninmd-db-uri-credentials:28
+7d34154e104d08530c2cdd5656640e77f4ee4304:tests/core/control-plane-db.test.ts:juninmd-db-uri-credentials:35
+7d34154e104d08530c2cdd5656640e77f4ee4304:tests/core/control-plane-db.test.ts:juninmd-db-uri-credentials:36
+7d34154e104d08530c2cdd5656640e77f4ee4304:tests/core/control-plane-db.test.ts:juninmd-db-uri-credentials:43
 1b90dca694109dc6bc98fad99444c791bd80d6a4:SETUP_COMPLETE.md:generic-api-key:89
