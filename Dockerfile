@@ -26,7 +26,7 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Copy package files and install Node dependencies
-COPY pnpm-lock.yaml package.json ./
+COPY pnpm-lock.yaml package.json .npmrc* ./
 RUN pnpm install --frozen-lockfile
 
 # Copy Python dependency files and install them using uv
