@@ -42,8 +42,16 @@ describe("short-renderer", () => {
     expect(filter).toContain("ass='C\\:/tmp/clip.ass'");
   });
 
-  it("buildSafeFramingFilter applies the breathing punch-in before subtitles", () => {
+  it("buildSafeFramingFilter does not zoom by default", () => {
+    const filter = buildSafeFramingFilter("clip.ass", 1080, 1920);
+    expect(filter).not.toContain("pow(sin(PI*t/8),2)");
+    expect(filter).not.toContain("eval=frame");
+  });
+
+  it("buildSafeFramingFilter applies the breathing punch-in before subtitles when PUNCH_IN=true", () => {
+    vi.stubEnv("PUNCH_IN", "true");
     const filter = buildSafeFramingFilter("C:\\tmp\\clip.ass", 1080, 1920);
+    vi.unstubAllEnvs();
     const punchIn = filter.indexOf("pow(sin(PI*t/8),2)");
     expect(punchIn).toBeGreaterThan(-1);
     expect(filter).toContain("eval=frame");

@@ -28,12 +28,14 @@ export function buildSafeFramingFilter(
   // Horizontal crop offset biased toward the speaker (a fixed 0..1 position or
   // tracked keyframes that pan between speakers); clamped to stay inside the frame.
   const cropX = buildCropXExpression(width, focus);
-  // Gentle "breathing" punch-in (up to +7% over an 8s cycle): constant subtle
-  // motion counters the static-pulpit retention drop without distracting from
-  // the speaker. Applied before subtitles so caption text stays fixed.
-  const punchIn = `scale=w='ceil(iw*(1+0.07*pow(sin(PI*t/8),2))/2)*2':h=-2:eval=frame:flags=lanczos,crop=${width}:${height}:(in_w-${width})/2:(in_h-${height})/2`;
+  // Optional "breathing" punch-in (PUNCH_IN=true; up to +7% over an 8s cycle) for
+  // static single-speaker footage. Off by default: constant zoom fights the
+  // speaker-centered crop and reads as the screen zooming all the time.
+  const punchIn = process.env.PUNCH_IN === "true"
+    ? `,scale=w='ceil(iw*(1+0.07*pow(sin(PI*t/8),2))/2)*2':h=-2:eval=frame:flags=lanczos,crop=${width}:${height}:(in_w-${width})/2:(in_h-${height})/2`
+    : "";
   const box = layout.cropBox ? `crop=${layout.cropBox.width}:${layout.cropBox.height}:${layout.cropBox.x}:${layout.cropBox.y},` : "";
-  const framed = `${layout.videoInput ?? "[0:v]"}${box}scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos+accurate_rnd,${edgePadFilter(width)},crop=${width}:${height}:${cropX}:(in_h-${height})/2,${punchIn},hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1`;
+  const framed = `${layout.videoInput ?? "[0:v]"}${box}scale=w='if(gt(iw/ih,${width}/${height}),-1,${width})':h='if(gt(iw/ih,${width}/${height}),${height},-1)':flags=lanczos+accurate_rnd,${edgePadFilter(width)},crop=${width}:${height}:${cropX}:(in_h-${height})/2${punchIn},hqdn3d=1.5:1.5:3:3,unsharp=3:3:0.5:3:3:0.5,setsar=1`;
   const subtitled = `ass='${assPath}'[base]`;
   const items = layout.broll?.items ?? [];
   const baseVideo = items.length === 0
