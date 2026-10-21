@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """Track the active speaker's horizontal position across a video clip.
 
-Samples the clip every STEP seconds. On each sample it detects faces (OpenCV
-Haar cascade) and measures mouth activity per face: the mean absolute pixel
-change in the lower part of the face box between two frames a few
-milliseconds apart. The face with the most mouth motion is the active speaker;
-when nobody is clearly talking the previous speaker is kept, and a new speaker
-only takes over when clearly more active (hysteresis), so the crop does not
-jitter between people.
+Samples the clip every STEP seconds. On each sample it detects faces
+(speaker_faces.py: YuNet, Haar fallback; on a wide-enough frame to catch the
+small faces of wide podcast shots) and measures mouth activity per face: the
+mean absolute pixel change around the mouth across a burst of frames.
+
+Faces are clustered into seats across the whole clip. Seats that are only
+seen briefly (a face playing on a screen in the middle of the frame, a false
+positive) are dropped; real people keep their seat even when a frame misses
+their face, so a lost detection never hands the crop to the other guest. The
+seat with the most smoothed mouth motion is the active speaker; when nobody
+is clearly talking the previous speaker is kept, and a new speaker only takes
+over when clearly more active (hysteresis), so the crop does not jitter.
 
 Prints a JSON list of [seconds_from_clip_start, center_x] pairs, where
 center_x is 0.0 (left edge) to 1.0 (right edge). On any failure (missing
@@ -17,43 +22,28 @@ the caller falls back to the static or centered crop.
 Usage: track_speaker.py <input> <start_seconds> <duration_seconds>
 """
 import json
+import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from speaker_faces import FaceFinder  # noqa: E402
+from speaker_seats import assign_seats, follow_speaker  # noqa: E402
 
 STEP = 0.5
 MAX_SAMPLES = 160
-MOTION_GAP = 0.12
-TALK_THRESHOLD = 1.5
-SWITCH_RATIO = 1.5
-SCALE_WIDTH = 640
+BURST_GAPS = (0.0, 0.08, 0.16, 0.24)
+DETECT_WIDTH = 1280
 
 
-def pick_speaker(faces, activity, previous_x):
-    """Choose the (center_x, is_talking) of the active speaker, or None."""
-    if not faces:
-        return None
-    ranked = sorted(range(len(faces)), key=lambda i: activity[i], reverse=True)
-    best = ranked[0]
-    if previous_x is None:
-        if activity[best] >= TALK_THRESHOLD:
-            return faces[best][0], True
-        largest = max(range(len(faces)), key=lambda i: faces[i][1])
-        return faces[largest][0], False
-    held = min(range(len(faces)), key=lambda i: abs(faces[i][0] - previous_x))
-    if (activity[best] >= TALK_THRESHOLD
-            and activity[best] > SWITCH_RATIO * max(activity[held], 0.1)):
-        return faces[best][0], True
-    return faces[held][0], activity[held] >= TALK_THRESHOLD
-
-
-def mouth_activity(cv2, gray_a, gray_b, box):
-    x, y, w, h = box
-    top = y + int(h * 0.60)
-    left = x + int(w * 0.20)
-    region_a = gray_a[top:y + h, left:x + int(w * 0.80)]
-    region_b = gray_b[top:y + h, left:x + int(w * 0.80)]
-    if region_a.size == 0 or region_a.shape != region_b.shape:
+def mouth_activity(cv2, grays, mouth):
+    """Mean absolute change of the mouth area across consecutive frames."""
+    x, y, w, h = mouth
+    x, y = max(0, x), max(0, y)
+    regions = [g[y:y + h, x:x + w] for g in grays]
+    if regions[0].size == 0 or any(r.shape != regions[0].shape for r in regions):
         return 0.0
-    return float(cv2.absdiff(region_a, region_b).mean())
+    diffs = [float(cv2.absdiff(a, b).mean()) for a, b in zip(regions, regions[1:])]
+    return sum(diffs) / len(diffs)
 
 
 def main() -> int:
@@ -67,9 +57,8 @@ def main() -> int:
     cap = cv2.VideoCapture(path)
     if not cap.isOpened():
         return 1
-    cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    if cascade.empty():
+    finder = FaceFinder(cv2)
+    if not finder.available:
         cap.release()
         return 1
 
@@ -78,33 +67,29 @@ def main() -> int:
         ok, frame = cap.read()
         if not ok or frame is None:
             return None
-        height, width = frame.shape[:2]
-        scale = min(1.0, SCALE_WIDTH / float(width))
-        small = cv2.resize(frame, (int(width * scale), int(height * scale)))
-        return cv2.GaussianBlur(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), (5, 5), 0)
+        scale = DETECT_WIDTH / float(frame.shape[1])
+        return cv2.resize(frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
 
     count = min(MAX_SAMPLES, max(1, int(duration / STEP)))
-    samples = []
-    previous_x = None
+    offsets, per_sample = [], []
     for i in range(count):
         offset = duration * (i + 0.5) / count
-        first, second = grab(start + offset), grab(start + offset + MOTION_GAP)
-        if first is None or second is None:
+        frames = [grab(start + offset + gap) for gap in BURST_GAPS]
+        if any(f is None for f in frames):
             continue
-        found = cascade.detectMultiScale(
-            first, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40))
-        width = first.shape[1]
-        faces = [((fx + fw / 2.0) / width, fw * fh) for fx, fy, fw, fh in found]
-        activity = [mouth_activity(cv2, first, second, tuple(box)) for box in found]
-        chosen = pick_speaker(faces, activity, previous_x)
-        if chosen is None:
-            continue
-        previous_x = chosen[0]
-        samples.append([round(offset, 2), round(previous_x, 4)])
+        grays = [cv2.GaussianBlur(cv2.cvtColor(f, cv2.COLOR_BGR2GRAY), (5, 5), 0) for f in frames]
+        width = frames[0].shape[1]
+        offsets.append(round(offset, 2))
+        per_sample.append([
+            ((box[0] + box[2] / 2.0) / width, box[2] * box[3],
+             mouth_activity(cv2, grays, mouth))
+            for box, mouth in finder.find(frames[0])])
     cap.release()
-    if not samples:
+    seats = assign_seats(per_sample)
+    if not seats:
         return 1
-    print(json.dumps(samples))
+    xs = follow_speaker(per_sample, seats)
+    print(json.dumps([[t, round(x, 4)] for t, x in zip(offsets, xs)]))
     return 0
 
 
