@@ -5,9 +5,11 @@ export interface FocusKeyframe {
   x: number;
 }
 
-const MAX_KEYFRAMES = 16;
+const MAX_KEYFRAMES = 48;
 const PAN_SECONDS = 0.3;
 const BIG_JUMP = 0.15;
+/** Faster than a natural head drift (position units per second): the speaker changed. */
+const STEP_SPEED = 0.1;
 const CUT_GUARD = 0.04;
 
 /** Median of each sample with its neighbours; the two ends keep their own value. */
@@ -22,15 +24,17 @@ function median3(samples: FocusKeyframe[]): FocusKeyframe[] {
 
 function dropSmallMoves(samples: FocusKeyframe[], deadZone: number, cuts: number[]): FocusKeyframe[] {
   const kept: FocusKeyframe[] = [samples[0]!];
-  for (const sample of samples.slice(1)) {
+  for (const [index, sample] of samples.slice(1).entries()) {
     const last = kept.at(-1)!;
+    const before = samples[index]!;
     const jump = Math.abs(sample.x - last.x);
     if (jump <= deadZone) continue;
+    const step = Math.abs(sample.x - before.x) / Math.max(sample.t - before.t, 0.001) > STEP_SPEED;
     const cut = cuts.find((time) => time > last.t + CUT_GUARD && time <= sample.t);
     if (jump > BIG_JUMP && cut !== undefined) {
       // A camera cut: jump with it rather than panning across the shot change.
       kept.push({ t: cut - CUT_GUARD, x: last.x }, { t: cut, x: sample.x });
-    } else if (jump > BIG_JUMP && sample.t - last.t > PAN_SECONDS) {
+    } else if ((jump > BIG_JUMP || step) && sample.t - last.t > PAN_SECONDS) {
       // A speaker change pans quickly instead of drifting slowly across the gap.
       kept.push({ t: sample.t - PAN_SECONDS, x: last.x });
     }
