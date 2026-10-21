@@ -75,7 +75,7 @@ describe("renderShort with an edit plan", () => {
     dispatch({ tracker: null, faceX: "0.5" });
     await renderShort("in.mp4", "out.mp4", "sub.ass", clip, config);
     expect(graphOf()).toContain("crop=640:360:0:60,scale=");
-    expect(graphOf()).toContain("in_w*0.5000");
+    expect(graphOf()).toContain("(in_w-1080)*0.5000");
     expect(graphOf()).not.toContain("trim=start");
   });
 
@@ -92,7 +92,7 @@ describe("renderShort with an edit plan", () => {
     process.env.AUTO_CROP = "false";
     await renderShort("in.mp4", "out.mp4", "sub.ass", clip, config);
     expect(vi.mocked(execFile).mock.calls.some((c) => (c[1] as string[]).join(" ").includes("showinfo"))).toBe(false);
-    expect(graphOf()).toContain("in_w*0.3000");
+    expect(graphOf()).toContain("(in_w-1080)*0.3000");
     expect(graphOf()).not.toContain("crop=640:360");
   });
 });

@@ -42,8 +42,16 @@ describe("short-renderer", () => {
     expect(filter).toContain("ass='C\\:/tmp/clip.ass'");
   });
 
-  it("buildSafeFramingFilter applies the breathing punch-in before subtitles", () => {
+  it("buildSafeFramingFilter does not zoom by default", () => {
+    const filter = buildSafeFramingFilter("clip.ass", 1080, 1920);
+    expect(filter).not.toContain("pow(sin(PI*t/8),2)");
+    expect(filter).not.toContain("eval=frame");
+  });
+
+  it("buildSafeFramingFilter applies the breathing punch-in before subtitles when PUNCH_IN=true", () => {
+    vi.stubEnv("PUNCH_IN", "true");
     const filter = buildSafeFramingFilter("C:\\tmp\\clip.ass", 1080, 1920);
+    vi.unstubAllEnvs();
     const punchIn = filter.indexOf("pow(sin(PI*t/8),2)");
     expect(punchIn).toBeGreaterThan(-1);
     expect(filter).toContain("eval=frame");
@@ -54,25 +62,30 @@ describe("short-renderer", () => {
 
   it("buildSafeFramingFilter centers the crop by default", () => {
     const filter = buildSafeFramingFilter("clip.ass", 1080, 1920);
-    expect(filter).toContain("crop=1080:1920:'clip((in_w*0.5000)-(1080/2)");
+    expect(filter).toContain("crop=1080:1920:'clip((in_w-1080)*0.5000");
     expect(filter).toContain(":(in_h-1920)/2,");
+  });
+
+  it("buildSafeFramingFilter pads the edges so a speaker at the far side stays centered", () => {
+    const filter = buildSafeFramingFilter("clip.ass", 1080, 1920, null, 0.05);
+    expect(filter).toContain("pad=iw+1080:ih:540:0,fillborders=left=540:right=540:mode=smear,crop=1080:1920:'clip((in_w-1080)*0.0500");
   });
 
   it("buildSafeFramingFilter biases the crop toward the detected speaker", () => {
     const filter = buildSafeFramingFilter("clip.ass", 1080, 1920, null, 0.75);
-    expect(filter).toContain("crop=1080:1920:'clip((in_w*0.7500)-(1080/2)");
+    expect(filter).toContain("crop=1080:1920:'clip((in_w-1080)*0.7500");
   });
 
   it("buildSafeFramingFilter clamps the focus into [0,1]", () => {
-    expect(buildSafeFramingFilter("clip.ass", 1080, 1920, null, 2)).toContain("in_w*1.0000");
-    expect(buildSafeFramingFilter("clip.ass", 1080, 1920, null, -1)).toContain("in_w*0.0000");
+    expect(buildSafeFramingFilter("clip.ass", 1080, 1920, null, 2)).toContain("*1.0000");
+    expect(buildSafeFramingFilter("clip.ass", 1080, 1920, null, -1)).toContain("*0.0000");
   });
 
   it("buildSafeFramingFilter pans the crop with tracked speaker keyframes", () => {
     const filter = buildSafeFramingFilter("clip.ass", 1080, 1920, null, [
       { t: 0.25, x: 0.2 }, { t: 1.75, x: 0.8 },
     ]);
-    expect(filter).toContain("crop=1080:1920:'clip((in_w*(if(lt(t\\,0.2500)");
+    expect(filter).toContain("crop=1080:1920:'clip((in_w-1080)*(if(lt(t\\,0.2500)");
     expect(filter).toContain("(t-0.2500)/1.5000");
   });
 

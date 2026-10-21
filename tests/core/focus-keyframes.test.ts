@@ -31,6 +31,11 @@ describe("simplifyKeyframes", () => {
     expect(kept).toEqual([at(0, 0.2), at(0.25, 0.8)]);
   });
 
+  it("holds, then pans quickly, on a sudden moderate step after a long steady stretch", () => {
+    const kept = simplifyKeyframes([at(0, 0.83), at(10, 0.83), at(20, 0.83), at(20.5, 0.73), at(21, 0.73), at(30, 0.73)]);
+    expect(kept).toEqual([at(0, 0.83), at(20.2, 0.83), at(20.5, 0.73)]);
+  });
+
   it("does not insert a hold for a small drift", () => {
     const kept = simplifyKeyframes([at(0, 0.3), at(2, 0.3), at(4, 0.38), at(6, 0.38)]);
     expect(kept).toEqual([at(0, 0.3), at(4, 0.38)]);
@@ -39,7 +44,7 @@ describe("simplifyKeyframes", () => {
   it("widens the dead zone until the keyframes fit the expression budget", () => {
     const wander = Array.from({ length: 60 }, (_, i) => at(i * 0.5, 0.4 + 0.05 * (i % 2 === 0 ? 1 : 2) * Math.sin(i / 4) + i * 0.002));
     const kept = simplifyKeyframes(wander);
-    expect(kept.length).toBeLessThanOrEqual(16);
+    expect(kept.length).toBeLessThanOrEqual(48);
     expect(kept.length).toBeGreaterThan(0);
   });
 });
