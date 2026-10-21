@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
 import {
-  detectSpeakerFocusX, CENTER_FOCUS, trackSpeakerFocus, resolveSpeakerFocus, buildCropXExpression,
+  detectSpeakerFocusX, CENTER_FOCUS, trackSpeakerFocus, resolveSpeakerFocus, buildCropXExpression, edgePadFilter,
 } from "../../src/core/face-framing.js";
 
 vi.mock("node:child_process", () => ({ execFile: vi.fn() }));
@@ -149,12 +149,17 @@ describe("resolveSpeakerFocus", () => {
 
 describe("buildCropXExpression", () => {
   it("clamps a static focus into the frame", () => {
-    expect(buildCropXExpression(1080, 1.4)).toBe("'clip((in_w*1.0000)-(1080/2)\\,0\\,in_w-1080)'");
+    expect(buildCropXExpression(1080, 1.4)).toBe("'clip((in_w-1080)*1.0000\\,0\\,in_w-1080)'");
   });
 
   it("animates the crop with keyframes", () => {
     const expression = buildCropXExpression(1080, [{ t: 0, x: 0.2 }, { t: 2, x: 0.8 }]);
-    expect(expression).toContain("clip((in_w*(if(lt(t\\,0.0000)");
+    expect(expression).toContain("clip((in_w-1080)*(if(lt(t\\,0.0000)");
     expect(expression).toContain("(t-0.0000)/2.0000");
+  });
+
+  it("pads half a crop width on each side", () => {
+    expect(edgePadFilter(1080)).toBe("pad=iw+1080:ih:540:0,fillborders=left=540:right=540:mode=smear");
+    expect(edgePadFilter(607)).toBe("pad=iw+608:ih:304:0,fillborders=left=304:right=304:mode=smear");
   });
 });

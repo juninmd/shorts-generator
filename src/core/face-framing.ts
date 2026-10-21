@@ -95,10 +95,21 @@ export async function resolveSpeakerFocus(
   return keyframes.length > 0 ? keyframes : detectSpeakerFocusX(inputPath, clip);
 }
 
-/** ffmpeg crop `x` expression keeping the focus point centered, clamped to the frame. */
+/**
+ * ffmpeg crop `x` expression keeping the focus point centered. The frame is
+ * expected to carry {@link edgePadFilter} borders, so a speaker sitting at the
+ * far left/right of a wide shot (podcast guests) still lands in the middle of
+ * the vertical crop instead of the crop clamping at the frame edge.
+ */
 export function buildCropXExpression(width: number, focus: number | FocusKeyframe[]): string {
   const position = typeof focus === "number"
     ? Math.max(0, Math.min(1, focus)).toFixed(4)
     : `(${buildFocusExpression(focus)})`;
-  return `'clip((in_w*${position})-(${width}/2)\\,0\\,in_w-${width})'`;
+  return `'clip((in_w-${width})*${position}\\,0\\,in_w-${width})'`;
+}
+
+/** Extends the frame half a crop width on each side (edge pixels smeared) so edge speakers can be centered. */
+export function edgePadFilter(width: number): string {
+  const side = Math.ceil(width / 2);
+  return `pad=iw+${side * 2}:ih:${side}:0,fillborders=left=${side}:right=${side}:mode=smear`;
 }
