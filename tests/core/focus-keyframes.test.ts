@@ -47,6 +47,14 @@ describe("simplifyKeyframes", () => {
     expect(kept.length).toBeLessThanOrEqual(48);
     expect(kept.length).toBeGreaterThan(0);
   });
+
+  it("widens the dead zone multiple times if necessary", () => {
+    // Generate many small movements that require multiple loop iterations to reduce below MAX_KEYFRAMES
+    const wander = Array.from({ length: 200 }, (_, i) => at(i * 0.5, 0.4 + 0.05 * (i % 2 === 0 ? 1 : 2) * Math.sin(i / 4) + i * 0.002));
+    const kept = simplifyKeyframes(wander);
+    expect(kept.length).toBeLessThanOrEqual(48);
+    expect(kept.length).toBeGreaterThan(0);
+  });
 });
 
 describe("simplifyKeyframes with camera cuts", () => {
