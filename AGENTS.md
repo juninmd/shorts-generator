@@ -21,13 +21,14 @@
 
 1. **Size Limit**: **Max 150 lines per file**.
 2. **Clean Logic**: Separation of concerns enforced across all layers.
-3. **Validation**: All changes require successful tests (`npm test`), linting, and smoke tests (`npm run smoke-test`).
+3. **Validation**: All changes require `pnpm build` (typecheck), `pnpm test:coverage` (100% gate) and, when the pipeline changes, `pnpm smoke-test`. There is no separate linter.
 4. **Security**: Sensitive data must be excluded from context.
 5. **Source Attribution**: Every video generated from another video MUST include the original link in the YouTube description.
 
 ## 🤝 Interaction Protocol
 - Follow the **Plan -> Act -> Validate** cycle for every task.
-- Consult `GEMINI.md` for project-specific instructions.
+- Consult `CLAUDE.md` (architecture, pipeline, env vars) and `README.md` (commands) for project-specific instructions.
+- CI gates (`.github/workflows/validate.yml`): tracked-secret check, gitleaks, `pnpm run build`, `pnpm test:coverage`. `security.yml` runs gitleaks; `deploy.yml` builds the Docker image on push to master.
 
 ## 🔑 YouTube Token Renewal
 
