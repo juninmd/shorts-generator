@@ -5,37 +5,47 @@ on:
     - cron: "17 6 * * *"
   workflow_dispatch:
 
+# master exige o check "docker / deploy" antes do merge: um push direto do
+# GITHUB_TOKEN e recusado com GH006 (Protected branch update failed). Por isso a
+# atualizacao vai por PR, que roda os checks e pode ser mesclada normalmente.
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-
-      - name: Setup Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.0
 
       - name: Update yt-dlp version in pyproject.toml
         run: |
-          LATEST_VERSION=$(curl -s https://pypi.org/pypi/yt-dlp/json | jq -r '.info.version')
+          set -euo pipefail
+          LATEST_VERSION=$(curl -fsSL https://pypi.org/pypi/yt-dlp/json | jq -r '.info.version')
           echo "Latest yt-dlp version: $LATEST_VERSION"
+          echo "YT_DLP_VERSION=$LATEST_VERSION" >> "$GITHUB_ENV"
           sed -i "s/\"yt-dlp>=.*\"/\"yt-dlp>=$LATEST_VERSION\"/" tests/yt-download/pyproject.toml
 
       - name: Update uv lockfile
-        run: |
-          cd tests/yt-download
-          uv lock
+        working-directory: tests/yt-download
+        run: uv lock
 
-      - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v7
+      - name: Open or update the update PR
+        uses: peter-evans/create-pull-request@v7
         with:
-          commit_message: "chore: daily update of yt-dlp dependency"
-          file_pattern: "tests/yt-download/pyproject.toml tests/yt-download/uv.lock"
+          branch: chore/yt-dlp-update
+          delete-branch: true
+          commit-message: "chore(deps): atualiza yt-dlp para ${{ env.YT_DLP_VERSION }}"
+          title: "chore(deps): atualiza yt-dlp para ${{ env.YT_DLP_VERSION }}"
+          body: |
+            Atualiza `tests/yt-download` para yt-dlp `${{ env.YT_DLP_VERSION }}`
+            (lockfile regenerado com `uv lock`).
+
+            Gerado pelo workflow `update-yt-dlp.yml`.
+          add-paths: |
+            tests/yt-download/pyproject.toml
+            tests/yt-download/uv.lock
