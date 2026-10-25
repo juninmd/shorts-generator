@@ -259,14 +259,13 @@ describe('quiz-assets.service', () => {
       expect(res.questions.length).toBe(1);
     });
   });
-});
-
+  describe('wrapText edge cases', () => {
     it('handles falsy currentLine before pushing', () => {
       // Simulate currentLine being falsy before push by manipulating variables,
       // but wrapText doesn't expose internal state. Let's see if we can trigger it.
       // If currentLine is falsy, it wouldn't push. But currentLine starts empty,
       // and is only set to truthy values.
-      // Actually, since we modified wrapText to remove v8 ignores, we just need ANY coverage.
+      expect(wrapText('', 5)).toBe('');
     });
 
     it('handles truthy currentLine and truthy push', () => {
@@ -278,3 +277,5 @@ describe('quiz-assets.service', () => {
       // test wrapText branch on line 17
       expect(wrapText('w1', 0)).toBe('w1');
     });
+  });
+});
