@@ -14,6 +14,11 @@ describe("peakHours", () => {
     process.env.PEAK_HOURS = "xx";
     expect(peakHours()).toEqual([12, 18, 21]);
   });
+
+  it("rejects partially numeric tokens instead of truncating them", () => {
+    process.env.PEAK_HOURS = "18abc,12.5,7,1e1";
+    expect(peakHours()).toEqual([7]);
+  });
 });
 
 describe("nextPeakSlot", () => {
@@ -28,6 +33,11 @@ describe("nextPeakSlot", () => {
       "2026-10-20T15:00:00.000Z", // 12:00 BRT next day
       "2026-10-20T21:00:00.000Z",
     ]);
+  });
+
+  it("falls back to America/Sao_Paulo when PUBLISH_TZ is not a valid zone", () => {
+    process.env.PUBLISH_TZ = "Brasil/Sao_Paulo";
+    expect(nextPeakSlot(now).toISOString()).toBe("2026-10-19T21:00:00.000Z");
   });
 
   it("requires a 10 minute lead", () => {

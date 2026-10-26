@@ -1,12 +1,29 @@
+import { logger } from "./logger.js";
+
 const DEFAULT_PEAK_HOURS = [12, 18, 21];
+const DEFAULT_TIME_ZONE = "America/Sao_Paulo";
 const MIN_LEAD_MS = 10 * 60_000;
+const HOUR_TOKEN = /^\d{1,2}$/;
 
 /** Peak posting hours (local to PUBLISH_TZ) from PEAK_HOURS, e.g. "12,18,21"; invalid values are ignored. */
 export function peakHours(): number[] {
   const hours = (process.env.PEAK_HOURS ?? "").split(",")
-    .map((value) => Number.parseInt(value.trim(), 10))
-    .filter((hour) => hour >= 0 && hour <= 23);
+    .map((value) => value.trim())
+    .filter((token) => HOUR_TOKEN.test(token) && Number(token) <= 23)
+    .map(Number);
   return hours.length > 0 ? [...new Set(hours)].sort((a, b) => a - b) : DEFAULT_PEAK_HOURS;
+}
+
+/** PUBLISH_TZ when it names a zone Intl knows; otherwise the default zone, with a warning. */
+function resolveTimeZone(value: string | undefined): string {
+  if (!value) return DEFAULT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return value;
+  } catch {
+    logger.warn({ timeZone: value }, `PUBLISH_TZ invalido, usando ${DEFAULT_TIME_ZONE}`);
+    return DEFAULT_TIME_ZONE;
+  }
 }
 
 /** Offset of `timeZone` from UTC at `instant`, in minutes. */
@@ -30,7 +47,7 @@ function zonedHourToUtc(year: number, month: number, day: number, hour: number, 
  * The `index`-th upcoming peak-hour slot (0 = next one, at least 10 minutes
  * out), so a batch of shorts is spread over consecutive peaks instead of posted together.
  */
-export function nextPeakSlot(now: Date, index = 0, timeZone = process.env.PUBLISH_TZ || "America/Sao_Paulo"): Date {
+export function nextPeakSlot(now: Date, index = 0, timeZone = resolveTimeZone(process.env.PUBLISH_TZ)): Date {
   const hours = peakHours();
   const slots: number[] = [];
   const localNow = new Date(now.getTime() + zoneOffsetMinutes(now.getTime(), timeZone) * 60_000);
