@@ -38,3 +38,6 @@ scripts/decode-secrets.ts
 scripts/generate-reauth-urls.ts
 scripts/print-db-channels.ts
 scripts/print-redis-queue.ts
+
+# Python wheels must never be committed (install via requirements instead)
+*.whl
