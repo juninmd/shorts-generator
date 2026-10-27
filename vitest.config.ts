@@ -5,7 +5,7 @@ export default defineConfig({
     fileParallelism: false,
     testTimeout: 20000,
     include: ['tests/**/*.test.ts', 'tests/**/*.health.ts'],
-    exclude: ['web/**', 'src/core/comic/**', 'src/core/youtube.ts'],
+    exclude: ['web/**', 'node_modules/**', 'dist/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -17,8 +17,8 @@ export default defineConfig({
         'src/types-pipeline.ts',
         'src/types-video.ts',
         'src/core/comic/comic-types.ts',
-        'src/core/youtube.ts',
-        'src/core/comic/demo-books.ts',
+
+
         'src/core/publishers/types.ts',
       ],
       all: true,
