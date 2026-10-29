@@ -24,6 +24,11 @@ vi.mock("node:fs", async (importOriginal) => {
 
 vi.mock("../../../src/core/ffmpeg-bin.js", () => ({ ffmpegBin: () => "ffmpeg" }));
 
+import * as demoBooksFlash from "../../../src/core/comic/demo-books-flash.js";
+import * as demoBooksShrek from "../../../src/core/comic/demo-books-shrek.js";
+import * as demoBooksMisc from "../../../src/core/comic/demo-books-misc.js";
+import * as demoBooksBarrel from "../../../src/core/comic/demo-books.js";
+
 import {
   buildFlashpointDemoBook,
   buildShrek1DemoBook,
@@ -61,4 +66,13 @@ describe("demo-books", () => {
       expect(cp.execFile).toHaveBeenCalled();
     });
   }
+
+  it("should re-export verified functions correctly", () => {
+    expect(demoBooksBarrel.buildFlashpointDemoBook).toBe(demoBooksFlash.buildFlashpointDemoBook);
+    expect(demoBooksBarrel.buildFlashEpisode1DemoBook).toBe(demoBooksFlash.buildFlashEpisode1DemoBook);
+    expect(demoBooksBarrel.buildShrek1DemoBook).toBe(demoBooksShrek.buildShrek1DemoBook);
+    expect(demoBooksBarrel.buildBiographyDemoBook).toBe(demoBooksMisc.buildBiographyDemoBook);
+    expect(demoBooksBarrel.buildNewsDigestDemoBook).toBe(demoBooksMisc.buildNewsDigestDemoBook);
+    expect(demoBooksBarrel.buildBookRecapDemoBook).toBe(demoBooksMisc.buildBookRecapDemoBook);
+  });
 });
