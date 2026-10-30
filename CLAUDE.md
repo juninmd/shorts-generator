@@ -96,6 +96,30 @@ ComicBook { id, title, chapters: [{ id, title, imagePath, narrationText }] }
 - **Delivery quality** (`delivery-spec.ts`, `encode-settings.ts`, `ffmpeg-run.ts`, `loudness.ts`, `delivery-check.ts`, `short-delivery.ts`, `hdr-tonemap.ts`): every render is encoded for a destination (`DELIVERY_PLATFORM`, default `shorts`: 1080x1920/30 fps, 2 s GOP, bitrate cap, `+faststart`, BT.709 tags, AAC 48 kHz stereo), HDR sources are tone-mapped when the build has `zscale`/`tonemap` (without them the source colour tags are kept, never relabelled; a BT.601 source is converted with its own matrix), the audio is normalised in two EBU R128 passes to −14 LUFS/−1 dBTP with the picture stream-copied, and the written file is re-probed against the destination spec. `LOUDNESS_NORMALIZE=false` skips the level pass; `FFMPEG_TIMEOUT_MS` (default 30 min) kills a hung job and removes its partial output, and every ffprobe call carries the same ceiling. Adopted from [`ffmpeg-skill`](https://github.com/kajisho5/ffmpeg-skill) — rationale and file map in `docs/FFMPEG_SKILL_IMPROVEMENTS.md`.
 - **Publishing** (`social-copy.ts`, `publishers/`, `social-queue.ts`, `publish-schedule.ts`, `server/social-media-routes.ts`): `TITLE_STYLE` (catchy/curious/serious/question) steers the title prompt; platform-sized copy for Bluesky, Instagram Reels, Threads, TikTok and Pinterest; one BullMQ job per platform in the `social-posts` queue, delayed to the next `PEAK_HOURS` slot (`PUBLISH_TZ`; `SOCIAL_SCHEDULE=false` = next run) and drained by `queue:process`. Instagram/Threads/TikTok pull the video from `SERVER_PUBLIC_URL/public/social/<unguessable>.mp4`. Credentials per platform: `BLUESKY_HANDLE`+`BLUESKY_APP_PASSWORD`, `INSTAGRAM_USER_ID`+`INSTAGRAM_ACCESS_TOKEN`, `THREADS_USER_ID`+`THREADS_ACCESS_TOKEN`, `TIKTOK_ACCESS_TOKEN` (`TIKTOK_PRIVACY`, default `SELF_ONLY`), `PINTEREST_ACCESS_TOKEN`+`PINTEREST_BOARD_ID`; `PUBLISH_PLATFORMS` limits the set. The platform HTTP flows are unit-tested against mocks only — verify against each live API before relying on them.
 
+### Quiz Pipeline (`src/core/quiz/`)
+
+`pnpm generate:quiz` (or `runQuizPipeline`) turns a topic into a vertical quiz video:
+
+```
+topic → quiz-content.service  → generate (zod: lengths, option distinctness, no repeated question)
+                              → repairQuizContent (duplicate/placeholder options, repeated questions)
+                              → blind audit (quiz-audit.ts: the model solves the quiz WITHOUT the key)
+                                  · wrong key + high confidence → key corrected
+                                  · "incorreta"/"ambígua" + high confidence → question dropped
+                                  · dropped slots → one replacement request (capped at 4)
+                              → balanceAnswerKey (deterministic shuffle; the right letter rotates)
+      → quiz-tts.service      → edge-tts narration per question/reveal + outro
+      → quiz-video.service    → prepareBackground (drifting gradient, vignette, CRF 18)
+                              → prepareTextFiles (one file per wrapped line: each line can be centred)
+                              → quiz-filters/quiz-frames (text panel, shadows, countdown chip,
+                                 green reveal chip, beep volume, limiter, 48 kHz)
+                              → runFFmpeg (timeout, stderr tail on failure) + finishDelivery
+      → Telegram / YouTube    → queue on daily limit, retry on failure
+```
+
+`QUIZ_AUDIT=false` skips the second-opinion call (offline gateways); the deterministic checks always run. Font is the bundled `assets/fonts/Poppins-ExtraBold.ttf` when present, Arial otherwise.
+
+
 ### Configuration
 
 All config is environment-driven via `src/core/config.ts`. Copy `.env.example` to `.env`. Key variables:
@@ -118,6 +142,7 @@ All config is environment-driven via `src/core/config.ts`. Copy `.env.example` t
 | `DELIVERY_PLATFORM` | `shorts` | Destination spec the render is verified against (`shorts`, `reels`, `tiktok`) |
 | `LOUDNESS_NORMALIZE` | `true` | Two-pass EBU R128 pass after the render (`false` keeps mixed levels) |
 | `FFMPEG_TIMEOUT_MS` | `1800000` | Ceiling for one ffmpeg job; a hung encoder is killed and its partial output removed |
+| `QUIZ_AUDIT` | `true` | Second-opinion audit of quiz questions/answers (`false` skips the extra LLM call) |
 | `PEXELS_API_KEY` | — | Stock footage for `generate:faceless` |
 
 ### External Tool Dependencies
