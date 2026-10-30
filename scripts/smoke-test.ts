@@ -103,10 +103,11 @@ async function checkDeliveryCapabilities() {
  */
 async function checkDeliveryEncode() {
   const spec = DELIVERY_SPECS.shorts!;
-  // A private directory: a predictable name in a shared /tmp could be pre-planted as a symlink.
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shorts-smoke-"));
-  const output = path.join(dir, "delivery.mp4");
+  let dir: string | undefined;
   try {
+    // A private directory: a predictable name in a shared /tmp could be pre-planted as a symlink.
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "shorts-smoke-"));
+    const output = path.join(dir, "delivery.mp4");
     await execFileAsync(ffmpegBin(), [
       "-hide_banner", "-nostdin", "-y",
       "-f", "lavfi", "-i", `testsrc2=s=${spec.width}x${spec.height}:r=${spec.fps}:d=1`,
@@ -124,7 +125,7 @@ async function checkDeliveryEncode() {
     return false;
   } finally {
     try {
-      fs.rmSync(dir, { recursive: true, force: true });
+      if (dir) fs.rmSync(dir, { recursive: true, force: true });
     } catch {
       // A diagnostic must report its result, not fail on cleanup.
     }
