@@ -23,9 +23,11 @@ const baseAssets: QuizFilterAssets = {
   fontFile: "font.ttf",
   textFiles: quiz.perguntas.map((_, i) => ({
     qTxtPath: `q${i}.txt`,
+    qLinePaths: [`q${i}_l0.txt`],
     optTxtPaths: { A: `q${i}optA.txt`, B: `q${i}optB.txt`, C: `q${i}optC.txt`, D: `q${i}optD.txt` },
   })),
   outroTxtPath: "outro.txt",
+  outroLinePaths: ["outro_l0.txt"],
   hookTxtPath: "hook.txt",
   hasMusic: true,
   hasBeep: true,
@@ -56,8 +58,23 @@ describe("quiz-filters.service", () => {
     // one countdown digit drawtext per timer second per question
     const digits = filterComplex.match(/drawtext=text='\d'/g) ?? [];
     expect(digits).toHaveLength(TIMER_SECONDS * quiz.perguntas.length);
-    // correct option gets the green reveal variant
-    expect(filterComplex).toContain("fontcolor=green");
+    // the correct option is revealed on a green chip
+    expect(filterComplex).toContain("boxcolor=0x2e7d32@0.95");
+    // every glyph has a shadow and the text sits on a dark panel
+    expect(filterComplex).toContain("shadowcolor=black@0.7");
+    expect(filterComplex).toContain("drawbox=x=36:y=360:w=1008:h=1200:color=black@0.34");
+  });
+
+  it("shrinks the question type as the wrapped text grows", () => {
+    const longQuiz = {
+      ...quiz,
+      perguntas: quiz.perguntas.map((question) => ({
+        ...question,
+        pergunta: "Uma pergunta bastante longa que quebra em varias linhas no painel de texto?",
+      })),
+    };
+    const { filterComplex } = generateFilters(longQuiz, timeline, baseAssets);
+    expect(filterComplex).toContain("fontsize=42");
   });
 
   it("concatenates narrations with one silent gap per question", () => {
@@ -83,7 +100,14 @@ describe("quiz-filters.service", () => {
     expect(ffmpegInputs.filter((arg) => arg === "-i")).toHaveLength(8);
     expect(filterComplex).not.toContain("asplit");
     expect(filterComplex).not.toContain("aloop");
-    expect(filterComplex).toContain("volume=1.0[aout]");
+    expect(filterComplex).toContain("alimiter=limit=0.95:level=false[aout]");
+  });
+
+  it("keeps the beep under the narration and limits the summed audio", () => {
+    const { filterComplex } = generateFilters(quiz, timeline, baseAssets);
+    expect(filterComplex).toContain("[8:a]volume=0.35,asplit=9");
+    expect(filterComplex).toContain("volume=0.1[bgm]");
+    expect(filterComplex).toContain("normalize=0,alimiter=limit=0.95:level=false[aout]");
   });
 
   it("handles image background and draws logo when provided", () => {
@@ -97,8 +121,8 @@ describe("quiz-filters.service", () => {
     const { filterComplex, ffmpegInputs } = generateFilters(quiz, timeline, assetsWithLogo);
 
     expect(ffmpegInputs.join(" ")).toContain("-loop 1 -framerate 30 -i");
-    expect(filterComplex).toContain("overlay=40:40[vlogo]");
-    expect(filterComplex).toContain("x=200:y=100"); // Watermark shifted for logo
+    expect(filterComplex).toContain("overlay=40:150[vlogo]");
+    expect(filterComplex).toContain("x=180:y=176"); // Watermark shifted for logo
   });
 
   it("handles missing option text files gracefully", () => {
@@ -107,6 +131,7 @@ describe("quiz-filters.service", () => {
       textFiles: [
         {
           qTxtPath: "q0.txt",
+          qLinePaths: ["q0_l0.txt"],
           optTxtPaths: { A: "optA.txt", B: "optB.txt", C: "", D: "optD.txt" } // C missing
         },
         ...baseAssets.textFiles.slice(1)

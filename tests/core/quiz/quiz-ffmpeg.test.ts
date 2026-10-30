@@ -45,6 +45,23 @@ describe("quiz-ffmpeg.service", () => {
     await expect(promise).rejects.toThrow("FFmpeg exited with code 1");
   });
 
+  it("reports the end of stderr so a failed render explains itself", async () => {
+    const mockProcess = new EventEmitter() as any;
+    mockProcess.stderr = new EventEmitter();
+    vi.mocked(child_process.spawn).mockReturnValue(mockProcess);
+
+    const promise = runFFmpeg(["-i", "input.mp4"], "filter", "out.mp4", 100);
+    const lines = Array.from({ length: 25 }, (_, i) => `line ${i}`);
+    mockProcess.stderr.emit("data", Buffer.from(lines.join("\n") + "\n"));
+    mockProcess.emit("close", 1);
+
+    const error = await promise.catch((err: Error) => err);
+    expect(error.message).toContain("FFmpeg exited with code 1:");
+    // only the tail is kept: the 25th line is there, the first ones are not
+    expect(error.message).toContain("line 24");
+    expect(error.message).not.toContain("line 0 ");
+  });
+
   it("handles malformed hms gracefully by returning 0", async () => {
       const mockProcess = new EventEmitter() as any;
       mockProcess.stderr = new EventEmitter();
