@@ -40,7 +40,9 @@ export const runFFmpeg = async (
     "-filter_threads", "2",
     // Same encoder line as a short: this build ignores the generic -color_* options,
     // so only the x264 params actually tag the quiz BT.709.
-    ...buildVideoEncoderArgs({ encoder: "libx264", spec: QUIZ_SPEC, quality: 23, preset: "veryfast" }),
+    // Text-heavy frames: CRF 20 at `medium` is a visible step up from `veryfast` 23
+    // and still encodes a mostly-static quiz in seconds.
+    ...buildVideoEncoderArgs({ encoder: "libx264", spec: QUIZ_SPEC, quality: 20, preset: "medium" }),
     ...buildAudioEncoderArgs(QUIZ_SPEC, 192),
     "-movflags", "+faststart",
     "-t", totalSeconds.toString(),
@@ -56,6 +58,8 @@ export const runFFmpeg = async (
     let lastPct = -1;
     let timedOut = false;
     let settled = false;
+    /** Last lines of stderr, so a failed render explains itself instead of "exit code 1". */
+    const stderrTail: string[] = [];
     const startedAt = Date.now();
     const timeoutMs = ffmpegTimeoutMs();
 
@@ -74,11 +78,11 @@ export const runFFmpeg = async (
 
     ff.stderr.on("data", (chunk: Buffer | string) => {
       const str = chunk.toString();
+      const lines = str.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      stderrTail.push(...lines.slice(-20));
+      stderrTail.splice(0, Math.max(0, stderrTail.length - 20));
 
-      for (const rawLine of str.split(/\r?\n/)) {
-        const line = rawLine.trim();
-        if (!line) { continue; }
-
+      for (const line of lines) {
         if (/^(Input #|Duration:|Stream #|Metadata:)/.test(line)) {
           logger.debug(line);
         }
@@ -110,7 +114,8 @@ export const runFFmpeg = async (
       } else {
         // A truncated mp4 must not sit where the next stage looks for a deliverable.
         removePartial(outputPath);
-        reject(new Error(`FFmpeg exited with code ${code}`));
+        const detail = stderrTail.length > 0 ? `: ${stderrTail.slice(-8).join(" | ")}` : "";
+        reject(new Error(`FFmpeg exited with code ${code}${detail}`));
       }
     });
 
