@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import fs from "node:fs";
+import path from "node:path";
 import { publicVideoUrl, publishSocialPost, pruneSocialFiles, socialDir } from "../../src/core/social-publish.js";
 import { PUBLISHERS } from "../../src/core/publishers/index.js";
 
@@ -16,7 +17,7 @@ const job = {
 
 describe("social files", () => {
   it("lives under the output directory", () => {
-    expect(socialDir({ outputDir: "/out" })).toBe("/out/social");
+    expect(socialDir({ outputDir: "/out" })).toBe(path.join("/out", "social"));
   });
 
   it("builds the public URL without doubling slashes, undefined without a base", () => {
@@ -33,14 +34,14 @@ describe("publishSocialPost", () => {
     const spy = vi.spyOn(PUBLISHERS.bluesky, "publish").mockResolvedValue("https://bsky.app/post/1");
     expect(await publishSocialPost(job)).toBe("https://bsky.app/post/1");
     expect(spy).toHaveBeenCalledWith({
-      videoPath: "/out/social/abc.mp4", videoUrl: "https://srv.example/public/social/abc.mp4", copy: job.copy,
+      videoPath: path.join("/out", "social", "abc.mp4"), videoUrl: "https://srv.example/public/social/abc.mp4", copy: job.copy,
     });
     spy.mockRestore();
   });
 
   it("fails when the queued copy is gone", async () => {
     vi.mocked(fs.existsSync).mockReturnValue(false);
-    await expect(publishSocialPost(job)).rejects.toThrow("Social video not found: /out/social/abc.mp4");
+    await expect(publishSocialPost(job)).rejects.toThrow(`Social video not found: ${path.join("/out", "social", "abc.mp4")}`);
   });
 });
 
@@ -53,7 +54,7 @@ describe("pruneSocialFiles", () => {
     vi.mocked(fs.readdirSync).mockReturnValue(["old.mp4", "new.mp4"] as any);
     vi.mocked(fs.statSync).mockImplementation(((file: string) => ({ mtimeMs: file.endsWith("old.mp4") ? now - 8 * day : now - day })) as any);
     expect(pruneSocialFiles({ outputDir: "/out" }, now)).toBe(1);
-    expect(fs.unlinkSync).toHaveBeenCalledWith("/out/social/old.mp4");
+    expect(fs.unlinkSync).toHaveBeenCalledWith(path.join("/out", "social", "old.mp4"));
   });
 
   it("does nothing without the directory", () => {

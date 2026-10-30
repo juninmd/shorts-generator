@@ -13,7 +13,7 @@ const probeJson = JSON.stringify({
   format: { duration: "10" },
   streams: [
     { codec_type: "video", codec_name: "h264", width: 1080, height: 1920, r_frame_rate: "30/1" },
-    { codec_type: "audio", codec_name: "aac", sample_rate: "44100", channels: 2 },
+    { codec_type: "audio", codec_name: "aac", sample_rate: "48000", channels: 2 },
   ],
 });
 const tracker = "[[0.25,0.5],[0.75,0.5],[1.25,0.5],[1.75,0.9],[2.25,0.9],[2.75,0.9]]";
@@ -61,7 +61,7 @@ describe("renderShort with an edit plan", () => {
     expect(graph).toContain("[cv]crop=640:360:0:60,scale=");
     expect(graph).toContain("[pre][brv0]overlay=enable='between(t\\,3.000\\,5.600)'");
     expect(graph).toContain("[ca]highpass=f=70");
-    expect(graph).toContain("[1:a]aresample=44100");
+    expect(graph).toContain("[1:a]aresample=48000");
     expect(graph).toContain("[2:v]trim=duration=2.6");
     expect(args).toEqual(expect.arrayContaining(["-stream_loop", "bgm.mp3", "b.mp4"]));
     expect(args[args.indexOf("-t") + 1]).toBe("2.6");

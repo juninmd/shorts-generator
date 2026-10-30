@@ -14,7 +14,10 @@ vi.mock("../../../src/core/quiz/quiz.domain.js");
 vi.mock("../../../src/core/quiz/quiz-assets.service.js");
 vi.mock("../../../src/core/quiz/quiz-filters.service.js");
 vi.mock("../../../src/core/quiz/quiz-ffmpeg.service.js");
-vi.mock("../../../src/core/logger.js", () => ({ logger: { info: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+vi.mock("../../../src/core/short-delivery.js", () => ({
+  finishDelivery: vi.fn().mockResolvedValue({ destination: "custom", normalized: false, loudnessOk: null, warnings: [] }),
+}));
+vi.mock("../../../src/core/logger.js", () => ({ logger: { info: vi.fn(), error: vi.fn(), debug: vi.fn(), warn: vi.fn() } }));
 
 describe("quiz-video.service", () => {
   const validQuiz = {

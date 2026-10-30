@@ -19,7 +19,9 @@ vi.mock("node:fs", () => ({
 
 vi.mock("../../src/core/ffmpeg-bin.js", () => ({
   probeFormat: vi.fn().mockResolvedValue({ duration: "120" }),
+  probeVideoStream: vi.fn().mockResolvedValue({ color_space: "bt709" }),
   ffmpegBin: () => "ffmpeg",
+  ffprobeBin: () => "ffprobe",
 }));
 
 describe("video-processor", () => {
@@ -73,7 +75,7 @@ describe("video-processor", () => {
           format: { duration: "10" },
           streams: [
             { codec_type: "video", codec_name: "h264", width: 1080, height: 1920, r_frame_rate: "30/1" },
-            { codec_type: "audio", codec_name: "aac" },
+            { codec_type: "audio", codec_name: "aac", sample_rate: "48000" },
           ],
         };
         if (typeof cb === "function") {

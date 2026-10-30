@@ -23,7 +23,7 @@ const probeJson = JSON.stringify({
   format: { duration: "10" },
   streams: [
     { codec_type: "video", codec_name: "h264", width: 1080, height: 1920, r_frame_rate: "30/1" },
-    { codec_type: "audio", codec_name: "aac", sample_rate: "44100", channels: 2 },
+    { codec_type: "audio", codec_name: "aac", sample_rate: "48000", channels: 2 },
   ],
 });
 
@@ -115,7 +115,7 @@ describe("short-renderer", () => {
       const call = vi.mocked(execFile).mock.calls.find((c) => (c[1] as string[]).includes("-filter_complex"))!;
       const args = call[1] as string[];
       expect(args.slice(args.indexOf("-stream_loop"), args.indexOf("-stream_loop") + 4)).toEqual(["-stream_loop", "-1", "-i", "bgm.mp3"]);
-      expect(args[args.indexOf("-filter_complex") + 1]).toContain("[2:a]aresample=44100,volume=");
+      expect(args[args.indexOf("-filter_complex") + 1]).toContain("[2:a]aresample=48000,volume=");
       expect(args).toContain("[aout]");
       expect(args).not.toContain("-af");
     });

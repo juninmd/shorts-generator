@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Quiz } from "./quiz.domain.js";
 import { logger } from "../logger.js";
+import { ffmpegBin } from "../ffmpeg-bin.js";
 
 export const wrapText = (text: string, maxLen: number): string => {
   if (!text) return "";
@@ -81,7 +82,7 @@ const GRADIENT_PALETTES: Array<[string, string]> = [
 export const prepareBackground = (tempDir: string, durationSec = 60): string => {
   const [c0, c1] = GRADIENT_PALETTES[Math.floor(Math.random() * GRADIENT_PALETTES.length)]!;
   const bgVideo = path.join(tempDir, "bg_gradient.mp4");
-  const render = spawnSync("ffmpeg", [
+  const render = spawnSync(ffmpegBin(), [
     "-y", "-f", "lavfi",
     "-i", `gradients=s=1080x1920:c0=${c0}:c1=${c1}:speed=0.03:r=30`,
     "-t", String(Math.ceil(durationSec)),
@@ -96,7 +97,7 @@ export const prepareBackground = (tempDir: string, durationSec = 60): string => 
   if (!fs.existsSync(fallback)) {
     fallback = path.join(tempDir, "bg_default.jpg");
     if (!fs.existsSync(fallback)) {
-      spawnSync("ffmpeg", ["-y", "-f", "lavfi", "-i", "color=c=darkblue:s=1080x1920:d=1", "-frames:v", "1", normalizePath(fallback)]);
+      spawnSync(ffmpegBin(), ["-y", "-f", "lavfi", "-i", "color=c=darkblue:s=1080x1920:d=1", "-frames:v", "1", normalizePath(fallback)]);
     }
   }
   return fallback;

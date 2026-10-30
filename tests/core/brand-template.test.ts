@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
+import path from "node:path";
 import { DEFAULT_BRAND, loadBrandTemplate } from "../../src/core/brand-template.js";
 
 vi.mock("node:fs", async (importOriginal) => {
@@ -28,32 +29,32 @@ describe("loadBrandTemplate", () => {
   });
 
   it("lets CAPTION_FONT override the font", () => {
-    files["brand-templates/default.json"] = JSON.stringify({ font: "Cinzel" });
+    files[path.join("brand-templates", "default.json")] = JSON.stringify({ font: "Cinzel" });
     process.env.CAPTION_FONT = "Montserrat Black";
     expect(loadBrandTemplate().font).toBe("Montserrat Black");
   });
 
   it("layers default.json then the channel's file (id or name slug)", () => {
-    files["brand-templates/default.json"] = JSON.stringify({ highlightColor: "#00FF00", font: "Inter" });
-    files["brand-templates/santidade-catolica.json"] = JSON.stringify({ font: "Cinzel", cta: "Siga!" });
+    files[path.join("brand-templates", "default.json")] = JSON.stringify({ highlightColor: "#00FF00", font: "Inter" });
+    files[path.join("brand-templates", "santidade-catolica.json")] = JSON.stringify({ font: "Cinzel", cta: "Siga!" });
     const brand = loadBrandTemplate(["id-1", "Santidade Católica"]);
     expect(brand).toMatchObject({ highlightColor: "#00FF00", font: "Cinzel", cta: "Siga!" });
   });
 
   it("ignores unreadable, non-object or invalid templates", () => {
-    files["brand-templates/default.json"] = "not json";
-    files["brand-templates/a.json"] = "[1,2]";
+    files[path.join("brand-templates", "default.json")] = "not json";
+    files[path.join("brand-templates", "a.json")] = "[1,2]";
     expect(loadBrandTemplate(["a"])).toEqual(DEFAULT_BRAND);
   });
 
   it("honors BRAND_TEMPLATES_DIR and skips empty channel keys", () => {
     process.env.BRAND_TEMPLATES_DIR = "/brands";
-    files["/brands/default.json"] = JSON.stringify({ fontScale: 1.2 });
+    files[path.join("/brands", "default.json")] = JSON.stringify({ fontScale: 1.2 });
     expect(loadBrandTemplate([undefined, "", "!!!"]).fontScale).toBe(1.2);
   });
 
   it("lets env switches override files", () => {
-    files["brand-templates/default.json"] = JSON.stringify({ hook: false, lowerThird: false, emoji: false });
+    files[path.join("brand-templates", "default.json")] = JSON.stringify({ hook: false, lowerThird: false, emoji: false });
     process.env.CAPTION_EMOJI = "true";
     process.env.HOOK_OVERLAY = "true";
     process.env.LOWER_THIRD = "true";
