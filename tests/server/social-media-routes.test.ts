@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import fs from "node:fs";
+import path from "node:path";
 import { Hono } from "hono";
 import { registerSocialMediaRoutes } from "../../src/server/social-media-routes.js";
 
@@ -23,7 +24,7 @@ describe("GET /public/social/:name", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("video/mp4");
     expect(await response.text()).toBe("mp4bytes");
-    expect(fs.readFileSync).toHaveBeenCalledWith(`/out/social/${NAME}`);
+    expect(fs.readFileSync).toHaveBeenCalledWith(path.join("/out", "social", NAME));
   });
 
   it("404s for names that were not issued by the queue (no traversal, wrong shape)", async () => {

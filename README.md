@@ -25,11 +25,21 @@ Toda a configuração vem de variáveis de ambiente (`src/core/config.ts`). O `.
 - Pipeline: `YOUTUBE_CHANNELS`, `VIDEO_LIMIT`, `MAX_CLIPS_PER_VIDEO`, `MIN_VIRAL_SCORE`, `MAX_SHORT_DURATION`, `MIN_SHORT_DURATION`, `OUTPUT_DIR`, `WATERMARK_TEXT`
 - IA e transcrição: `AI_MODEL`, `AI_TIMEOUT_MS`, `LITELLM_BASE_URL`, `LITELLM_KEY`, `WHISPER_BASE_URL`, `WHISPER_REQUEST_TIMEOUT_MS`
 - Entrega: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MAX_DAILY_UPLOADS`
+- Qualidade de entrega: `DELIVERY_PLATFORM` (`shorts` padrão, `reels`, `tiktok`), `LOUDNESS_NORMALIZE=false` para desligar o loudnorm, `FFMPEG_TIMEOUT_MS` (padrão 30 min)
 - Enquadramento: `SPEAKER_FOCUS`, `SPEAKER_TRACKING`
 - Control plane (obrigatórias para o painel): `PORT`, `DATABASE_URL`, `ADMIN_API_TOKEN`, `ADMIN_ALLOWED_ORIGINS`, `CONTROL_PLANE_ENCRYPTION_KEY` (base64 de 32 bytes), `CONTROL_PLANE_ENCRYPTION_KEY_VERSION`
 - Fluxo do canal: `CHANNEL_FLOW_MODE=cuts` e `VITE_CHANNEL_FLOW_MODE=cuts` bloqueiam runs/criação de `quiz` (modo do cluster); fora do cluster, `quiz` segue disponível
 
 O control plane roda as migrations de `db/migrations/` automaticamente quando `ADMIN_API_TOKEN`, `DATABASE_URL` e `CONTROL_PLANE_ENCRYPTION_KEY` estão definidos.
+
+## Qualidade de entrega (FFmpeg)
+
+Todo short passa por um acabamento antes de ser publicado, inspirado no contrato do [`ffmpeg-skill`](https://github.com/kajisho5/ffmpeg-skill) (ver [`docs/FFMPEG_SKILL_IMPROVEMENTS.md`](docs/FFMPEG_SKILL_IMPROVEMENTS.md)):
+
+- **Loudness EBU R128 em duas passadas** (`src/core/loudness.ts`): a fala é medida, normalizada para −14 LUFS / −1 dBTP e medida de novo; só o áudio é re-encodado (`-c:v copy`), e o teto de true peak é corrigido quando o AAC estoura.
+- **Gate de entrega** (`src/core/delivery-check.ts` + `src/core/delivery-spec.ts`): 1080×1920, 30 fps, H.264 High, AAC 48 kHz estéreo, duração dentro da plataforma (`shorts` 180 s, `reels` 90 s, `tiktok` 600 s). Falha bloqueia a publicação; formato de pixel e tags de cor fora do padrão viram aviso.
+- **Codificação de entrega** (`src/core/encode-settings.ts`): GOP fixo de 2 s, teto de bitrate, `+faststart`, tags BT.709, conversão BT.601→BT.709 e tone map HDR→SDR quando o build tem `zscale`/`tonemap`.
+- **Robustez** (`src/core/ffmpeg-run.ts`): `-nostdin`, timeout configurável e remoção do arquivo parcial; o renderer do quiz também é encerrado por timeout e loga progresso com ETA.
 
 ## Uso
 
