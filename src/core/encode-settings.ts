@@ -17,24 +17,25 @@ export const BT709_TAGS = [
 /** Video deliveries are 48 kHz; 44.1 kHz is a CD rate, not a platform rate. */
 export const AUDIO_SAMPLE_RATE = 48000;
 
-/** Source colour spaces that mean BT.601, with the matrix ffmpeg needs to convert each one. */
-const BT601_MATRICES: Record<string, string> = {
-  // 525-line/60 Hz (SMPTE 170M) and 625-line/50 Hz (BT.470 BG)
-  smpte170m: "bt601-6-525",
-  bt470bg: "bt601-6-625",
-  smpte240m: "bt601-6-525",
-  bt601: "bt601-6-625",
+/** Source colour spaces that mean BT.601, each with the exact `colorspace` input name. */
+const BT601_INPUTS: Record<string, string> = {
+  // 525-line/60 Hz (SMPTE 170M), 625-line/50 Hz (BT.470 BG), and 240M's own coefficients
+  smpte170m: "smpte170m",
+  bt470bg: "bt470bg",
+  smpte240m: "smpte240m",
+  // ffmpeg has no bare "bt601": the 625-line matrix is the closest generic label
+  bt601: "bt470bg",
 };
 
 /** True when the source's matrix is BT.601 and its pixels must be converted, not just relabelled. */
 export function needsBt709Conversion(colorSpace?: string | null): boolean {
-  return Boolean(BT601_MATRICES[(colorSpace ?? "").trim().toLowerCase()]);
+  return Boolean(BT601_INPUTS[(colorSpace ?? "").trim().toLowerCase()]);
 }
 
 /** Filter that converts a BT.601 source to BT.709 with its own matrix; "" when only tagging is needed. */
 export function buildBt709Filter(colorSpace?: string | null): string {
-  const matrix = BT601_MATRICES[(colorSpace ?? "").trim().toLowerCase()];
-  return matrix ? `colorspace=all=bt709:iall=${matrix}:fast=1,` : "";
+  const input = BT601_INPUTS[(colorSpace ?? "").trim().toLowerCase()];
+  return input ? `colorspace=all=bt709:iall=${input}:fast=1,` : "";
 }
 
 export function isNvenc(encoder: string): boolean {

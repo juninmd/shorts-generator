@@ -103,7 +103,9 @@ async function checkDeliveryCapabilities() {
  */
 async function checkDeliveryEncode() {
   const spec = DELIVERY_SPECS.shorts!;
-  const output = path.join(os.tmpdir(), `shorts-smoke-${process.pid}.mp4`);
+  // A private directory: a predictable name in a shared /tmp could be pre-planted as a symlink.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shorts-smoke-"));
+  const output = path.join(dir, "delivery.mp4");
   try {
     await execFileAsync(ffmpegBin(), [
       "-hide_banner", "-nostdin", "-y",
@@ -121,7 +123,11 @@ async function checkDeliveryEncode() {
     logger.error("❌ Delivery encode failed: " + err.message);
     return false;
   } finally {
-    fs.rmSync(output, { force: true });
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      // A diagnostic must report its result, not fail on cleanup.
+    }
   }
 }
 
