@@ -36,7 +36,12 @@ describe("ffmpeg-bin", () => {
     vi.stubEnv("FFPROBE_PATH", "");
     mockProbe(JSON.stringify({ format: { duration: "12.5", start_time: "0.0" } }));
     await expect(probeFormat("a.mp4")).resolves.toEqual({ duration: "12.5", start_time: "0.0" });
-    expect(execFile).toHaveBeenCalledWith("ffprobe", expect.arrayContaining(["a.mp4"]), expect.any(Object), expect.any(Function));
+    expect(execFile).toHaveBeenCalledWith(
+      "ffprobe",
+      expect.arrayContaining(["a.mp4"]),
+      expect.objectContaining({ timeout: 30 * 60 * 1000, killSignal: "SIGKILL" }),
+      expect.any(Function),
+    );
   });
 
   it("probeFormat returns an empty object when the format block is absent", async () => {
@@ -51,7 +56,7 @@ describe("ffmpeg-bin", () => {
     expect(execFile).toHaveBeenCalledWith(
       "ffprobe",
       expect.arrayContaining(["-select_streams", "v:0", "a.mp4"]),
-      expect.any(Object),
+      expect.objectContaining({ timeout: 30 * 60 * 1000, killSignal: "SIGKILL" }),
       expect.any(Function),
     );
   });

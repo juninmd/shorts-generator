@@ -3,12 +3,12 @@ import fs from "node:fs";
 import { promisify } from "node:util";
 import { buildFontEnv } from "./ffmpeg-env.js";
 import { ffmpegBin } from "./ffmpeg-bin.js";
+import { ffmpegTimeoutMs } from "./ffmpeg-timeout.js";
 
 const execFileAsync = promisify(execFile);
-
-/** Default ceiling for one ffmpeg job; a wedged encoder must not hang the queue forever. */
-const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 const STDERR_TAIL = 2000;
+
+export { ffmpegTimeoutMs };
 
 /**
  * Flags every invocation needs, following ffmpeg-skill's `ffmpeg_base()`:
@@ -17,12 +17,6 @@ const STDERR_TAIL = 2000;
  */
 export function ffmpegBaseArgs(): string[] {
   return ["-hide_banner", "-nostdin"];
-}
-
-/** `FFMPEG_TIMEOUT_MS`; invalid or non-positive values fall back to 30 minutes. */
-export function ffmpegTimeoutMs(): number {
-  const raw = Number.parseInt(process.env.FFMPEG_TIMEOUT_MS ?? "", 10);
-  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TIMEOUT_MS;
 }
 
 export interface FfmpegRunOptions {

@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import fs from "node:fs";
 import { runFFmpeg } from "../../../src/core/quiz/quiz-ffmpeg.service.js";
 import child_process from "node:child_process";
 import { EventEmitter } from "node:events";
 
 vi.mock("node:child_process");
+vi.mock("node:fs", () => ({ default: { rmSync: vi.fn() } }));
 
 describe("quiz-ffmpeg.service", () => {
   beforeEach(() => {
@@ -88,7 +90,21 @@ describe("quiz-ffmpeg.service", () => {
     mockProcess.emit("close", null);
 
     await assertion;
+    expect(fs.rmSync).toHaveBeenCalledWith("out.mp4", { force: true });
     vi.useRealTimers();
     vi.unstubAllEnvs();
+  });
+
+  it("rejects when ffmpeg cannot start instead of crashing the worker", async () => {
+    const mockProcess = new EventEmitter() as any;
+    mockProcess.stderr = new EventEmitter();
+    mockProcess.kill = vi.fn();
+    vi.mocked(child_process.spawn).mockReturnValue(mockProcess);
+
+    const promise = runFFmpeg(["-i", "input.mp4"], "filter", "out.mp4", 100);
+    mockProcess.emit("error", new Error("spawn ffmpeg ENOENT"));
+
+    await expect(promise).rejects.toThrow("FFmpeg failed to start: spawn ffmpeg ENOENT");
+    expect(fs.rmSync).toHaveBeenCalledWith("out.mp4", { force: true });
   });
 });

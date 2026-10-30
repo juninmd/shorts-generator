@@ -9,6 +9,7 @@ import {
 } from "./delivery-check.js";
 import { activeDeliverySpec, type DeliverySpec } from "./delivery-spec.js";
 import { ffprobeBin } from "./ffmpeg-bin.js";
+import { ffmpegTimeoutMs } from "./ffmpeg-timeout.js";
 import { logger } from "./logger.js";
 
 const execFileAsync = promisify(execFile);
@@ -28,7 +29,7 @@ export async function probeRenderedShort(filePath: string): Promise<ProbeMetadat
     "-show_entries", `format=duration:stream=${PROBE_ENTRIES}`,
     "-of", "json",
     filePath,
-  ], { maxBuffer: 1024 * 1024 });
+  ], { maxBuffer: 1024 * 1024, timeout: ffmpegTimeoutMs(), killSignal: "SIGKILL" });
   return JSON.parse(stdout) as ProbeMetadata;
 }
 

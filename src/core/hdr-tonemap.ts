@@ -41,16 +41,20 @@ export function resetTonemapCache(): void {
   tonemapSupport = undefined;
 }
 
-/** Detect once whether this ffmpeg can tone-map; a failed listing is "not supported". */
+/** Detect once whether this ffmpeg can tone-map; a definitive "no" is cached, a failure is not. */
 export async function supportsTonemap(): Promise<boolean> {
   if (tonemapSupport !== undefined) return tonemapSupport;
   try {
     const { stdout } = await execFileAsync(ffmpegBin(), ["-hide_banner", "-filters"], {
       maxBuffer: 8 * 1024 * 1024,
     });
-    tonemapSupport = hasTonemapFilters(String(stdout));
+    const supported = hasTonemapFilters(String(stdout));
+    // A readable listing is the answer for this binary (either way); a failed listing
+    // (transient, swapped binary) is not, so it is retried instead of disabling HDR
+    // for the whole worker lifetime.
+    tonemapSupport = supported;
+    return supported;
   } catch {
-    tonemapSupport = false;
+    return false;
   }
-  return tonemapSupport;
 }
