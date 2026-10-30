@@ -127,7 +127,8 @@ export async function normalizeLoudness(filePath: string, spec: DeliverySpec): P
       lufs: measured.input_i,
       tp: measured.input_tp,
       encodes,
-      reason: (error as Error).message,
+      // Bounded here, once: this string can reach a report or a chat notification.
+      reason: (error as Error).message.slice(0, 200),
     };
   }
 
