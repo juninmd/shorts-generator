@@ -4,6 +4,8 @@ import type { NarratedChapter } from "./comic-types.js";
 import { logger } from "../logger.js";
 import { buildDuckingGraph } from "../audio-ducking.js";
 import { runFfmpeg } from "../ffmpeg-run.js";
+import { probeVideoStream } from "../ffmpeg-bin.js";
+import { resolveColourPlan } from "../colour-plan.js";
 import {
   AUDIO_SAMPLE_RATE,
   buildAudioEncoderArgs,
@@ -59,7 +61,10 @@ async function renderFootageClip(
   width: number,
   height: number,
 ): Promise<void> {
-  const fit = `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,fps=30`;
+  // The chapter is encoded as a delivery too, so an HDR or SD stock clip is not mislabelled.
+  const source = await probeVideoStream(videoPath);
+  const colour = await resolveColourPlan(source.color_space, source.color_transfer, "comic-footage");
+  const fit = `${colour.filter}scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,fps=30`;
   const args = [
     "-y",
     "-stream_loop", "-1",
@@ -69,7 +74,7 @@ async function renderFootageClip(
     "-map", "0:v",
     "-map", "1:a",
     "-t", String(chapter.durationSec),
-    ...buildVideoEncoderArgs({ encoder: "libx264", spec: SPEC, quality: 18 }),
+    ...buildVideoEncoderArgs({ encoder: "libx264", spec: SPEC, quality: 18, tagBt709: colour.tagBt709 }),
     ...buildAudioEncoderArgs(SPEC),
     outputPath,
   ];

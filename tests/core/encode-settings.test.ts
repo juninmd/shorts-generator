@@ -60,10 +60,10 @@ describe("encode settings", () => {
   });
 
   it("converts a BT.601 source with that source's own matrix", () => {
-    expect(buildBt709Filter("smpte170m")).toBe("colorspace=all=bt709:iall=bt601-6-525:fast=1,");
-    expect(buildBt709Filter("bt470bg")).toBe("colorspace=all=bt709:iall=bt601-6-625:fast=1,");
-    expect(buildBt709Filter("smpte240m")).toBe("colorspace=all=bt709:iall=bt601-6-525:fast=1,");
-    expect(buildBt709Filter("bt601")).toBe("colorspace=all=bt709:iall=bt601-6-625:fast=1,");
+    expect(buildBt709Filter("smpte170m")).toBe("colorspace=all=bt709:iall=smpte170m:fast=1,");
+    expect(buildBt709Filter("bt470bg")).toBe("colorspace=all=bt709:iall=bt470bg:fast=1,");
+    expect(buildBt709Filter("smpte240m")).toBe("colorspace=all=bt709:iall=smpte240m:fast=1,");
+    expect(buildBt709Filter("bt601")).toBe("colorspace=all=bt709:iall=bt470bg:fast=1,");
     expect(buildBt709Filter("bt709")).toBe("");
   });
 
