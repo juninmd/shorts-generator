@@ -103,7 +103,17 @@ describe("comic-video", () => {
     expect(args).not.toContain("-x264-params");
   });
 
-  it("burnSubtitles mixes ducked background music when a track is given", async () => {    await burnSubtitles("input.mp4", "sub.ass", "output.mp4", { path: "bgm.mp3", durationSec: 30 });
+  it("applies the colour conversion before burning subtitles", async () => {
+    vi.mocked(probeVideoStream).mockResolvedValueOnce({ color_space: "bt470bg" } as any);
+    await burnSubtitles("input.mp4", "sub.ass", "output.mp4");
+    const args = vi.mocked(cp.execFile).mock.calls[0][1] as string[];
+    expect(args[args.indexOf("-vf") + 1]).toBe(
+      "colorspace=all=bt709:iall=bt470bg:fast=1,subtitles='sub.ass'",
+    );
+  });
+
+  it("burnSubtitles mixes ducked background music when a track is given", async () => {
+    await burnSubtitles("input.mp4", "sub.ass", "output.mp4", { path: "bgm.mp3", durationSec: 30 });
     const args = vi.mocked(cp.execFile).mock.calls[0][1] as string[];
     expect(args).toEqual(expect.arrayContaining(["-stream_loop", "-1", "bgm.mp3", "[v]", "[aout]", "30"]));
     const graph = args[args.indexOf("-filter_complex") + 1]!;
