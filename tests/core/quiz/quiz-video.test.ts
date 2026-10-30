@@ -62,6 +62,7 @@ describe("quiz-video.service", () => {
     vi.mocked(assets.prepareTextFiles).mockReturnValue({
       questions: [],
       outroTxtPath: "outro.txt",
+      outroLinePaths: ["outro_l0.txt"],
       hookTxtPath: "hook.txt"
     });
     vi.mocked(assets.normalizePath).mockImplementation((p) => p);
