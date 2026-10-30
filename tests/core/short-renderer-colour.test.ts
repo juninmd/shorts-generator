@@ -70,7 +70,16 @@ describe("short renderer colour handling", () => {
   it("converts a BT.601 source before scaling", async () => {
     probeWith({ color_space: "smpte170m" });
     await render();
-    expect(filterFor()).toContain("colorspace=all=bt709:iall=bt601-6-625:fast=1,scale=");
+    expect(filterFor()).toContain("colorspace=all=bt709:iall=bt601-6-525:fast=1,scale=");
+  });
+
+  it("keeps the source tags when HDR cannot be tone-mapped here", async () => {
+    vi.mocked(supportsTonemap).mockResolvedValueOnce(false);
+    probeWith({ color_space: "bt2020nc", color_transfer: "smpte2084" });
+    await render();
+    const args = vi.mocked(execFile).mock.calls.find((c) => (c[1] as string[]).includes("-filter_complex"))![1] as string[];
+    expect(args).not.toContain("-colorspace");
+    expect(args).not.toContain("-x264-params");
   });
 
   it("leaves a BT.709 source untouched", async () => {
