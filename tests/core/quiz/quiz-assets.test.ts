@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { wrapText, normalizePath, rel, esc, ensureFont, prepareBackground, prepareTextFiles } from '../../../src/core/quiz/quiz-assets.service.js';
+import { wrapText, normalizePath, rel, esc, ensureFont, resolveQuizFont, prepareBackground, prepareTextFiles } from '../../../src/core/quiz/quiz-assets.service.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import child_process from 'node:child_process';
@@ -187,9 +187,35 @@ describe('quiz-assets.service', () => {
     });
   });
 
+  describe('resolveQuizFont', () => {
+    it('prefers the bundled Poppins ExtraBold', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      expect(resolveQuizFont()).toBe('assets/fonts/Poppins-ExtraBold.ttf');
+    });
+
+    it('falls back to the platform Arial when the bundled font is missing', () => {
+      vi.mocked(fs.existsSync).mockImplementation((p) => String(p) !== 'assets/fonts/Poppins-ExtraBold.ttf');
+      expect(resolveQuizFont()).toBe('assets/fonts/arialbd.ttf');
+    });
+  });
+
   describe('prepareBackground', () => {
     beforeEach(() => {
         vi.resetAllMocks();
+    });
+
+    it('renders a drifting, vignetted gradient larger than the frame', () => {
+      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 0 } as any);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      prepareBackground('tmp', 60);
+
+      const args = vi.mocked(child_process.spawnSync).mock.calls[0]![1] as string[];
+      expect(args.join(' ')).toContain('gradients=s=1188x2112');
+      expect(args.join(' ')).toContain('crop=1080:1920');
+      expect(args.join(' ')).toContain('vignette=PI/5');
+      expect(args).toEqual(expect.arrayContaining(['-crf', '18', '-g', '60']));
+      // one extra second so the last frame never runs short of the audio
+      expect(args[args.indexOf('-t') + 1]).toBe('61');
     });
 
     it('returns gradient video if render succeeds', () => {
