@@ -52,8 +52,8 @@ describe("buildDuckingGraph", () => {
 
   it("sidechain-compresses the music with the speech and mixes to [aout]", () => {
     const graph = buildDuckingGraph({ speechInput: "[0:a]", musicInput: "[1:a]", duration: 20 });
-    expect(graph).toContain("[0:a]anull,aresample=44100,asplit=2[duck_sp][duck_sc]");
-    expect(graph).toContain("[1:a]aresample=44100,volume=0.18,afade=t=in:d=1,afade=t=out:st=18.50:d=1.5[duck_bg]");
+    expect(graph).toContain("[0:a]anull,aresample=48000,asplit=2[duck_sp][duck_sc]");
+    expect(graph).toContain("[1:a]aresample=48000,volume=0.18,afade=t=in:d=1,afade=t=out:st=18.50:d=1.5[duck_bg]");
     expect(graph).toContain("[duck_bg][duck_sc]sidechaincompress=");
     expect(graph).toContain("amix=inputs=2:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.95[aout]");
   });

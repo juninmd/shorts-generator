@@ -6,6 +6,8 @@ import type { ComicBook, ComicShortResult, NarratedChapter } from "./comic-types
 import { narrateChapters } from "./comic-tts.js";
 import { renderChapterClip, concatChapterClips, burnSubtitles } from "./comic-video.js";
 import { generateASSSubtitles } from "../subtitle.js";
+import { finishDelivery } from "../short-delivery.js";
+import { DELIVERY_SPECS } from "../delivery-spec.js";
 import { logger } from "../logger.js";
 
 export interface ComicPipelineConfig {
@@ -100,6 +102,14 @@ export async function runComicPipeline(
     outputPath,
     config.musicPath ? { path: config.musicPath, durationSec: totalDuration } : undefined,
   );
+
+  // Narrated videos are not held to a Shorts length cap, but they are delivered:
+  // normalise to the platform loudness and verify the file before it is returned.
+  await finishDelivery(outputPath, {
+    duration: totalDuration,
+    width: config.verticalWidth,
+    height: config.verticalHeight,
+  }, DELIVERY_SPECS.custom);
 
   logger.info({ bookId: book.id, outputPath, totalDuration }, "Comic short generated");
   return {

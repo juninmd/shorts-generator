@@ -6,6 +6,9 @@ import { ensureFont, prepareBackground, prepareTextFiles, normalizePath } from "
 import { generateFilters } from "./quiz-filters.service.js";
 import { runFFmpeg } from "./quiz-ffmpeg.service.js";
 import { logger } from "../logger.js";
+import { finishDelivery } from "../short-delivery.js";
+import { DELIVERY_SPECS } from "../delivery-spec.js";
+import { ffprobeBin } from "../ffmpeg-bin.js";
 import type { PipelineConfig } from "../../types.js";
 
 export interface QuizNarrations {
@@ -15,7 +18,7 @@ export interface QuizNarrations {
 }
 
 const probeDuration = (audioPath: string): number => {
-  const out = spawnSync("ffprobe", [
+  const out = spawnSync(ffprobeBin(), [
     "-v", "error", "-show_entries", "format=duration",
     "-of", "default=noprint_wrappers=1:nokey=1", normalizePath(audioPath),
   ]).stdout.toString().trim();
@@ -84,6 +87,14 @@ export const assembleVideo = async (
     });
 
     await runFFmpeg(ffmpegInputs, filterComplex, outputPath, timeline.total);
+
+    // The quiz is uploaded like any other short: same loudness target, same
+    // delivery gate (frame, codecs, 48 kHz, no length cap for a long quiz).
+    await finishDelivery(outputPath, {
+      duration: timeline.total,
+      width: DELIVERY_SPECS.custom!.width,
+      height: DELIVERY_SPECS.custom!.height,
+    }, DELIVERY_SPECS.custom);
 
     return outputPath;
   } catch (err: any) {

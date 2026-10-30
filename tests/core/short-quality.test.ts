@@ -2,13 +2,17 @@ import { describe, expect, it, vi } from "vitest";
 import { execFile } from "node:child_process";
 import {
   assertShortMediaQuality,
+  probeRenderedShort,
   validateShortMetadata,
 } from "../../src/core/short-quality.js";
 
 vi.mock("node:child_process", () => ({ execFile: vi.fn() }));
+vi.mock("../../src/core/logger.js", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() },
+}));
 
-const expected = { duration: 15, width: 1080, height: 1920 };
-const validMetadata = () => ({
+export const expected = { duration: 15, width: 1080, height: 1920 };
+export const validMetadata = () => ({
   format: { duration: "15" },
   streams: [
     {
@@ -21,7 +25,7 @@ const validMetadata = () => ({
     {
       codec_type: "audio",
       codec_name: "aac",
-      sample_rate: "44100",
+      sample_rate: "48000",
       channels: 2,
     },
   ],
@@ -139,5 +143,16 @@ describe("short media quality gate", () => {
       expect.any(Object),
       expect.any(Function),
     );
+  });
+
+  it("probes one file with every field the gate needs", async () => {
+    vi.mocked(execFile).mockImplementation((...args: any[]) => {
+      args.at(-1)(null, { stdout: JSON.stringify(validMetadata()), stderr: "" });
+      return {} as any;
+    });
+
+    await expect(probeRenderedShort("short.mp4")).resolves.toMatchObject({ format: { duration: "15" } });
+    const args = vi.mocked(execFile).mock.calls.at(-1)![1] as string[];
+    expect(args[args.indexOf("-show_entries") + 1]).toContain("color_primaries");
   });
 });

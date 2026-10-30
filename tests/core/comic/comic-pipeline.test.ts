@@ -3,12 +3,17 @@ import fs from "node:fs";
 import * as comicTts from "../../../src/core/comic/comic-tts.js";
 import * as comicVideo from "../../../src/core/comic/comic-video.js";
 import * as subtitle from "../../../src/core/subtitle.js";
+import * as delivery from "../../../src/core/short-delivery.js";
 import { runComicPipeline } from "../../../src/core/comic/comic-pipeline.js";
+import { DELIVERY_SPECS } from "../../../src/core/delivery-spec.js";
 
 vi.mock("node:fs");
 vi.mock("../../../src/core/comic/comic-tts.js");
 vi.mock("../../../src/core/comic/comic-video.js");
 vi.mock("../../../src/core/subtitle.js");
+vi.mock("../../../src/core/short-delivery.js", () => ({
+  finishDelivery: vi.fn().mockResolvedValue({ destination: "custom", normalized: false, loudnessOk: null, warnings: [] }),
+}));
 
 describe("comic-pipeline", () => {
   beforeEach(() => {
@@ -67,6 +72,27 @@ describe("comic-pipeline", () => {
     expect(comicVideo.concatChapterClips).toHaveBeenCalled();
     expect(comicVideo.burnSubtitles).toHaveBeenCalled();
     expect(subtitle.generateASSSubtitles).toHaveBeenCalled();
+    // The narrated file is delivered: loudness + spec gate run on the final mp4.
+    expect(delivery.finishDelivery).toHaveBeenCalledWith(
+      result.outputPath,
+      { duration: 10, width: 1080, height: 1920 },
+      DELIVERY_SPECS.custom,
+    );
+  });
+
+  it("fails the run when the delivery gate rejects the file", async () => {
+    vi.spyOn(fs, "existsSync").mockReturnValue(true);
+    vi.mocked(comicTts.narrateChapters).mockResolvedValue([
+      { ...mockBook.chapters[0], audioPath: "ch1.mp3", durationSec: 5, words: [] },
+    ] as any);
+    vi.mocked(comicVideo.renderChapterClip).mockResolvedValue();
+    vi.mocked(comicVideo.concatChapterClips).mockResolvedValue();
+    vi.mocked(comicVideo.burnSubtitles).mockResolvedValue();
+    vi.mocked(subtitle.generateASSSubtitles).mockReturnValue("ass-content");
+    vi.mocked(delivery.finishDelivery).mockRejectedValueOnce(new Error("audio stream missing"));
+
+    await expect(runComicPipeline({ ...mockBook, chapters: [mockBook.chapters[0]!] }, mockConfig))
+      .rejects.toThrow("audio stream missing");
   });
 
   it("checks the stock footage path instead of the image for faceless chapters", async () => {

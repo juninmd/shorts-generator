@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { buildSpeechAudioFilter } from "./audio-polish.js";
+import { AUDIO_SAMPLE_RATE } from "./encode-settings.js";
 
 const MUSIC_EXTENSIONS = new Set([".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"]);
 
@@ -32,13 +33,14 @@ export interface DuckingOptions {
  * Filtergraph mixing speech over background music that "ducks": the music is
  * sidechain-compressed by the speech, dropping while someone talks and swelling
  * back in the gaps. Fades the music in/out and limits the sum. Output: [aout].
+ * Everything is resampled to the 48 kHz the delivery spec asks for.
  */
 export function buildDuckingGraph(options: DuckingOptions): string {
   const volume = Number.parseFloat(process.env.BGM_VOLUME ?? "") || 0.18;
   const fadeOutStart = Math.max(0, options.duration - 1.5).toFixed(2);
   return [
-    `${options.speechInput}${options.speechFilter ?? "anull"},aresample=44100,asplit=2[duck_sp][duck_sc]`,
-    `${options.musicInput}aresample=44100,volume=${volume},afade=t=in:d=1,afade=t=out:st=${fadeOutStart}:d=1.5[duck_bg]`,
+    `${options.speechInput}${options.speechFilter ?? "anull"},aresample=${AUDIO_SAMPLE_RATE},asplit=2[duck_sp][duck_sc]`,
+    `${options.musicInput}aresample=${AUDIO_SAMPLE_RATE},volume=${volume},afade=t=in:d=1,afade=t=out:st=${fadeOutStart}:d=1.5[duck_bg]`,
     "[duck_bg][duck_sc]sidechaincompress=threshold=0.04:ratio=10:attack=15:release=350[duck_low]",
     "[duck_sp][duck_low]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.95[aout]",
   ].join(";");

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import fs from "node:fs";
+import path from "node:path";
 import { processClip } from "../../src/core/video-processor.js";
 import { renderShort } from "../../src/core/short-renderer.js";
 import { resolveBroll } from "../../src/core/broll.js";
@@ -31,7 +32,7 @@ describe("processClip edits", () => {
   it("renders the edited clip: pauses and fillers cut, B-roll resolved on the new timeline, captions rebuilt", async () => {
     const short = await processClip(video, clip, config);
     const [, , subtitlePath, edited, , plan] = vi.mocked(renderShort).mock.calls[0]!;
-    expect(subtitlePath).toBe("/out/v1/c1.ass");
+    expect(subtitlePath).toBe(path.join("/out", "v1", "c1.ass"));
     expect(plan!.ranges!.length).toBeGreaterThan(1);
     expect(plan!.sourceDuration).toBe(10);
     expect(plan!.broll).toEqual([{ at: 2, duration: 2.6, path: "b.mp4" }]);
