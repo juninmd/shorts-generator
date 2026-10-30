@@ -107,4 +107,32 @@ describe("quiz-ffmpeg.service", () => {
     await expect(promise).rejects.toThrow("FFmpeg failed to start: spawn ffmpeg ENOENT");
     expect(fs.rmSync).toHaveBeenCalledWith("out.mp4", { force: true });
   });
+
+  it("removes the truncated output on a non-zero exit", async () => {
+    const mockProcess = new EventEmitter() as any;
+    mockProcess.stderr = new EventEmitter();
+    mockProcess.kill = vi.fn();
+    vi.mocked(child_process.spawn).mockReturnValue(mockProcess);
+
+    const promise = runFFmpeg(["-i", "input.mp4"], "filter", "out.mp4", 100);
+    mockProcess.emit("close", 2);
+
+    await expect(promise).rejects.toThrow("FFmpeg exited with code 2");
+    expect(fs.rmSync).toHaveBeenCalledWith("out.mp4", { force: true });
+  });
+
+  it("keeps the real error when the partial file cannot be removed", async () => {
+    vi.mocked(fs.rmSync).mockImplementationOnce(() => {
+      throw new Error("EBUSY");
+    });
+    const mockProcess = new EventEmitter() as any;
+    mockProcess.stderr = new EventEmitter();
+    mockProcess.kill = vi.fn();
+    vi.mocked(child_process.spawn).mockReturnValue(mockProcess);
+
+    const promise = runFFmpeg(["-i", "input.mp4"], "filter", "out.mp4", 100);
+    mockProcess.emit("close", 1);
+
+    await expect(promise).rejects.toThrow("FFmpeg exited with code 1");
+  });
 });

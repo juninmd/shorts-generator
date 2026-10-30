@@ -13,6 +13,15 @@ const hmsToSeconds = (hms: string): number => {
   return h * 3600 + m * 60 + s;
 };
 
+/** A partial file we cannot remove is not a reason to lose the real error. */
+const removePartial = (filePath: string): void => {
+  try {
+    fs.rmSync(filePath, { force: true });
+  } catch {
+    // ignored on purpose: the rejection carries the real cause
+  }
+};
+
 export const runFFmpeg = async (
   ffmpegInputs: string[],
   filterComplex: string,
@@ -96,12 +105,13 @@ export const runFFmpeg = async (
       clearInterval(keepAlive);
       clearTimeout(killer);
       if (timedOut) {
-        // Never leave a truncated mp4 where the next stage looks for a deliverable.
-        fs.rmSync(outputPath, { force: true });
+        removePartial(outputPath);
         reject(new Error(`FFmpeg was killed after the ${timeoutMs}ms timeout`));
       } else if (code === 0) {
         resolve();
       } else {
+        // A truncated mp4 must not sit where the next stage looks for a deliverable.
+        removePartial(outputPath);
         reject(new Error(`FFmpeg exited with code ${code}`));
       }
     });
@@ -111,7 +121,7 @@ export const runFFmpeg = async (
     ff.on("error", (error: Error) => {
       clearInterval(keepAlive);
       clearTimeout(killer);
-      fs.rmSync(outputPath, { force: true });
+      removePartial(outputPath);
       reject(new Error(`FFmpeg failed to start: ${error.message}`));
     });
   });
