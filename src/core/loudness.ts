@@ -1,0 +1,121 @@
+import fs from "node:fs";
+import path from "node:path";
+import type { DeliverySpec } from "./delivery-spec.js";
+import { runFfmpeg } from "./ffmpeg-run.js";
+import { probeFormat } from "./ffmpeg-bin.js";
+import { logger } from "./logger.js";
+import {
+  buildLoudnormFilter,
+  isWithinLoudnessSpec,
+  parseLoudnormJson,
+  type LoudnessMeasurement,
+} from "./loudness-measure.js";
+
+export * from "./loudness-measure.js";
+
+/**
+ * Two-pass loudness normalisation executed against a rendered file
+ * (ffmpeg-skill `loudness.py`): the picture is stream-copied, only the audio is
+ * re-encoded, and the written file is measured again so a codec overshoot is
+ * caught instead of shipped.
+ */
+
+const MAX_ENCODES = 3;
+const BITRATES_KBPS = [192, 256, 320] as const;
+
+export interface LoudnessResult {
+  normalized: boolean;
+  lufs: number | null;
+  tp: number | null;
+  encodes: number;
+  /** Why nothing was written: disabled, unmeasurable, already on target, or the failure. */
+  reason?: string;
+}
+
+/** Measure a file's integrated loudness and true peak; null when it has no usable audio. */
+export async function measureLoudness(filePath: string, spec: DeliverySpec): Promise<LoudnessMeasurement | null> {
+  try {
+    const { stderr } = await runFfmpeg([
+      "-i", filePath, "-vn",
+      "-af", `loudnorm=I=${spec.lufs}:TP=${spec.truePeak}:LRA=11:print_format=json`,
+      "-f", "null", "-",
+    ], { maxBufferBytes: 4 * 1024 * 1024 });
+    return parseLoudnormJson(stderr);
+  } catch {
+    return null;
+  }
+}
+
+async function inputDuration(filePath: string): Promise<number | undefined> {
+  try {
+    const duration = Number.parseFloat(String((await probeFormat(filePath)).duration ?? ""));
+    return Number.isFinite(duration) && duration > 0 ? duration : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function encode(
+  inputPath: string,
+  outputPath: string,
+  measurement: LoudnessMeasurement,
+  spec: DeliverySpec,
+  bitrateKbps: number,
+  ceiling: number,
+): Promise<void> {
+  const durationSec = await inputDuration(inputPath);
+  await runFfmpeg([
+    "-y", "-i", inputPath,
+    "-map", "0:v:0", "-map", "0:a:0",
+    "-c:v", "copy",
+    "-af", buildLoudnormFilter(measurement, spec, ceiling, durationSec),
+    "-c:a", "aac", "-b:a", `${bitrateKbps}k`, "-ar", String(spec.sampleRate), "-ac", "2",
+    "-movflags", "+faststart",
+    outputPath,
+  ], { outputPath });
+}
+
+/** Normalise a rendered file through a sibling temp file, then verify the result. */
+export async function normalizeLoudness(filePath: string, spec: DeliverySpec): Promise<LoudnessResult> {
+  const skipped = (reason: string, encodes = 0): LoudnessResult =>
+    ({ normalized: false, lufs: null, tp: null, encodes, reason });
+
+  if (process.env.LOUDNESS_NORMALIZE === "false") return skipped("disabled");
+  const measurement = await measureLoudness(filePath, spec);
+  if (!measurement) return skipped("no_audio");
+  if (isWithinLoudnessSpec(measurement, spec)) {
+    return { normalized: false, lufs: measurement.input_i, tp: measurement.input_tp, encodes: 0, reason: "on_target" };
+  }
+
+  const tempPath = path.join(
+    path.dirname(filePath),
+    `.${path.basename(filePath, path.extname(filePath))}.loudnorm${path.extname(filePath)}`,
+  );
+  let ceiling = spec.truePeak;
+  let bitrateIndex = 0;
+  let measured = measurement;
+  let encodes = 0;
+  try {
+    while (encodes < MAX_ENCODES) {
+      await encode(filePath, tempPath, measurement, spec, BITRATES_KBPS[bitrateIndex]!, ceiling);
+      fs.renameSync(tempPath, filePath);
+      encodes += 1;
+      const after = await measureLoudness(filePath, spec);
+      if (!after) return { normalized: true, lufs: null, tp: null, encodes, reason: "unverified" };
+      measured = after;
+      if (isWithinLoudnessSpec(measured, spec)) break;
+      // Encoder overshoot: more bits first, then a lower loudnorm ceiling.
+      if (bitrateIndex + 1 < BITRATES_KBPS.length) bitrateIndex += 1;
+      else ceiling -= Math.max(0, measured.input_tp - spec.truePeak) + 0.2;
+    }
+  } catch (error) {
+    fs.rmSync(tempPath, { force: true });
+    return skipped((error as Error).message, encodes);
+  }
+
+  logger.info(
+    { lufs: measured.input_i, tp: measured.input_tp, target: spec.lufs, encodes },
+    "Loudness normalised to the delivery target",
+  );
+  return { normalized: true, lufs: measured.input_i, tp: measured.input_tp, encodes };
+}

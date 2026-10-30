@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
+import { ffmpegBin } from "./ffmpeg-bin.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -39,8 +40,8 @@ export async function splitAudioIntoChunks(
     const chunkPath = path.join(outputDir, `chunk_${String(idx).padStart(3, "0")}${ext}`);
     const duration = Math.min(chunkDurationSec, totalDurationSec - offsetSec);
 
-    await execFileAsync("ffmpeg", [
-      "-y", "-i", audioPath,
+    await execFileAsync(ffmpegBin(), [
+      "-y", "-hide_banner", "-nostdin", "-i", audioPath,
       "-ss", String(offsetSec),
       "-t", String(duration),
       "-c", "copy",

@@ -18,6 +18,10 @@ vi.mock("../../src/core/comic/comic-video.js", () => ({
   burnSubtitles: vi.fn(async () => {}),
 }));
 
+vi.mock("../../src/core/short-delivery.js", () => ({
+  finishDelivery: vi.fn(async () => ({ destination: "custom", normalized: false, loudnessOk: null, warnings: [] })),
+}));
+
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   const overrides = {
