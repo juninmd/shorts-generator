@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { ffmpegTimeoutMs } from "./ffmpeg-timeout.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -23,7 +24,7 @@ export async function probeFormat(filePath: string): Promise<ProbedFormat> {
   const { stdout } = await execFileAsync(
     ffprobeBin(),
     ["-v", "error", "-show_entries", "format=duration,start_time", "-of", "json", filePath],
-    { maxBuffer: 1024 * 1024 },
+    { maxBuffer: 1024 * 1024, timeout: ffmpegTimeoutMs(), killSignal: "SIGKILL" },
   );
   return (JSON.parse(stdout) as { format?: ProbedFormat }).format ?? {};
 }
@@ -51,7 +52,7 @@ export async function probeVideoStream(filePath: string): Promise<ProbedVideoStr
         "-show_entries", "stream=codec_name,width,height,color_space,color_transfer,color_primaries",
         "-of", "json", filePath,
       ],
-      { maxBuffer: 1024 * 1024 },
+      { maxBuffer: 1024 * 1024, timeout: ffmpegTimeoutMs(), killSignal: "SIGKILL" },
     );
     const streams = (JSON.parse(stdout) as { streams?: ProbedVideoStream[] }).streams ?? [];
     return streams[0] ?? {};

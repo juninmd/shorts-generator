@@ -15,7 +15,7 @@ import { activeDeliverySpec } from "./delivery-spec.js";
 import { buildAudioEncoderArgs, buildBt709Filter, buildVideoEncoderArgs } from "./encode-settings.js";
 import { buildTonemapFilter, isHdrTransfer, supportsTonemap } from "./hdr-tonemap.js";
 import { runFfmpeg } from "./ffmpeg-run.js";
-import { probeVideoStream } from "./ffmpeg-bin.js";
+import { ffmpegBin, probeVideoStream } from "./ffmpeg-bin.js";
 
 export { buildSafeFramingFilter } from "./short-framing.js";
 
@@ -96,7 +96,7 @@ export async function renderShort(
     "-movflags", "+faststart",
     outputPath,
   ];
-  logger.debug({ command: [config.videoEncoder, ...args].join(" ") }, "FFmpeg started");
+  logger.debug({ command: [ffmpegBin(), ...args].join(" ") }, "FFmpeg started");
   try {
     const { stderr } = await runFfmpeg(args, { outputPath });
     if (stderr) logger.debug({ stderr }, "FFmpeg stderr (informational)");

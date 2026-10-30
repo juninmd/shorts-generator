@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import { normalizePath } from "./quiz-assets.service.js";
 import { logger } from "../logger.js";
 import { ffmpegBin } from "../ffmpeg-bin.js";
-import { ffmpegTimeoutMs } from "../ffmpeg-run.js";
+import { ffmpegTimeoutMs } from "../ffmpeg-timeout.js";
 
 const hmsToSeconds = (hms: string): number => {
   const parts = hms.split(":").reverse();
@@ -95,12 +96,23 @@ export const runFFmpeg = async (
       clearInterval(keepAlive);
       clearTimeout(killer);
       if (timedOut) {
+        // Never leave a truncated mp4 where the next stage looks for a deliverable.
+        fs.rmSync(outputPath, { force: true });
         reject(new Error(`FFmpeg was killed after the ${timeoutMs}ms timeout`));
       } else if (code === 0) {
         resolve();
       } else {
         reject(new Error(`FFmpeg exited with code ${code}`));
       }
+    });
+
+    // A bad FFMPEG_PATH emits 'error' instead of 'close'; without a listener that
+    // is an uncaught exception that kills the worker instead of failing the job.
+    ff.on("error", (error: Error) => {
+      clearInterval(keepAlive);
+      clearTimeout(killer);
+      fs.rmSync(outputPath, { force: true });
+      reject(new Error(`FFmpeg failed to start: ${error.message}`));
     });
   });
 

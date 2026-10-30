@@ -57,16 +57,20 @@ describe("HDR tone mapping", () => {
     expect(execFile).toHaveBeenCalledTimes(2);
   });
 
-  it("reports a build without the filters", async () => {
+  it("reports a build without the filters and remembers that answer", async () => {
     mockListing(noZscale);
     await expect(supportsTonemap()).resolves.toBe(false);
+    await expect(supportsTonemap()).resolves.toBe(false);
+    expect(execFile).toHaveBeenCalledTimes(1);
   });
 
-  it("treats a failed listing as unsupported", async () => {
+  it("does not cache a failed listing, so a transient failure is retried", async () => {
     vi.mocked(execFile).mockImplementation(((...args: any[]) => {
       args.at(-1)(new Error("ffmpeg not found"));
       return {} as any;
     }) as any);
     await expect(supportsTonemap()).resolves.toBe(false);
+    await expect(supportsTonemap()).resolves.toBe(false);
+    expect(execFile).toHaveBeenCalledTimes(2);
   });
 });

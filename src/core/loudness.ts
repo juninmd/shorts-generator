@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import type { DeliverySpec } from "./delivery-spec.js";
 import { runFfmpeg } from "./ffmpeg-run.js";
 import { probeFormat } from "./ffmpeg-bin.js";
@@ -36,10 +37,10 @@ export interface LoudnessResult {
 export async function measureLoudness(filePath: string, spec: DeliverySpec): Promise<LoudnessMeasurement | null> {
   try {
     const { stderr } = await runFfmpeg([
-      "-i", filePath, "-vn",
+      "-nostats", "-i", filePath, "-vn",
       "-af", `loudnorm=I=${spec.lufs}:TP=${spec.truePeak}:LRA=11:print_format=json`,
       "-f", "null", "-",
-    ], { maxBufferBytes: 4 * 1024 * 1024 });
+    ], { maxBufferBytes: 8 * 1024 * 1024 });
     return parseLoudnormJson(stderr);
   } catch {
     return null;
@@ -89,7 +90,7 @@ export async function normalizeLoudness(filePath: string, spec: DeliverySpec): P
 
   const tempPath = path.join(
     path.dirname(filePath),
-    `.${path.basename(filePath, path.extname(filePath))}.loudnorm${path.extname(filePath)}`,
+    `.${randomUUID()}${path.extname(filePath)}`,
   );
   let ceiling = spec.truePeak;
   let bitrateIndex = 0;
@@ -97,7 +98,9 @@ export async function normalizeLoudness(filePath: string, spec: DeliverySpec): P
   let encodes = 0;
   try {
     while (encodes < MAX_ENCODES) {
-      await encode(filePath, tempPath, measurement, spec, BITRATES_KBPS[bitrateIndex]!, ceiling);
+      // Each pass re-measures the file it is about to replace: re-applying the original
+      // gain to an already-normalised file would push it louder on every retry.
+      await encode(filePath, tempPath, measured, spec, BITRATES_KBPS[bitrateIndex]!, ceiling);
       fs.renameSync(tempPath, filePath);
       encodes += 1;
       const after = await measureLoudness(filePath, spec);

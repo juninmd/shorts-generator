@@ -35,6 +35,13 @@ describe("ffmpeg runner", () => {
     expect(ffmpegTimeoutMs()).toBe(30 * 60 * 1000);
   });
 
+  it("rejects a timeout too small to be real and clamps one Node cannot honour", () => {
+    vi.stubEnv("FFMPEG_TIMEOUT_MS", "600");
+    expect(ffmpegTimeoutMs()).toBe(30 * 60 * 1000);
+    vi.stubEnv("FFMPEG_TIMEOUT_MS", "3000000000");
+    expect(ffmpegTimeoutMs()).toBe(2_147_483_647);
+  });
+
   it("runs ffmpeg with the shared flags and reports its stderr", async () => {
     vi.mocked(execFile).mockImplementation((...args: any[]) => {
       args.at(-1)(null, { stdout: "", stderr: "frame= 30" });
