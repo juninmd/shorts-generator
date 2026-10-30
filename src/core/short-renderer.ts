@@ -31,15 +31,21 @@ export interface EditPlan {
 
 type Focus = number | FocusKeyframe[];
 
+interface ColourPlan {
+  filter: string;
+  /** False when an HDR source cannot be tone-mapped here: keeping the source tags is honest. */
+  tagBt709: boolean;
+}
+
 /** Colour conversion for the delivery: tone map HDR, convert BT.601, otherwise only tag BT.709. */
-async function resolveColorFilter(colorSpace?: string, colorTransfer?: string): Promise<string> {
-  if (!isHdrTransfer(colorTransfer)) return buildBt709Filter(colorSpace);
-  if (await supportsTonemap()) return buildTonemapFilter();
+async function resolveColour(colorSpace?: string, colorTransfer?: string): Promise<ColourPlan> {
+  if (!isHdrTransfer(colorTransfer)) return { filter: buildBt709Filter(colorSpace), tagBt709: true };
+  if (await supportsTonemap()) return { filter: buildTonemapFilter(), tagBt709: true };
   logger.warn(
     { colorTransfer },
-    "HDR source and this ffmpeg lacks zscale/tonemap: the short keeps SDR BT.709 tags without a tone map",
+    "HDR source and this ffmpeg lacks zscale/tonemap: keeping the source colour tags instead of mislabelling SDR",
   );
-  return "";
+  return { filter: "", tagBt709: false };
 }
 
 /** Re-expresses the speaker position inside a cropped (letterboxed) frame and on the edited timeline. */
@@ -72,11 +78,11 @@ export async function renderShort(
   // The delivery is tagged BT.709: a BT.601 source is converted, an HDR source tone-mapped,
   // instead of being mislabelled.
   const source = await probeVideoStream(inputPath);
-  const colorFilter = await resolveColorFilter(source.color_space, source.color_transfer);
+  const colour = await resolveColour(source.color_space, source.color_transfer);
   const video = buildSafeFramingFilter(subtitlePath, config.verticalWidth, config.verticalHeight, logoPath, focus, {
     videoInput: plan.ranges ? "[cv]" : "[0:v]",
     cropBox: letterbox?.box,
-    colorFilter,
+    colorFilter: colour.filter,
     broll: { items: plan.broll, firstInputIndex: brollIndex },
   });
   const graph = [plan.ranges ? buildCutGraph(plan.ranges) : "", video, audio.graph].filter(Boolean).join(";");
@@ -91,7 +97,7 @@ export async function renderShort(
     "-map", "[v]",
     ...audio.outputArgs,
     "-t", String(clip.duration),
-    ...buildVideoEncoderArgs({ encoder: config.videoEncoder, spec }),
+    ...buildVideoEncoderArgs({ encoder: config.videoEncoder, spec, tagBt709: colour.tagBt709 }),
     ...buildAudioEncoderArgs(spec),
     "-movflags", "+faststart",
     outputPath,

@@ -49,7 +49,7 @@ describe("encode settings", () => {
     expect(isNvenc("libx264")).toBe(false);
   });
 
-  it("converts only a BT.601 source instead of relabelling it", () => {
+  it("detects the BT.601 spaces that need a conversion", () => {
     for (const space of ["smpte170m", "bt470bg", "smpte240m", "bt601", "SMPTE170M"]) {
       expect(needsBt709Conversion(space)).toBe(true);
     }
@@ -57,8 +57,26 @@ describe("encode settings", () => {
     expect(needsBt709Conversion(undefined)).toBe(false);
     expect(needsBt709Conversion(null)).toBe(false);
     expect(needsBt709Conversion("")).toBe(false);
-    expect(buildBt709Filter("smpte170m")).toBe("colorspace=all=bt709:iall=bt601-6-625:fast=1,");
+  });
+
+  it("converts a BT.601 source with that source's own matrix", () => {
+    expect(buildBt709Filter("smpte170m")).toBe("colorspace=all=bt709:iall=bt601-6-525:fast=1,");
+    expect(buildBt709Filter("bt470bg")).toBe("colorspace=all=bt709:iall=bt601-6-625:fast=1,");
+    expect(buildBt709Filter("smpte240m")).toBe("colorspace=all=bt709:iall=bt601-6-525:fast=1,");
+    expect(buildBt709Filter("bt601")).toBe("colorspace=all=bt709:iall=bt601-6-625:fast=1,");
     expect(buildBt709Filter("bt709")).toBe("");
+  });
+
+  it("can skip the BT.709 tags when an HDR source cannot be tone-mapped", () => {
+    const args = buildVideoEncoderArgs({ encoder: "libx264", spec, tagBt709: false });
+    expect(args).not.toContain("-colorspace");
+    expect(args).not.toContain("-x264-params");
+    expect(buildVideoEncoderArgs({ encoder: "libx264", spec, tagBt709: true })).toContain("-x264-params");
+  });
+
+  it("takes a preset for faster renders", () => {
+    const args = buildVideoEncoderArgs({ encoder: "libx264", spec, preset: "veryfast" });
+    expect(args[args.indexOf("-preset") + 1]).toBe("veryfast");
   });
 
   it("encodes audio at the platform's sample rate and stereo layout", () => {

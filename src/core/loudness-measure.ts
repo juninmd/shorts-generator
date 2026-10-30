@@ -8,7 +8,11 @@ import type { DeliverySpec } from "./delivery-spec.js";
 
 /** True-peak measurement noise tolerated before a file counts as out of spec. */
 export const TP_TOLERANCE_DB = 0.1;
-/** Integrated-loudness distance from the target that still counts as on target. */
+/**
+ * Retry threshold: a file within this distance of the target is left alone (one pass is
+ * enough). The platform's own accepted range is wider (`spec.lufsTolerance`), and is what
+ * the delivery report warns on -- re-encoding to chase 1 LU is not worth the generation loss.
+ */
 export const LUFS_TOLERANCE = 1;
 
 export interface LoudnessMeasurement {

@@ -17,19 +17,24 @@ export const BT709_TAGS = [
 /** Video deliveries are 48 kHz; 44.1 kHz is a CD rate, not a platform rate. */
 export const AUDIO_SAMPLE_RATE = 48000;
 
-/** Source colour spaces that mean BT.601 and therefore need a real matrix conversion. */
-const BT601_SPACES = new Set(["smpte170m", "bt470bg", "smpte240m", "bt601"]);
+/** Source colour spaces that mean BT.601, with the matrix ffmpeg needs to convert each one. */
+const BT601_MATRICES: Record<string, string> = {
+  // 525-line/60 Hz (SMPTE 170M) and 625-line/50 Hz (BT.470 BG)
+  smpte170m: "bt601-6-525",
+  bt470bg: "bt601-6-625",
+  smpte240m: "bt601-6-525",
+  bt601: "bt601-6-625",
+};
 
 /** True when the source's matrix is BT.601 and its pixels must be converted, not just relabelled. */
 export function needsBt709Conversion(colorSpace?: string | null): boolean {
-  return BT601_SPACES.has((colorSpace ?? "").trim().toLowerCase());
+  return Boolean(BT601_MATRICES[(colorSpace ?? "").trim().toLowerCase()]);
 }
 
-/** Filter that converts a BT.601 source to BT.709; "" when only tagging is needed. */
+/** Filter that converts a BT.601 source to BT.709 with its own matrix; "" when only tagging is needed. */
 export function buildBt709Filter(colorSpace?: string | null): string {
-  return needsBt709Conversion(colorSpace)
-    ? "colorspace=all=bt709:iall=bt601-6-625:fast=1,"
-    : "";
+  const matrix = BT601_MATRICES[(colorSpace ?? "").trim().toLowerCase()];
+  return matrix ? `colorspace=all=bt709:iall=${matrix}:fast=1,` : "";
 }
 
 export function isNvenc(encoder: string): boolean {
@@ -57,16 +62,25 @@ export interface VideoEncodeOptions {
   spec: DeliverySpec;
   /** Constant-quality value; x264 CRF or NVENC CQ. */
   quality?: number;
+  /** Encoder preset; the default (`slow`) is for a delivery render, quizzes use `veryfast`. */
+  preset?: string;
+  /**
+   * Write the BT.709 colour description. False only when the source is HDR and this
+   * build cannot tone-map it: relabelling HDR pixels as BT.709 would play washed out.
+   */
+  tagBt709?: boolean;
 }
 
 /** `-c:v` line for a vertical delivery: quality, profile, GOP, frame rate and a bitrate cap. */
 export function buildVideoEncoderArgs(options: VideoEncodeOptions): string[] {
   const { encoder, spec } = options;
   const quality = options.quality ?? 18;
+  const preset = options.preset ?? "slow";
+  const tagBt709 = options.tagBt709 ?? true;
   const gop = String(spec.fps * 2);
   const args = [
     "-c:v", encoder,
-    ...(isNvenc(encoder) ? ["-preset", "p7", "-cq", String(quality)] : ["-preset", "slow", "-crf", String(quality)]),
+    ...(isNvenc(encoder) ? ["-preset", "p7", "-cq", String(quality)] : ["-preset", preset, "-crf", String(quality)]),
     "-profile:v", "high",
     "-level", "4.1",
     "-pix_fmt", "yuv420p",
@@ -74,8 +88,7 @@ export function buildVideoEncoderArgs(options: VideoEncodeOptions): string[] {
     "-g", gop,
     "-maxrate", maxRate(encoder),
     "-bufsize", "24M",
-    ...BT709_TAGS,
-    ...colorVuiArgs(encoder),
+    ...(tagBt709 ? [...BT709_TAGS, ...colorVuiArgs(encoder)] : []),
   ];
   // sc_threshold/keyint_min are x264 private options; NVENC rejects unknown private flags.
   if (!isNvenc(encoder)) {

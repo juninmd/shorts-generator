@@ -8,7 +8,8 @@ import {
   AUDIO_SAMPLE_RATE,
   buildAudioEncoderArgs,
   buildVideoEncoderArgs,
-} from "../encode-settings.js";import { DELIVERY_SPECS } from "../delivery-spec.js";
+} from "../encode-settings.js";
+import { DELIVERY_SPECS } from "../delivery-spec.js";
 
 const SPEC = DELIVERY_SPECS.custom!;
 

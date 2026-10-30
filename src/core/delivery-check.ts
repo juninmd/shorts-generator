@@ -42,8 +42,8 @@ export interface DeliveryRow {
   message: string;
 }
 
-/** Duration drift in seconds a render may show against the length that was asked for (per spec). */
-const FPS_RANGE = [29, 31] as const;
+/** A delivery may be one frame off the declared rate (container rounding). */
+const FPS_TOLERANCE = 1;
 
 const row = (property: string, ok: boolean, severity: DeliverySeverity, message: string): DeliveryRow =>
   ({ property, ok, severity, message });
@@ -78,9 +78,10 @@ export function checkDelivery(
     ),
     row(
       "frame_rate",
-      Number.isFinite(frameRate) && frameRate >= FPS_RANGE[0] && frameRate <= FPS_RANGE[1],
+      Number.isFinite(frameRate) && Math.abs(frameRate - spec.fps) <= FPS_TOLERANCE,
       "fail",
-      `Short media quality failed: frame rate ${frameRate.toFixed(3)}fps; expected ${FPS_RANGE[0]}-${FPS_RANGE[1]}fps`,
+      `Short media quality failed: frame rate ${frameRate.toFixed(3)}fps; `
+        + `expected ${spec.fps - FPS_TOLERANCE}-${spec.fps + FPS_TOLERANCE}fps`,
     ),
     row("audio_stream", Boolean(audio), "fail", "Short media quality failed: audio stream missing"),
     row(
@@ -123,6 +124,11 @@ export function checkDelivery(
       "channels",
       audio?.channels === 2,
       `Short delivery warning: audio has ${audio?.channels ?? 0} channel(s); deliveries expect stereo`,
+    ),
+    warn(
+      "profile",
+      video?.profile === undefined || /high/i.test(video.profile),
+      `Short delivery warning: video profile ${video?.profile ?? "missing"}; deliveries expect H.264 High`,
     ),
   ];
   return rows;

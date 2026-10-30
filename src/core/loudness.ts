@@ -33,17 +33,23 @@ export interface LoudnessResult {
   reason?: string;
 }
 
-/** Measure a file's integrated loudness and true peak; null when it has no usable audio. */
-export async function measureLoudness(filePath: string, spec: DeliverySpec): Promise<LoudnessMeasurement | null> {
+/** A measurement, or the reason it could not be taken (timeout, crash, no usable audio). */
+export type LoudnessMeasurementResult =
+  | { ok: true; measurement: LoudnessMeasurement }
+  | { ok: false; reason: string };
+
+/** Measure a file's integrated loudness and true peak; never throws, and says why when it fails. */
+export async function measureLoudness(filePath: string, spec: DeliverySpec): Promise<LoudnessMeasurementResult> {
   try {
     const { stderr } = await runFfmpeg([
       "-nostats", "-i", filePath, "-vn",
       "-af", `loudnorm=I=${spec.lufs}:TP=${spec.truePeak}:LRA=11:print_format=json`,
       "-f", "null", "-",
     ], { maxBufferBytes: 8 * 1024 * 1024 });
-    return parseLoudnormJson(stderr);
-  } catch {
-    return null;
+    const measurement = parseLoudnormJson(stderr);
+    return measurement ? { ok: true, measurement } : { ok: false, reason: "no_audio_or_silent" };
+  } catch (error) {
+    return { ok: false, reason: (error as Error).message };
   }
 }
 
@@ -82,8 +88,10 @@ export async function normalizeLoudness(filePath: string, spec: DeliverySpec): P
     ({ normalized: false, lufs: null, tp: null, encodes, reason });
 
   if (process.env.LOUDNESS_NORMALIZE === "false") return skipped("disabled");
-  const measurement = await measureLoudness(filePath, spec);
-  if (!measurement) return skipped("no_audio");
+  const first = await measureLoudness(filePath, spec);
+  // A measurement that failed is not a file with no audio: the reason says which.
+  if (!first.ok) return skipped(first.reason);
+  const measurement = first.measurement;
   if (isWithinLoudnessSpec(measurement, spec)) {
     return { normalized: false, lufs: measurement.input_i, tp: measurement.input_tp, encodes: 0, reason: "on_target" };
   }
@@ -104,8 +112,8 @@ export async function normalizeLoudness(filePath: string, spec: DeliverySpec): P
       fs.renameSync(tempPath, filePath);
       encodes += 1;
       const after = await measureLoudness(filePath, spec);
-      if (!after) return { normalized: true, lufs: null, tp: null, encodes, reason: "unverified" };
-      measured = after;
+      if (!after.ok) return { normalized: true, lufs: null, tp: null, encodes, reason: `unverified: ${after.reason}` };
+      measured = after.measurement;
       if (isWithinLoudnessSpec(measured, spec)) break;
       // Encoder overshoot: more bits first, then a lower loudnorm ceiling.
       if (bitrateIndex + 1 < BITRATES_KBPS.length) bitrateIndex += 1;
@@ -113,7 +121,14 @@ export async function normalizeLoudness(filePath: string, spec: DeliverySpec): P
     }
   } catch (error) {
     fs.rmSync(tempPath, { force: true });
-    return skipped((error as Error).message, encodes);
+    // A pass already replaced the file: report what it measured, not "no measurement".
+    return {
+      normalized: encodes > 0,
+      lufs: measured.input_i,
+      tp: measured.input_tp,
+      encodes,
+      reason: (error as Error).message,
+    };
   }
 
   logger.info(

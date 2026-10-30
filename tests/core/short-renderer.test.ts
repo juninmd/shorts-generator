@@ -182,6 +182,27 @@ describe("short-renderer", () => {
       );
     });
 
+    it("propagates a delivery-gate rejection", async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        const probe = {
+          format: { duration: "10" },
+          streams: [
+            { codec_type: "video", codec_name: "h264", width: 720, height: 1280, r_frame_rate: "30/1" },
+            { codec_type: "audio", codec_name: "aac", sample_rate: "48000", channels: 2 },
+          ],
+        };
+        if (typeof cb === "function") {
+          cb(null, { stdout: file === "ffprobe" ? JSON.stringify(probe) : "", stderr: "" });
+        }
+        return {} as any;
+      });
+
+      await expect(callRenderShort()).rejects.toThrow("resolution 720x1280; expected 1080x1920");
+    });
+
     it("validates the rendered artifact with ffprobe", async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
