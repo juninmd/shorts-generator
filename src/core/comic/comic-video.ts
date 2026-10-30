@@ -1,14 +1,16 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { promisify } from "node:util";
 import type { NarratedChapter } from "./comic-types.js";
 import { logger } from "../logger.js";
-import { buildFontEnv } from "../ffmpeg-env.js";
-import { ffmpegBin } from "../ffmpeg-bin.js";
 import { buildDuckingGraph } from "../audio-ducking.js";
+import { runFfmpeg } from "../ffmpeg-run.js";
+import {
+  AUDIO_SAMPLE_RATE,
+  buildAudioEncoderArgs,
+  buildVideoEncoderArgs,
+} from "../encode-settings.js";import { DELIVERY_SPECS } from "../delivery-spec.js";
 
-const execFileAsync = promisify(execFile);
+const SPEC = DELIVERY_SPECS.custom!;
 
 function escapeFilterPath(filePath: string): string {
   return filePath.replace(/\\/g, "/").replace(/:/g, "\\:");
@@ -16,7 +18,9 @@ function escapeFilterPath(filePath: string): string {
 
 /**
  * Render one chapter: still image + narration audio, with a slow Ken Burns
- * zoom so a static comic page doesn't feel dead on video.
+ * zoom so a static comic page doesn't feel dead on video. Chapter clips are an
+ * intermediate, so they are encoded at delivery quality to limit generation loss
+ * when the final burn re-encodes them.
  */
 export async function renderChapterClip(
   chapter: NarratedChapter,
@@ -37,14 +41,13 @@ export async function renderChapterClip(
     "-i", chapter.imagePath,
     "-i", chapter.audioPath,
     "-vf", zoomFilter,
-    "-c:v", "libx264",
     "-t", String(chapter.durationSec),
-    "-c:a", "aac",
-    "-pix_fmt", "yuv420p",
+    ...buildVideoEncoderArgs({ encoder: "libx264", spec: SPEC, quality: 18 }),
+    ...buildAudioEncoderArgs(SPEC),
     "-shortest",
     outputPath,
   ];
-  await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024 });
+  await runFfmpeg(args, { outputPath, maxBufferBytes: 16 * 1024 * 1024 });
 }
 
 /** Faceless chapter: looped stock footage cropped to vertical, under the narration. */
@@ -65,12 +68,11 @@ async function renderFootageClip(
     "-map", "0:v",
     "-map", "1:a",
     "-t", String(chapter.durationSec),
-    "-c:v", "libx264",
-    "-c:a", "aac",
-    "-pix_fmt", "yuv420p",
+    ...buildVideoEncoderArgs({ encoder: "libx264", spec: SPEC, quality: 18 }),
+    ...buildAudioEncoderArgs(SPEC),
     outputPath,
   ];
-  await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024 });
+  await runFfmpeg(args, { outputPath, maxBufferBytes: 16 * 1024 * 1024 });
 }
 
 /** Concatenate rendered chapter clips into a single video via the concat demuxer. */
@@ -91,9 +93,10 @@ export async function concatChapterClips(
     "-safe", "0",
     "-i", listPath,
     "-c", "copy",
+    "-movflags", "+faststart",
     outputPath,
   ];
-  await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024 });
+  await runFfmpeg(args, { outputPath, maxBufferBytes: 16 * 1024 * 1024 });
 }
 
 /**
@@ -107,6 +110,8 @@ export async function burnSubtitles(
   music?: { path: string; durationSec: number },
 ): Promise<void> {
   const subtitles = `subtitles='${escapeFilterPath(subtitlePath)}'`;
+  const encode = buildVideoEncoderArgs({ encoder: "libx264", spec: SPEC, quality: 20 });
+  const audio = buildAudioEncoderArgs(SPEC);
   const args = music
     ? [
       "-y",
@@ -119,20 +124,21 @@ export async function burnSubtitles(
       "-map", "[v]",
       "-map", "[aout]",
       "-t", String(music.durationSec),
-      "-c:v", "libx264",
-      "-c:a", "aac",
-      "-pix_fmt", "yuv420p",
+      ...encode,
+      ...audio,
+      "-movflags", "+faststart",
       outputPath,
     ]
     : [
       "-y",
       "-i", inputPath,
       "-vf", subtitles,
-      "-c:v", "libx264",
+      ...encode,
+      // No music to mix: the narration is already AAC at the delivery rate.
       "-c:a", "copy",
-      "-pix_fmt", "yuv420p",
+      "-movflags", "+faststart",
       outputPath,
     ];
-  logger.info({ inputPath, outputPath, music: music?.path }, "Burning comic subtitles");
-  await execFileAsync(ffmpegBin(), args, { maxBuffer: 16 * 1024 * 1024, env: buildFontEnv() });
+  logger.info({ inputPath, outputPath, music: music?.path, sampleRate: AUDIO_SAMPLE_RATE }, "Burning comic subtitles");
+  await runFfmpeg(args, { outputPath, maxBufferBytes: 16 * 1024 * 1024 });
 }

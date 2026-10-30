@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
+import path from "node:path";
 import { buildBrollGraph, findLocalBroll, resolveBroll } from "../../src/core/broll.js";
 import { fetchSceneFootage } from "../../src/core/faceless/stock-footage.js";
 
@@ -60,11 +61,13 @@ describe("resolveBroll", () => {
       { at: 30, query: "over the cap" },
     ], "/w", "c");
     expect(result).toEqual([
-      { at: 5, duration: 2, path: "lib/city-night.mp4" },
+      { at: 5, duration: 2, path: path.join("lib", "city-night.mp4") },
       { at: 20, duration: 2, path: "/w/c-broll2.mp4" },
     ]);
     expect(fetchSceneFootage).toHaveBeenCalledTimes(1);
-    expect(fetchSceneFootage).toHaveBeenCalledWith("mountain lake", "/w/c-broll2.mp4", "KEY", expect.any(Set));
+    expect(fetchSceneFootage).toHaveBeenCalledWith(
+      "mountain lake", path.join("/w", "c-broll2.mp4"), "KEY", expect.any(Set),
+    );
   });
 
   it("drops cues with no footage and uses the default length and cap", async () => {

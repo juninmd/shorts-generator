@@ -9,6 +9,9 @@ vi.mock("node:fs");
 vi.mock("../../../src/core/comic/comic-tts.js");
 vi.mock("../../../src/core/comic/comic-video.js");
 vi.mock("../../../src/core/subtitle.js");
+vi.mock("../../../src/core/short-delivery.js", () => ({
+  finishDelivery: vi.fn().mockResolvedValue({ destination: "custom", normalized: false, loudnessOk: null, warnings: [] }),
+}));
 
 describe("comic-pipeline", () => {
   beforeEach(() => {

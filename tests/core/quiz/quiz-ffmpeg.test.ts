@@ -71,4 +71,24 @@ describe("quiz-ffmpeg.service", () => {
     mockProcess.emit("close", 0);
     vi.useRealTimers();
   });
+
+  it("kills a wedged ffmpeg after FFMPEG_TIMEOUT_MS and reports the timeout", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("FFMPEG_TIMEOUT_MS", "1000");
+    const mockProcess = new EventEmitter() as any;
+    mockProcess.stderr = new EventEmitter();
+    mockProcess.kill = vi.fn();
+    vi.mocked(child_process.spawn).mockReturnValue(mockProcess);
+
+    const promise = runFFmpeg(["-i", "input.mp4"], "filter", "out.mp4", 100);
+    const assertion = expect(promise).rejects.toThrow("FFmpeg was killed after the 1000ms timeout");
+
+    vi.advanceTimersByTime(1000);
+    expect(mockProcess.kill).toHaveBeenCalledWith("SIGKILL");
+    mockProcess.emit("close", null);
+
+    await assertion;
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
 });

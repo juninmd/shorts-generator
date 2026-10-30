@@ -27,3 +27,35 @@ export async function probeFormat(filePath: string): Promise<ProbedFormat> {
   );
   return (JSON.parse(stdout) as { format?: ProbedFormat }).format ?? {};
 }
+
+export interface ProbedVideoStream {
+  codec_name?: string;
+  width?: number;
+  height?: number;
+  color_space?: string;
+  color_transfer?: string;
+  color_primaries?: string;
+}
+
+/**
+ * Colour and geometry of the source picture. The vertical render tags its
+ * output BT.709, so the source matrix decides whether the pixels must be
+ * converted (a BT.601 source) or only relabelled. Best-effort: {} on failure.
+ */
+export async function probeVideoStream(filePath: string): Promise<ProbedVideoStream> {
+  try {
+    const { stdout } = await execFileAsync(
+      ffprobeBin(),
+      [
+        "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "stream=codec_name,width,height,color_space,color_transfer,color_primaries",
+        "-of", "json", filePath,
+      ],
+      { maxBuffer: 1024 * 1024 },
+    );
+    const streams = (JSON.parse(stdout) as { streams?: ProbedVideoStream[] }).streams ?? [];
+    return streams[0] ?? {};
+  } catch {
+    return {};
+  }
+}
