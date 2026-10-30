@@ -19,8 +19,8 @@ export const runQuizPipeline = async (
 ): Promise<any> => {
   logger.info({ quizTopic }, "🚀 Iniciando Pipeline de Quiz Shorts");
 
-  // Step 1: Content Generation
-  await onProgress?.({ stage: "generating_quiz", progress: 10, message: "Gerando perguntas do quiz usando IA..." });
+  // Step 1: Content Generation (generation + deterministic repair + blind answer audit)
+  await onProgress?.({ stage: "generating_quiz", progress: 10, message: "Gerando e validando as perguntas do quiz..." });
   const quiz = await generateQuiz(config, quizTopic);
   logger.info({ quiz }, "Quiz gerado com sucesso");
 
