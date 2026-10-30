@@ -2,11 +2,15 @@ import { loadConfig } from "../src/core/config.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { logger } from "../src/core/logger.js";
 import { createModel } from "../src/core/ai-provider.js";
 import { hasTonemapFilters } from "../src/core/hdr-tonemap.js";
 import { ffmpegBin, ffprobeBin } from "../src/core/ffmpeg-bin.js";
+import { buildAudioEncoderArgs, buildVideoEncoderArgs } from "../src/core/encode-settings.js";
+import { DELIVERY_SPECS } from "../src/core/delivery-spec.js";
+import { probeRenderedShort, validateShortMetadata } from "../src/core/short-quality.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -93,6 +97,34 @@ async function checkDeliveryCapabilities() {
   }
 }
 
+/**
+ * Encode one second with the real delivery flag set and probe the result: a typo'd or
+ * unsupported option (private x264 flag, wrong pixel format) ships green otherwise.
+ */
+async function checkDeliveryEncode() {
+  const spec = DELIVERY_SPECS.shorts!;
+  const output = path.join(os.tmpdir(), `shorts-smoke-${process.pid}.mp4`);
+  try {
+    await execFileAsync(ffmpegBin(), [
+      "-hide_banner", "-nostdin", "-y",
+      "-f", "lavfi", "-i", `testsrc2=s=${spec.width}x${spec.height}:r=${spec.fps}:d=1`,
+      "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
+      ...buildVideoEncoderArgs({ encoder: "libx264", spec, quality: 28, preset: "veryfast" }),
+      ...buildAudioEncoderArgs(spec),
+      "-movflags", "+faststart", "-t", "1", output,
+    ], { timeout: 120_000 });
+    const metadata = await probeRenderedShort(output);
+    validateShortMetadata(metadata, { duration: 1, width: spec.width, height: spec.height }, spec);
+    logger.info(`✅ Delivery encode accepted the flag set (${spec.width}x${spec.height}, AAC ${spec.sampleRate} Hz stereo)`);
+    return true;
+  } catch (err: any) {
+    logger.error("❌ Delivery encode failed: " + err.message);
+    return false;
+  } finally {
+    fs.rmSync(output, { force: true });
+  }
+}
+
 async function runSmokeTest() {
   logger.info("🚀 Starting Smoke Test...");
   
@@ -102,6 +134,7 @@ async function runSmokeTest() {
     checkAI(),
     checkDirectories(),
     checkDeliveryCapabilities(),
+    checkDeliveryEncode(),
   ]);
 
   const allPassed = results.every(r => r === true);

@@ -111,12 +111,12 @@ export const generateFilters = (quiz: Quiz, timeline: QuizTimeline, a: QuizFilte
   quiz.perguntas.forEach((_, i) => {
     const qIn = 1 + i * 2;
     const aIn = 2 + i * 2;
-    audioFilters.push(`[${qIn}:a]aformat=sample_rates=44100:channel_layouts=stereo[nq${i}]`);
-    audioFilters.push(`[${aIn}:a]aformat=sample_rates=44100:channel_layouts=stereo[na${i}]`);
-    audioFilters.push(`aevalsrc=0:d=${TIMER_SECONDS}:sample_rate=44100,aformat=channel_layouts=stereo[gap${i}]`);
+    audioFilters.push(`[${qIn}:a]aformat=sample_rates=48000:channel_layouts=stereo[nq${i}]`);
+    audioFilters.push(`[${aIn}:a]aformat=sample_rates=48000:channel_layouts=stereo[na${i}]`);
+    audioFilters.push(`aevalsrc=0:d=${TIMER_SECONDS}:sample_rate=48000,aformat=channel_layouts=stereo[gap${i}]`);
     segments.push(`[nq${i}]`, `[gap${i}]`, `[na${i}]`);
   });
-  audioFilters.push(`[${outroIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,apad=pad_dur=0.6[nout]`);
+  audioFilters.push(`[${outroIdx}:a]aformat=sample_rates=48000:channel_layouts=stereo,apad=pad_dur=0.6[nout]`);
   segments.push(`[nout]`);
   audioFilters.push(`${segments.join("")}concat=n=${segments.length}:v=0:a=1[voice]`);
 

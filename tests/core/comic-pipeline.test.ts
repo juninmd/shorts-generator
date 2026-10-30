@@ -36,6 +36,8 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 import { runComicPipeline } from "../../src/core/comic/comic-pipeline.js";
+import { finishDelivery } from "../../src/core/short-delivery.js";
+import { DELIVERY_SPECS } from "../../src/core/delivery-spec.js";
 import type { ComicBook } from "../../src/core/comic/comic-types.js";
 
 describe("comic-pipeline", () => {
@@ -62,6 +64,7 @@ describe("comic-pipeline", () => {
     expect(result.chapters).toBe(2);
     expect(result.bookTitle).toBe("Test Comic");
     expect(result.outputPath).toContain("book-1.mp4");
+    expect(finishDelivery).toHaveBeenCalledWith(result.outputPath, { duration: 5, width: 1080, height: 1920 }, DELIVERY_SPECS.custom);
   });
 
   it("rejects a book with no chapters", async () => {

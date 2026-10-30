@@ -4,6 +4,8 @@ import * as domain from "../../../src/core/quiz/quiz.domain.js";
 import * as assets from "../../../src/core/quiz/quiz-assets.service.js";
 import * as filters from "../../../src/core/quiz/quiz-filters.service.js";
 import * as ffmpeg from "../../../src/core/quiz/quiz-ffmpeg.service.js";
+import * as delivery from "../../../src/core/short-delivery.js";
+import { DELIVERY_SPECS } from "../../../src/core/delivery-spec.js";
 import fs from "node:fs";
 import child_process from "node:child_process";
 import path from "node:path";
@@ -84,6 +86,18 @@ describe("quiz-video.service", () => {
     expect(outputPath).toBe("out.mp4");
     expect(fs.mkdirSync).toHaveBeenCalledWith(path.resolve("temp"), { recursive: true });
     expect(ffmpeg.runFFmpeg).toHaveBeenCalled();
+    expect(delivery.finishDelivery).toHaveBeenCalledWith(
+      "out.mp4",
+      { duration: 10, width: DELIVERY_SPECS.custom!.width, height: DELIVERY_SPECS.custom!.height },
+      DELIVERY_SPECS.custom,
+    );
+  });
+
+  it("fails the assembly when the delivery gate rejects the quiz", async () => {
+    vi.mocked(delivery.finishDelivery).mockRejectedValueOnce(new Error("duration 90.000s"));
+
+    await expect(assembleVideo(validQuiz, narrations, "out.mp4", "temp", config))
+      .rejects.toThrow("duration 90.000s");
   });
 
   it("throws error if ffprobe fails to measure duration", async () => {

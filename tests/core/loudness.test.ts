@@ -24,6 +24,8 @@ interface MockPlan {
   measurements: string[];
   /** set to throw for every encode */
   failEncode?: Error;
+  /** 1-based encode index that throws, for a failure after a successful first pass */
+  failAtEncode?: number;
   probe?: () => Promise<{ duration?: string }>;
 }
 
@@ -38,6 +40,7 @@ function plan(options: MockPlan): string[][] {
       return { stderr, durationMs: 1 };
     }
     if (options.failEncode) throw options.failEncode;
+    if (options.failAtEncode === encodes.length + 1) throw new Error("late encode failed");
     encodes.push(args);
     return { stderr: "", durationMs: 1 };
   });
@@ -61,11 +64,17 @@ describe("loudness normalisation", () => {
     expect(runFfmpeg).not.toHaveBeenCalled();
   });
 
-  it("skips a file whose audio cannot be measured", async () => {
+  it("reports why a measurement failed instead of calling it 'no audio'", async () => {
     plan({ measurements: [] });
     const result = await normalizeLoudness("out.mp4", spec);
-    expect(result.reason).toBe("no_audio");
+    expect(result.reason).toBe("no audio stream");
     expect(fs.renameSync).not.toHaveBeenCalled();
+  });
+
+  it("names a silent or audio-less file distinctly from a failed run", async () => {
+    plan({ measurements: [JSON.stringify({ input_i: "-inf", input_tp: "-inf", input_lra: "0", input_thresh: "-inf", target_offset: "0" })] });
+    const result = await normalizeLoudness("out.mp4", spec);
+    expect(result.reason).toBe("no_audio_or_silent");
   });
 
   it("leaves a file that is already on target untouched", async () => {
@@ -105,7 +114,9 @@ describe("loudness normalisation", () => {
   it("reports a normalised file whose new levels could not be read", async () => {
     plan({ measurements: [loudnorm(-21.3, -3.2), loudnorm(Number.NaN, Number.NaN)] });
     const result = await normalizeLoudness("out.mp4", spec);
-    expect(result).toEqual({ normalized: true, lufs: null, tp: null, encodes: 1, reason: "unverified" });
+    expect(result).toEqual({
+      normalized: true, lufs: null, tp: null, encodes: 1, reason: "unverified: no_audio_or_silent",
+    });
   });
 
   it("keeps the render when the encode itself fails, and removes the temp file", async () => {
@@ -115,6 +126,19 @@ describe("loudness normalisation", () => {
 
     expect(result).toMatchObject({ normalized: false, encodes: 0, reason: "aac exploded" });
     expect(fs.rmSync).toHaveBeenCalledWith(expect.stringMatching(/[\\/]\.[0-9a-f-]{36}\.mp4$/), { force: true });
+  });
+
+  it("reports the first pass's measurement when a later retry fails", async () => {
+    plan({
+      measurements: [loudnorm(-21.3, -3.2), loudnorm(-14.1, -0.4)],
+      failAtEncode: 2,
+    });
+
+    const result = await normalizeLoudness("out.mp4", spec);
+
+    expect(result).toMatchObject({
+      normalized: true, lufs: -14.1, tp: -0.4, encodes: 1, reason: "late encode failed",
+    });
   });
 
   it("omits the trim when the input duration is unreadable", async () => {

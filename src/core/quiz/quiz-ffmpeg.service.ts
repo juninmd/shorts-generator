@@ -4,6 +4,11 @@ import { normalizePath } from "./quiz-assets.service.js";
 import { logger } from "../logger.js";
 import { ffmpegBin } from "../ffmpeg-bin.js";
 import { ffmpegTimeoutMs } from "../ffmpeg-timeout.js";
+import { buildAudioEncoderArgs, buildVideoEncoderArgs } from "../encode-settings.js";
+import { DELIVERY_SPECS } from "../delivery-spec.js";
+
+/** A quiz is a delivery like any other short, without a Shorts length cap. */
+const QUIZ_SPEC = DELIVERY_SPECS.custom!;
 
 const hmsToSeconds = (hms: string): number => {
   const parts = hms.split(":").reverse();
@@ -31,24 +36,12 @@ export const runFFmpeg = async (
   const args = ["-y", "-hide_banner", "-nostdin", ...ffmpegInputs];
   args.push("-filter_complex", filterComplex, "-map", "[vout]", "-map", "[aout]");
   args.push(
-    "-c:v", "libx264",
-    // ultrafast at CRF 28 turned the 1080x1920 question cards into blocky text; veryfast at 23
-    // still encodes a mostly-static quiz frame quickly and keeps the type readable.
-    "-preset", "veryfast",
     "-tune", "fastdecode,zerolatency",
     "-filter_threads", "2",
-    "-r", "30",
-    "-crf", "23",
-    "-profile:v", "high",
-    "-pix_fmt", "yuv420p",
-    "-g", "60",
-    "-colorspace", "bt709",
-    "-color_primaries", "bt709",
-    "-color_trc", "bt709",
-    "-c:a", "aac",
-    "-b:a", "192k",
-    "-ar", "48000",
-    "-ac", "2",
+    // Same encoder line as a short: this build ignores the generic -color_* options,
+    // so only the x264 params actually tag the quiz BT.709.
+    ...buildVideoEncoderArgs({ encoder: "libx264", spec: QUIZ_SPEC, quality: 23, preset: "veryfast" }),
+    ...buildAudioEncoderArgs(QUIZ_SPEC, 192),
     "-movflags", "+faststart",
     "-t", totalSeconds.toString(),
     normalizePath(outputPath)
@@ -75,6 +68,8 @@ export const runFFmpeg = async (
       logger.error({ outputPath, timeoutMs }, "❌ FFmpeg excedeu o timeout — encerrando");
       ff.kill("SIGKILL");
     }, timeoutMs);
+    // Do not keep an idle process alive for up to 30 minutes after a failed spawn.
+    killer.unref();
 
     ff.stderr.on("data", (chunk: Buffer | string) => {
       const str = chunk.toString();

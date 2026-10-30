@@ -104,6 +104,16 @@ describe("delivery check", () => {
     expect(deliveryWarnings(result)[1]!.message).toContain("smpte170m");
   });
 
+  it("warns when the video profile is not High", () => {
+    const metadata = valid();
+    metadata.streams![0]!.profile = "Main";
+    expect(deliveryWarnings(rows(metadata))).toEqual([
+      expect.objectContaining({ property: "profile", message: expect.stringContaining("Main") }),
+    ]);
+    metadata.streams![0]!.profile = "High";
+    expect(deliveryWarnings(rows(metadata))).toEqual([]);
+  });
+
   it("does not warn about a tag ffmpeg never wrote", () => {
     const metadata = valid();
     metadata.streams![0]!.color_space = "unknown";

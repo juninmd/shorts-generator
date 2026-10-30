@@ -92,8 +92,8 @@ export const assembleVideo = async (
     // delivery gate (frame, codecs, 48 kHz, no length cap for a long quiz).
     await finishDelivery(outputPath, {
       duration: timeline.total,
-      width: 1080,
-      height: 1920,
+      width: DELIVERY_SPECS.custom!.width,
+      height: DELIVERY_SPECS.custom!.height,
     }, DELIVERY_SPECS.custom);
 
     return outputPath;
