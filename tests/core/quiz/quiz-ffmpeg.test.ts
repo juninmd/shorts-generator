@@ -135,4 +135,20 @@ describe("quiz-ffmpeg.service", () => {
 
     await expect(promise).rejects.toThrow("FFmpeg exited with code 1");
   });
+
+  it("does not delete a finished deliverable when a late error event arrives", async () => {
+    const mockProcess = new EventEmitter() as any;
+    mockProcess.stderr = new EventEmitter();
+    mockProcess.kill = vi.fn();
+    vi.mocked(child_process.spawn).mockReturnValue(mockProcess);
+
+    const promise = runFFmpeg(["-i", "input.mp4"], "filter", "out.mp4", 100);
+    mockProcess.emit("close", 0);
+    await expect(promise).resolves.toBeUndefined();
+    expect(fs.rmSync).not.toHaveBeenCalled();
+
+    mockProcess.emit("error", new Error("late ipc error"));
+    mockProcess.emit("close", 1);
+    expect(fs.rmSync).not.toHaveBeenCalled();
+  });
 });

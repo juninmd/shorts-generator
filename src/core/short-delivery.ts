@@ -32,6 +32,9 @@ export async function finishDelivery(
   const loudness = await normalizeLoudness(filePath, spec);
   const loudnessOk = loudnessVerdict(loudness, spec);
   const warnings: string[] = [];
+  // A failed pass must not disappear behind a level that happens to be within tolerance.
+  const reason = loudness.reason?.slice(0, 200);
+  const silentFailure = Boolean(reason) && reason !== "on_target" && reason !== "disabled";
 
   if (loudnessOk === false) {
     warnings.push(
@@ -39,8 +42,11 @@ export async function finishDelivery(
       + `${spec.name}'s ${spec.lufs} LUFS / ${spec.truePeak} dBTP`,
     );
   }
-  if (loudnessOk === null && loudness.reason !== "disabled") {
-    warnings.push(`loudness not measured for ${spec.name} (${loudness.reason ?? "unknown"})`);
+  if (silentFailure) {
+    const prefix = loudnessOk === null ? "loudness not measured" : "loudness pass did not complete";
+    warnings.push(`${prefix} for ${spec.name}: ${reason}`);
+  } else if (loudnessOk === null && reason !== "disabled") {
+    warnings.push(`loudness not measured for ${spec.name} (${reason ?? "unknown"})`);
   }
   for (const warning of warnings) logger.warn({ file: filePath, destination: spec.name }, warning);
 
@@ -52,6 +58,7 @@ export async function finishDelivery(
       encodes: loudness.encodes,
       lufs: loudness.lufs,
       tp: loudness.tp,
+      reason,
     },
     loudness.lufs === null ? "Delivery verified without a loudness measurement" : "Delivery verified",
   );

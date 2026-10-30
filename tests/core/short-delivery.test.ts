@@ -54,7 +54,32 @@ describe("delivery finisher", () => {
     const report = await finishDelivery("out.mp4", expected);
 
     expect(report.loudnessOk).toBeNull();
-    expect(report.warnings).toEqual(["loudness not measured for shorts (no_audio)"]);
+    expect(report.warnings).toEqual(["loudness not measured for shorts: no_audio"]);
+  });
+
+  it("warns when a loudness pass failed even if the level is within tolerance", async () => {
+    vi.mocked(normalizeLoudness).mockResolvedValue({
+      normalized: true, lufs: -14.1, tp: -1.2, encodes: 1, reason: "late encode failed",
+    });
+
+    const report = await finishDelivery("out.mp4", expected);
+
+    expect(report.loudnessOk).toBe(true);
+    expect(report.warnings).toEqual(["loudness pass did not complete for shorts: late encode failed"]);
+    expect(logger.warn).toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "late encode failed" }),
+      "Delivery verified",
+    );
+  });
+
+  it("truncates a long ffmpeg reason before it reaches the report", async () => {
+    const long = `${"x".repeat(400)}TAIL`;
+    vi.mocked(normalizeLoudness).mockResolvedValue({ normalized: false, lufs: null, tp: null, encodes: 0, reason: long });
+
+    const report = await finishDelivery("out.mp4", expected);
+
+    expect(report.warnings[0]).toHaveLength("loudness not measured for shorts: ".length + 200);
   });
 
   it("names an unexplained missing measurement as unknown", async () => {

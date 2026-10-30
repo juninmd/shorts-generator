@@ -70,7 +70,7 @@ describe("short renderer colour handling", () => {
   it("converts a BT.601 source before scaling", async () => {
     probeWith({ color_space: "smpte170m" });
     await render();
-    expect(filterFor()).toContain("colorspace=all=bt709:iall=bt601-6-525:fast=1,scale=");
+    expect(filterFor()).toContain("colorspace=all=bt709:iall=smpte170m:fast=1,scale=");
   });
 
   it("keeps the source tags when HDR cannot be tone-mapped here", async () => {

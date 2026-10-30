@@ -22,7 +22,10 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-vi.mock("../../../src/core/ffmpeg-bin.js", () => ({ ffmpegBin: () => "mock-ffmpeg" }));
+vi.mock("../../../src/core/ffmpeg-bin.js", () => ({
+  ffmpegBin: () => "mock-ffmpeg",
+  probeVideoStream: vi.fn(async () => ({ color_space: "bt709" })),
+}));
 
 import { renderChapterClip, concatChapterClips, burnSubtitles } from "../../../src/core/comic/comic-video.js";
 import * as nodeFs from "node:fs";

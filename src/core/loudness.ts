@@ -73,7 +73,7 @@ async function encode(
   const durationSec = await inputDuration(inputPath);
   await runFfmpeg([
     "-y", "-i", inputPath,
-    "-map", "0:v:0", "-map", "0:a:0",
+    "-map", "0:v:0?", "-map", "0:a:0",
     "-c:v", "copy",
     "-af", buildLoudnormFilter(measurement, spec, ceiling, durationSec),
     "-c:a", "aac", "-b:a", `${bitrateKbps}k`, "-ar", String(spec.sampleRate), "-ac", "2",

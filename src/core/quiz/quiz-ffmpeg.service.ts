@@ -55,6 +55,7 @@ export const runFFmpeg = async (
     const ff = spawn(ffmpegBin(), args, { stdio: ["ignore", "ignore", "pipe"] });
     let lastPct = -1;
     let timedOut = false;
+    let settled = false;
     const startedAt = Date.now();
     const timeoutMs = ffmpegTimeoutMs();
 
@@ -97,6 +98,8 @@ export const runFFmpeg = async (
     });
 
     ff.on("close", (code: number | null) => {
+      if (settled) return;
+      settled = true;
       clearInterval(keepAlive);
       clearTimeout(killer);
       if (timedOut) {
@@ -114,6 +117,9 @@ export const runFFmpeg = async (
     // A bad FFMPEG_PATH emits 'error' instead of 'close'; without a listener that
     // is an uncaught exception that kills the worker instead of failing the job.
     ff.on("error", (error: Error) => {
+      // A late error after a successful close must not delete the finished file.
+      if (settled) return;
+      settled = true;
       clearInterval(keepAlive);
       clearTimeout(killer);
       removePartial(outputPath);

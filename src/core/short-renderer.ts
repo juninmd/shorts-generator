@@ -12,8 +12,8 @@ import { buildSafeFramingFilter } from "./short-framing.js";
 import { remapKeyframes, type KeepRange } from "./silence-cuts.js";
 import { finishDelivery } from "./short-delivery.js";
 import { activeDeliverySpec } from "./delivery-spec.js";
-import { buildAudioEncoderArgs, buildBt709Filter, buildVideoEncoderArgs } from "./encode-settings.js";
-import { buildTonemapFilter, isHdrTransfer, supportsTonemap } from "./hdr-tonemap.js";
+import { buildAudioEncoderArgs, buildVideoEncoderArgs } from "./encode-settings.js";
+import { resolveColourPlan } from "./colour-plan.js";
 import { runFfmpeg } from "./ffmpeg-run.js";
 import { ffmpegBin, probeVideoStream } from "./ffmpeg-bin.js";
 
@@ -30,23 +30,6 @@ export interface EditPlan {
 }
 
 type Focus = number | FocusKeyframe[];
-
-interface ColourPlan {
-  filter: string;
-  /** False when an HDR source cannot be tone-mapped here: keeping the source tags is honest. */
-  tagBt709: boolean;
-}
-
-/** Colour conversion for the delivery: tone map HDR, convert BT.601, otherwise only tag BT.709. */
-async function resolveColour(colorSpace?: string, colorTransfer?: string): Promise<ColourPlan> {
-  if (!isHdrTransfer(colorTransfer)) return { filter: buildBt709Filter(colorSpace), tagBt709: true };
-  if (await supportsTonemap()) return { filter: buildTonemapFilter(), tagBt709: true };
-  logger.warn(
-    { colorTransfer },
-    "HDR source and this ffmpeg lacks zscale/tonemap: keeping the source colour tags instead of mislabelling SDR",
-  );
-  return { filter: "", tagBt709: false };
-}
 
 /** Re-expresses the speaker position inside a cropped (letterboxed) frame and on the edited timeline. */
 function adaptFocus(focus: Focus, letterbox: LetterboxInfo | null, ranges?: KeepRange[]): Focus {
@@ -78,7 +61,7 @@ export async function renderShort(
   // The delivery is tagged BT.709: a BT.601 source is converted, an HDR source tone-mapped,
   // instead of being mislabelled.
   const source = await probeVideoStream(inputPath);
-  const colour = await resolveColour(source.color_space, source.color_transfer);
+  const colour = await resolveColourPlan(source.color_space, source.color_transfer);
   const video = buildSafeFramingFilter(subtitlePath, config.verticalWidth, config.verticalHeight, logoPath, focus, {
     videoInput: plan.ranges ? "[cv]" : "[0:v]",
     cropBox: letterbox?.box,

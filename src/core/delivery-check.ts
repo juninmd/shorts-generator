@@ -128,7 +128,7 @@ export function checkDelivery(
     warn(
       "profile",
       video?.profile === undefined || /high/i.test(video.profile),
-      `Short delivery warning: video profile ${video?.profile ?? "missing"}; deliveries expect H.264 High`,
+      `Short delivery warning: video profile ${video?.profile ?? "missing"}; deliveries expect ${spec.videoCodec} High`,
     ),
   ];
   return rows;
