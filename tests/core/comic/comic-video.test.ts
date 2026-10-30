@@ -30,6 +30,7 @@ vi.mock("../../../src/core/ffmpeg-bin.js", () => ({
 import { renderChapterClip, concatChapterClips, burnSubtitles } from "../../../src/core/comic/comic-video.js";
 import * as nodeFs from "node:fs";
 import * as cp from "node:child_process";
+import { probeVideoStream } from "../../../src/core/ffmpeg-bin.js";
 
 describe("comic-video", () => {
   beforeEach(() => {
@@ -84,8 +85,25 @@ describe("comic-video", () => {
     expect(args).not.toContain("-loop");
   });
 
-  it("burnSubtitles mixes ducked background music when a track is given", async () => {
-    await burnSubtitles("input.mp4", "sub.ass", "output.mp4", { path: "bgm.mp3", durationSec: 30 });
+  it("converts an SD stock clip with its own BT.601 matrix before scaling", async () => {
+    vi.mocked(probeVideoStream).mockResolvedValueOnce({ color_space: "smpte170m" } as any);
+    await renderChapterClip({
+      id: "s2", title: "s", imagePath: "", videoPath: "stock.mp4", narrationText: "t",
+      audioPath: "s2.mp3", durationSec: 4, words: [],
+    }, "out.mp4", 1080, 1920);
+    const args = vi.mocked(cp.execFile).mock.calls[0][1] as string[];
+    expect(args[args.indexOf("-vf") + 1]).toContain("colorspace=all=bt709:iall=smpte170m:fast=1,scale=");
+  });
+
+  it("does not relabel an HDR chapter as BT.709 on the final burn", async () => {
+    vi.mocked(probeVideoStream).mockResolvedValueOnce({ color_space: "bt2020nc", color_transfer: "smpte2084" } as any);
+    await burnSubtitles("input.mp4", "sub.ass", "output.mp4");
+    const args = vi.mocked(cp.execFile).mock.calls[0][1] as string[];
+    expect(args).not.toContain("-colorspace");
+    expect(args).not.toContain("-x264-params");
+  });
+
+  it("burnSubtitles mixes ducked background music when a track is given", async () => {    await burnSubtitles("input.mp4", "sub.ass", "output.mp4", { path: "bgm.mp3", durationSec: 30 });
     const args = vi.mocked(cp.execFile).mock.calls[0][1] as string[];
     expect(args).toEqual(expect.arrayContaining(["-stream_loop", "-1", "bgm.mp3", "[v]", "[aout]", "30"]));
     const graph = args[args.indexOf("-filter_complex") + 1]!;

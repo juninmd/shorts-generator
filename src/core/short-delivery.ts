@@ -34,7 +34,7 @@ export async function finishDelivery(
   const warnings: string[] = [];
   // A failed pass must not disappear behind a level that happens to be within tolerance.
   const reason = loudness.reason?.slice(0, 200);
-  const silentFailure = Boolean(reason) && reason !== "on_target" && reason !== "disabled";
+  const failedPass = Boolean(reason) && reason !== "on_target" && reason !== "disabled";
 
   if (loudnessOk === false) {
     warnings.push(
@@ -42,7 +42,7 @@ export async function finishDelivery(
       + `${spec.name}'s ${spec.lufs} LUFS / ${spec.truePeak} dBTP`,
     );
   }
-  if (silentFailure) {
+  if (failedPass) {
     const prefix = loudnessOk === null ? "loudness not measured" : "loudness pass did not complete";
     warnings.push(`${prefix} for ${spec.name}: ${reason}`);
   } else if (loudnessOk === null && reason !== "disabled") {

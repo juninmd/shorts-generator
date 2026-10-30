@@ -108,6 +108,8 @@ export async function concatChapterClips(
 /**
  * Burn ASS subtitles onto the concatenated video. With a music track, the
  * narration is mixed over it and the music ducks whenever the narrator speaks.
+ * The final re-encode is a delivery encode: a chapter that kept HDR tags is
+ * tone-mapped (or kept HDR) here, never relabelled as BT.709.
  */
 export async function burnSubtitles(
   inputPath: string,
@@ -116,7 +118,9 @@ export async function burnSubtitles(
   music?: { path: string; durationSec: number },
 ): Promise<void> {
   const subtitles = `subtitles='${escapeFilterPath(subtitlePath)}'`;
-  const encode = buildVideoEncoderArgs({ encoder: "libx264", spec: SPEC, quality: 20 });
+  const source = await probeVideoStream(inputPath);
+  const colour = await resolveColourPlan(source.color_space, source.color_transfer, "comic-burn");
+  const encode = buildVideoEncoderArgs({ encoder: "libx264", spec: SPEC, quality: 20, tagBt709: colour.tagBt709 });
   const audio = buildAudioEncoderArgs(SPEC);
   const args = music
     ? [
@@ -124,7 +128,7 @@ export async function burnSubtitles(
       "-i", inputPath,
       "-stream_loop", "-1",
       "-i", music.path,
-      "-filter_complex", `[0:v]${subtitles}[v];${buildDuckingGraph({
+      "-filter_complex", `[0:v]${colour.filter}${subtitles}[v];${buildDuckingGraph({
         speechInput: "[0:a]", musicInput: "[1:a]", duration: music.durationSec,
       })}`,
       "-map", "[v]",
@@ -138,7 +142,7 @@ export async function burnSubtitles(
     : [
       "-y",
       "-i", inputPath,
-      "-vf", subtitles,
+      "-vf", `${colour.filter}${subtitles}`,
       ...encode,
       // No music to mix: the narration is already AAC at the delivery rate.
       "-c:a", "copy",
