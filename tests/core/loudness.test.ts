@@ -84,18 +84,22 @@ describe("loudness normalisation", () => {
     expect(encodes[0]).toEqual(expect.arrayContaining(["-c:v", "copy", "-ar", "48000", "-ac", "2", "-b:a", "192k"]));
     expect(encodes[0]!.join(" ")).toContain("atrim=duration=10.500");
     expect(encodes[0]!.join(" ")).toContain("measured_I=-21.3");
-    expect(fs.renameSync).toHaveBeenCalledWith(expect.stringMatching(/\.out\.loudnorm\.mp4$/), "/videos/out.mp4");
+    expect(fs.renameSync).toHaveBeenCalledWith(expect.stringMatching(/[\\/]\.[0-9a-f-]{36}\.mp4$/), "/videos/out.mp4");
   });
 
   it("raises the bitrate when the AAC encoder overshoots the peak ceiling", async () => {
     const encodes = plan({
-      measurements: [loudnorm(-21.3, -3.2), loudnorm(-14.1, -0.4), loudnorm(-14.1, -0.4), loudnorm(-14.1, -0.4)],
+      measurements: [loudnorm(-21.3, -3.2), loudnorm(-14.1, -0.4), loudnorm(-14.2, -0.4), loudnorm(-14.2, -0.4)],
     });
 
     const result = await normalizeLoudness("out.mp4", spec);
 
     expect(result.encodes).toBe(3);
     expect(encodes.map((args) => args[args.indexOf("-b:a") + 1])).toEqual(["192k", "256k", "320k"]);
+    // Each retry measures the file it is about to replace; the original gain is never reused.
+    expect(encodes[0]!.join(" ")).toContain("measured_I=-21.3");
+    expect(encodes[1]!.join(" ")).toContain("measured_I=-14.1");
+    expect(encodes[2]!.join(" ")).toContain("measured_I=-14.2");
   });
 
   it("reports a normalised file whose new levels could not be read", async () => {
@@ -110,7 +114,7 @@ describe("loudness normalisation", () => {
     const result = await normalizeLoudness("/videos/out.mp4", spec);
 
     expect(result).toMatchObject({ normalized: false, encodes: 0, reason: "aac exploded" });
-    expect(fs.rmSync).toHaveBeenCalledWith(expect.stringMatching(/\.out\.loudnorm\.mp4$/), { force: true });
+    expect(fs.rmSync).toHaveBeenCalledWith(expect.stringMatching(/[\\/]\.[0-9a-f-]{36}\.mp4$/), { force: true });
   });
 
   it("omits the trim when the input duration is unreadable", async () => {

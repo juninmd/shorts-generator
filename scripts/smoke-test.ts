@@ -6,12 +6,13 @@ import path from "node:path";
 import { logger } from "../src/core/logger.js";
 import { createModel } from "../src/core/ai-provider.js";
 import { hasTonemapFilters } from "../src/core/hdr-tonemap.js";
+import { ffmpegBin, ffprobeBin } from "../src/core/ffmpeg-bin.js";
 
 const execFileAsync = promisify(execFile);
 
 async function checkFfmpeg() {
   try {
-    const { stdout } = await execFileAsync("ffmpeg", ["-version"]);
+    const { stdout } = await execFileAsync(ffmpegBin(), ["-version"]);
     logger.info("✅ FFmpeg found: " + stdout.split("\n")[0]);
     return true;
   } catch (err) {
@@ -22,7 +23,7 @@ async function checkFfmpeg() {
 
 async function checkFfprobe() {
   try {
-    const { stdout } = await execFileAsync("ffprobe", ["-version"]);
+    const { stdout } = await execFileAsync(ffprobeBin(), ["-version"]);
     logger.info("✅ FFprobe found: " + stdout.split("\n")[0]);
     return true;
   } catch (err) {
@@ -69,8 +70,8 @@ const listed = (listing: string, name: string): boolean => new RegExp(`(^|\\s)${
 async function checkDeliveryCapabilities() {
   try {
     const [encoders, filters] = await Promise.all([
-      execFileAsync("ffmpeg", ["-hide_banner", "-encoders"]),
-      execFileAsync("ffmpeg", ["-hide_banner", "-filters"]),
+      execFileAsync(ffmpegBin(), ["-hide_banner", "-encoders"]),
+      execFileAsync(ffmpegBin(), ["-hide_banner", "-filters"]),
     ]);
     const missing = [
       ...REQUIRED_ENCODERS.filter((name) => !listed(String(encoders.stdout), name)).map((name) => `encoder ${name}`),
