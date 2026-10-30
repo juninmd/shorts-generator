@@ -18,6 +18,10 @@ vi.mock("../../src/core/comic/comic-video.js", () => ({
   burnSubtitles: vi.fn(async () => {}),
 }));
 
+vi.mock("../../src/core/short-delivery.js", () => ({
+  finishDelivery: vi.fn(async () => ({ destination: "custom", normalized: false, loudnessOk: null, warnings: [] })),
+}));
+
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   const overrides = {
@@ -32,6 +36,8 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 import { runComicPipeline } from "../../src/core/comic/comic-pipeline.js";
+import { finishDelivery } from "../../src/core/short-delivery.js";
+import { DELIVERY_SPECS } from "../../src/core/delivery-spec.js";
 import type { ComicBook } from "../../src/core/comic/comic-types.js";
 
 describe("comic-pipeline", () => {
@@ -58,6 +64,7 @@ describe("comic-pipeline", () => {
     expect(result.chapters).toBe(2);
     expect(result.bookTitle).toBe("Test Comic");
     expect(result.outputPath).toContain("book-1.mp4");
+    expect(finishDelivery).toHaveBeenCalledWith(result.outputPath, { duration: 5, width: 1080, height: 1920 }, DELIVERY_SPECS.custom);
   });
 
   it("rejects a book with no chapters", async () => {
