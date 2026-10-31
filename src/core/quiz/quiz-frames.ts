@@ -22,8 +22,8 @@ export interface FrameAssets {
 
 const LETTERS = ["A", "B", "C", "D"] as const;
 const OPTION_Y: Record<(typeof LETTERS)[number], number> = { A: 820, B: 1040, C: 1260, D: 1480 };
-/** Text panel: keeps captions readable over any gradient. */
-const PANEL = "drawbox=x=36:y=360:w=1008:h=1200:color=black@0.34:t=fill";
+/** Text panel: keeps captions readable over any gradient without hiding the background. */
+const PANEL = "drawbox=x=36:y=360:w=1008:h=1200:color=black@0.30:t=fill";
 const SHADOW = "shadowcolor=black@0.7:shadowx=3:shadowy=3";
 
 /** Smaller type for a question that wraps to more lines, so it never reaches the options. */
