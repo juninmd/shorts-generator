@@ -18,8 +18,6 @@ export default defineConfig({
         'src/types-video.ts',
         'src/core/comic/comic-types.ts',
         'src/core/publishers/types.ts',
-        'src/core/youtube.ts',
-        'src/core/comic/demo-books.ts'
       ],
       all: true,
       thresholds: {
