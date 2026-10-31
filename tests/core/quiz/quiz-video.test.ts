@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { assembleVideo } from "../../../src/core/quiz/quiz-video.service.js";
 import * as domain from "../../../src/core/quiz/quiz.domain.js";
 import * as assets from "../../../src/core/quiz/quiz-assets.service.js";
+import * as background from "../../../src/core/quiz/quiz-background.js";
 import * as filters from "../../../src/core/quiz/quiz-filters.service.js";
 import * as ffmpeg from "../../../src/core/quiz/quiz-ffmpeg.service.js";
 import * as delivery from "../../../src/core/short-delivery.js";
@@ -14,6 +15,7 @@ vi.mock("node:fs");
 vi.mock("node:child_process");
 vi.mock("../../../src/core/quiz/quiz.domain.js");
 vi.mock("../../../src/core/quiz/quiz-assets.service.js");
+vi.mock("../../../src/core/quiz/quiz-background.js");
 vi.mock("../../../src/core/quiz/quiz-filters.service.js");
 vi.mock("../../../src/core/quiz/quiz-ffmpeg.service.js");
 vi.mock("../../../src/core/short-delivery.js", () => ({
@@ -57,8 +59,8 @@ describe("quiz-video.service", () => {
       outroStart: 5
     });
 
-    vi.mocked(assets.ensureFont).mockReturnValue("font.ttf");
-    vi.mocked(assets.prepareBackground).mockReturnValue("bg.mp4");
+    vi.mocked(assets.resolveQuizFont).mockReturnValue("font.ttf");
+    vi.mocked(background.prepareQuizBackground).mockReturnValue({ path: "bg.jpg", kind: "image", hasPanel: true, source: "quiz-01.png" });
     vi.mocked(assets.prepareTextFiles).mockReturnValue({
       questions: [],
       outroTxtPath: "outro.txt",
