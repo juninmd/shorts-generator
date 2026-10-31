@@ -18,6 +18,8 @@ export interface FrameAssets {
   /** Input index of the logo, -1 when absent. */
   logoIdx: number;
   watermarkText: string;
+  /** Background art already provides the dark text area, so no panel is painted. */
+  hasPanel?: boolean;
 }
 
 const LETTERS = ["A", "B", "C", "D"] as const;
@@ -39,8 +41,14 @@ export function buildFrameFilters(quiz: Quiz, timeline: QuizTimeline, a: FrameAs
   const filters: string[] = [
     "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
       + "eq=contrast=1.05:saturation=1.06[vbg]",
-    `[vbg]${PANEL}[vpanel]`,
   ];
+  // Hand-made art already has its own dark area and border: painting the generic
+  // panel over it would cover the frame that makes the art worth using.
+  if (a.hasPanel === true) {
+    filters.push("[vbg]copy[vpanel]");
+  } else {
+    filters.push(`[vbg]${PANEL}[vpanel]`);
+  }
   let vC = "vpanel";
   let vI = 0;
   const draw = (spec: string) => {
@@ -52,13 +60,16 @@ export function buildFrameFilters(quiz: Quiz, timeline: QuizTimeline, a: FrameAs
     `drawtext=${source}:fontfile='${a.fontFile}':fontcolor=${color}:fontsize=${size}:x=${x}:y=${y}`
     + `:bordercolor=black:borderw=3:${SHADOW}${extra}`;
 
+  // On hand-made art the panel starts around y=220: branding goes above it instead
+  // of sitting on the border. On the gradient it keeps the current top margin.
+  const logoY = a.hasPanel === true ? 96 : 150;
   if (a.hasLogo && a.logoIdx !== -1) {
     filters.push(`[${a.logoIdx}:v]scale=120:-1[logo_scaled]`);
-    filters.push(`[${vC}][logo_scaled]overlay=40:150[vlogo]`);
+    filters.push(`[${vC}][logo_scaled]overlay=40:${logoY}[vlogo]`);
     vC = "vlogo";
-    draw(dt(`text='${a.watermarkText}'`, "white", 32, "180", 176, ":borderw=2"));
+    draw(dt(`text='${a.watermarkText}'`, "white", 32, "180", logoY + 26, ":borderw=2"));
   } else {
-    draw(dt(`text='${a.watermarkText}'`, "white", 32, "40", 150, ":borderw=2"));
+    draw(dt(`text='${a.watermarkText}'`, "white", 32, "40", a.hasPanel === true ? 96 : 150, ":borderw=2"));
   }
 
   // Hook headline during the whole first question block — the swipe decision window.
@@ -94,9 +105,11 @@ export function buildFrameFilters(quiz: Quiz, timeline: QuizTimeline, a: FrameAs
       }
     }
 
-    // Countdown on the right so a long question never runs under it.
+    // Countdown on the right (inside the art's text area when the art has one) so a
+    // long question never runs under it.
+    const timerX = a.hasPanel === true ? "w-text_w-170" : "w-text_w-90";
     for (let k = 0; k < TIMER_SECONDS; k++) {
-      draw(dt(`text='${TIMER_SECONDS - k}'`, "yellow", 96, "w-text_w-90", 700,
+      draw(dt(`text='${TIMER_SECONDS - k}'`, "yellow", 96, timerX, 700,
         `:box=1:boxcolor=black@0.55:boxborderw=18:enable='between(t,${t(s.timerStart + k)},${t(s.timerStart + k + 1)})'`));
     }
   });

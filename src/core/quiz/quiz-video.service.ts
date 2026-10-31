@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { buildTimeline, type Quiz } from "./quiz.domain.js";
-import { resolveQuizFont, prepareBackground, prepareTextFiles, normalizePath } from "./quiz-assets.service.js";
+import { resolveQuizFont, prepareTextFiles, normalizePath } from "./quiz-assets.service.js";
+import { prepareQuizBackground } from "./quiz-background.js";
 import { generateFilters } from "./quiz-filters.service.js";
 import { runFFmpeg } from "./quiz-ffmpeg.service.js";
 import { logger } from "../logger.js";
@@ -65,12 +66,14 @@ export const assembleVideo = async (
     const beepPath = normalizePath("assets/music/beep.mp3");
     const logoPath = normalizePath("assets/logo/logo.png");
 
-    const bgVideo = prepareBackground(resolvedTempDir, timeline.total);
+    const background = prepareQuizBackground(resolvedTempDir, timeline.total);
     const { questions: textFiles, outroTxtPath,
       outroLinePaths, hookTxtPath } = prepareTextFiles(quiz, resolvedTempDir);
 
     const { ffmpegInputs, filterComplex } = generateFilters(quiz, timeline, {
-      bgVideo,
+      bgVideo: background.path,
+      bgIsImage: background.kind === "image",
+      bgHasPanel: background.hasPanel,
       questionAudioPaths: narrations.questionAudioPaths.map(normalizePath),
       answerAudioPaths: narrations.answerAudioPaths.map(normalizePath),
       outroAudioPath: normalizePath(narrations.outroAudioPath),

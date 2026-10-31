@@ -9,6 +9,10 @@ export interface FilterResult {
 
 export interface QuizFilterAssets {
   bgVideo: string;
+  /** The background is a still image (`-loop 1`) rather than a video. */
+  bgIsImage?: boolean;
+  /** The image already draws its own dark text area, so no panel is painted over it. */
+  bgHasPanel?: boolean;
   questionAudioPaths: string[];
   answerAudioPaths: string[];
   outroAudioPath: string;
@@ -32,7 +36,7 @@ const MUSIC_VOLUME = 0.10;
 const LIMITER = "alimiter=limit=0.95:level=false";
 
 export const generateFilters = (quiz: Quiz, timeline: QuizTimeline, a: QuizFilterAssets): FilterResult => {
-  const isImg = a.bgVideo.toLowerCase().match(/\.(jpg|png)$/);
+  const isImg = a.bgIsImage ?? Boolean(a.bgVideo.toLowerCase().match(/\.(jpg|png)$/));
   const ffmpegInputs: string[] = [];
 
   if (isImg) {
@@ -62,6 +66,7 @@ export const generateFilters = (quiz: Quiz, timeline: QuizTimeline, a: QuizFilte
     hasLogo: a.hasLogo,
     logoIdx,
     watermarkText: a.watermarkText,
+    hasPanel: a.bgHasPanel ?? false,
   });
 
   // Audio: narrations concatenated with silent timer gaps, beeps on top.
