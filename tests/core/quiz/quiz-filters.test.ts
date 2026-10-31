@@ -125,6 +125,17 @@ describe("quiz-filters.service", () => {
     expect(filterComplex).toContain("x=180:y=176"); // Watermark shifted for logo
   });
 
+  it("treats the background as a still image when told to, even without an image extension", () => {
+    const { ffmpegInputs, filterComplex } = generateFilters(quiz, timeline, {
+      ...baseAssets,
+      bgVideo: "art.mp4",
+      bgIsImage: true,
+      bgHasPanel: true,
+    });
+    expect(ffmpegInputs.join(" ")).toContain("-loop 1 -framerate 30 -i");
+    expect(filterComplex).not.toContain("drawbox=x=36");
+  });
+
   it("handles missing option text files gracefully", () => {
     const quizMissingOpt: QuizFilterAssets = {
       ...baseAssets,
