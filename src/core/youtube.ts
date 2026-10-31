@@ -1,6 +1,27 @@
-// Barrel module — yt-dlp interactions split across focused files to honor the
-// 150-line-per-file constraint. Public API is unchanged.
-export { verifyYoutubeAccess, getVideoInfo, getVideoFileSize } from "./youtube-info.js";
-export { getChannelVideos, getTopChannelVideos } from "./youtube-channel.js";
-export { downloadAudioOnly } from "./youtube-download.js";
-export { downloadVideoSection, cleanupVideo } from "./youtube-section.js";
+import { verifyYoutubeAccess, getVideoInfo, getVideoFileSize } from "./youtube-info.js";
+import { getChannelVideos, getTopChannelVideos } from "./youtube-channel.js";
+import { downloadAudioOnly } from "./youtube-download.js";
+import { downloadVideoSection, cleanupVideo } from "./youtube-section.js";
+
+const youtube = {
+    verifyYoutubeAccess,
+    getVideoInfo,
+    getVideoFileSize,
+    getChannelVideos,
+    getTopChannelVideos,
+    downloadAudioOnly,
+    downloadVideoSection,
+    cleanupVideo
+};
+
+export {
+    verifyYoutubeAccess,
+    getVideoInfo,
+    getVideoFileSize,
+    getChannelVideos,
+    getTopChannelVideos,
+    downloadAudioOnly,
+    downloadVideoSection,
+    cleanupVideo
+};
+export default youtube;
