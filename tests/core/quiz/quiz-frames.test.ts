@@ -51,11 +51,29 @@ describe("quiz frames", () => {
     expect(filters.join(";")).not.toContain("overlay=");
   });
 
+  it("skips the generic panel when the art already provides one", () => {
+    const withArt = buildFrameFilters(quiz, timeline, { ...assets, hasPanel: true });
+    const chain = withArt.join(";");
+    expect(chain).not.toContain("drawbox=x=36");
+    expect(withArt[1]).toBe("[vbg]copy[vpanel]");
+    // the countdown moves inside the art's text area
+    expect(chain).toContain("x=w-text_w-170:y=700");
+    // branding goes above the art's panel border, not over it
+    expect(chain).toContain("x=40:y=96");
+  });
+
   it("places the logo and shifts the watermark when a logo is present", () => {
     const withLogo = buildFrameFilters(quiz, timeline, { ...assets, hasLogo: true, logoIdx: 8 });
     const chain = withLogo.join(";");
     expect(chain).toContain("[8:v]scale=120:-1[logo_scaled]");
     expect(chain).toContain("overlay=40:150[vlogo]");
     expect(chain).toContain("x=180:y=176");
+  });
+
+  it("keeps logo and watermark above the panel on art backgrounds", () => {
+    const withArt = buildFrameFilters(quiz, timeline, { ...assets, hasLogo: true, logoIdx: 8, hasPanel: true });
+    const chain = withArt.join(";");
+    expect(chain).toContain("overlay=40:96[vlogo]");
+    expect(chain).toContain("x=180:y=122");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { wrapText, normalizePath, rel, esc, ensureFont, resolveQuizFont, prepareBackground, prepareTextFiles } from '../../../src/core/quiz/quiz-assets.service.js';
+import { wrapText, normalizePath, rel, esc, ensureFont, resolveQuizFont, prepareTextFiles } from '../../../src/core/quiz/quiz-assets.service.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import child_process from 'node:child_process';
@@ -199,71 +199,6 @@ describe('quiz-assets.service', () => {
     });
   });
 
-  describe('prepareBackground', () => {
-    beforeEach(() => {
-        vi.resetAllMocks();
-    });
-
-    it('renders a drifting, vignetted gradient larger than the frame', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 0 } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      prepareBackground('tmp', 60);
-
-      const args = vi.mocked(child_process.spawnSync).mock.calls[0]![1] as string[];
-      expect(args.join(' ')).toContain('gradients=s=1188x2112');
-      expect(args.join(' ')).toContain('crop=1080:1920');
-      expect(args.join(' ')).toContain('vignette=PI/5');
-      expect(args).toEqual(expect.arrayContaining(['-crf', '18', '-g', '60']));
-      // one extra second so the last frame never runs short of the audio
-      expect(args[args.indexOf('-t') + 1]).toBe('61');
-    });
-
-    it('returns gradient video if render succeeds', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 0 } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.join('tmp', 'bg_gradient.mp4'));
-      expect(child_process.spawnSync).toHaveBeenCalledWith('ffmpeg', expect.any(Array));
-    });
-
-    it('returns existing fallback image if render fails', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 1, stderr: Buffer.from('err') } as any);
-      vi.mocked(fs.existsSync).mockImplementation((p) => {
-        const fp = typeof p === 'string' ? p : p.toString();
-        return fp.includes('neon.png');
-      });
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.resolve('assets/backgrounds/neon.png'));
-      expect(logger.warn).toHaveBeenCalledWith({ stderr: 'err' }, 'Fundo animado falhou — usando fallback estático');
-    });
-
-    it('generates fallback image if neon.png does not exist', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 1, stderr: Buffer.from('err') } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.join('tmp', 'bg_default.jpg'));
-      expect(child_process.spawnSync).toHaveBeenCalledWith('ffmpeg', expect.arrayContaining(['color=c=darkblue:s=1080x1920:d=1']));
-    });
-
-    it('uses generated fallback image if already exists', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 1, stderr: Buffer.from('err') } as any);
-      vi.mocked(fs.existsSync).mockImplementation((p) => p === path.join('tmp', 'bg_default.jpg'));
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.join('tmp', 'bg_default.jpg'));
-      expect(child_process.spawnSync).toHaveBeenCalledTimes(1); // Only for bg_gradient
-    });
-
-    it('handles undefined stderr', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 1, stderr: undefined } as any);
-      vi.mocked(fs.existsSync).mockImplementation((p) => {
-        const fp = typeof p === 'string' ? p : p.toString();
-        return fp.includes('neon.png');
-      });
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.resolve('assets/backgrounds/neon.png'));
-      expect(logger.warn).toHaveBeenCalledWith({ stderr: undefined }, 'Fundo animado falhou — usando fallback estático');
-    });
-  });
 
   describe('prepareTextFiles', () => {
     beforeEach(() => {
