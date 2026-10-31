@@ -33,11 +33,12 @@ export const esc = (p: string) => rel(p).replace(/([:])/g, "\\$1");
 export { ensureFont, resolveQuizFont, BUNDLED_FONT } from "./quiz-fonts.js";
 
 // Distinct color pairs so every video gets its own look — identical backgrounds
-// across uploads feed YouTube's templated/mass-produced content detection.
+// across uploads feed YouTube's templated/mass-produced content detection. All of
+// them are mid-bright: a near-black pair reads as a dead frame behind the panel.
 const GRADIENT_PALETTES: Array<[string, string]> = [
-  ["0x1a2a6c", "0xb21f1f"], ["0x0f2027", "0x2c5364"], ["0x42275a", "0x734b6d"],
-  ["0x141e30", "0x243b55"], ["0x232526", "0x414345"], ["0x1d4350", "0xa43931"],
-  ["0x11998e", "0x0b3866"], ["0x2c3e50", "0x4ca1af"],
+  ["0x223c7a", "0xb21f1f"], ["0x134e5e", "0x71b280"], ["0x42275a", "0x734b6d"],
+  ["0x3a1c71", "0xd76d77"], ["0x1d4350", "0xa43931"], ["0x2c3e50", "0x6f9fb3"],
+  ["0x11998e", "0x0b3866"], ["0x5a2a27", "0xc9843c"],
 ];
 
 /**
@@ -53,7 +54,7 @@ export const prepareBackground = (tempDir: string, durationSec = 60): string => 
     "-y", "-hide_banner", "-nostdin", "-f", "lavfi",
     "-i", `gradients=s=1188x2112:c0=${c0}:c1=${c1}:speed=0.02:r=30`,
     "-t", String(Math.ceil(durationSec) + 1),
-    "-vf", `${drift},noise=alls=3:allf=t,vignette=PI/5`,
+    "-vf", `${drift},eq=brightness=0.05:saturation=1.12:contrast=1.04,noise=alls=3:allf=t,vignette=PI/5`,
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-g", "60",
     normalizePath(bgVideo),
   ]);

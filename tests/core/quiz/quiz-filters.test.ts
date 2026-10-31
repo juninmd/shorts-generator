@@ -62,7 +62,7 @@ describe("quiz-filters.service", () => {
     expect(filterComplex).toContain("boxcolor=0x2e7d32@0.95");
     // every glyph has a shadow and the text sits on a dark panel
     expect(filterComplex).toContain("shadowcolor=black@0.7");
-    expect(filterComplex).toContain("drawbox=x=36:y=360:w=1008:h=1200:color=black@0.34");
+    expect(filterComplex).toContain("drawbox=x=36:y=360:w=1008:h=1200:color=black@0.30");
   });
 
   it("shrinks the question type as the wrapped text grows", () => {
