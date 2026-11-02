@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PipelineConfig, Transcript } from "../../src/types.js";
 import * as gjModule from "../../src/core/generate-json.js";
-import { reviewClipCandidates } from "../../src/core/clip-quality.js";
+import { reviewClipCandidates, reviewClipOutcome } from "../../src/core/clip-quality.js";
 
 vi.mock("../../src/core/generate-json.js", () => ({
   generateJsonObject: vi.fn(),
@@ -109,41 +109,80 @@ describe("clip-quality", () => {
     expect(result).toEqual([]);
   });
 
-  it("keeps structurally proven rhetoric when the model produces a false negative", async () => {
+  const strongTranscript: Transcript = {
+    ...transcript,
+    duration: 404,
+    segments: [
+      { start: 389, end: 398, text: "Não. A verdade vai doer, mas vai libertar. Ela vai salvar." },
+      { start: 399, end: 404, text: "Não tenha medo. Ele fere para curar." },
+    ],
+  };
+  const strongClip = {
+    title: "A verdade dói, liberta e cura",
+    description: "Desc",
+    contentValue: "Reflexão",
+    hookText: strongTranscript.segments[0]!.text,
+    payoffText: strongTranscript.segments[1]!.text,
+    startTime: 389,
+    endTime: 404,
+    viralScore: 8.5,
+    reason: "Transformação clara",
+    hashtags: [],
+  };
+
+  it("respects an explicit rejection even when the rhetoric is structurally proven", async () => {
     vi.mocked(gjModule.generateJsonObject).mockResolvedValue({
       reviews: [{
-        candidateIndex: 0,
-        editorialScore: 6,
-        hookScore: 8,
-        standaloneScore: 8,
-        payoffScore: 4,
-        approved: false,
-        reason: "Payoff truncado.",
+        candidateIndex: 0, editorialScore: 6, hookScore: 8, standaloneScore: 8,
+        payoffScore: 4, approved: false, reason: "Payoff truncado.",
       }],
     } as never);
-    const strongTranscript: Transcript = {
-      ...transcript,
-      duration: 404,
+    expect(await reviewClipCandidates([strongClip], strongTranscript, config)).toEqual([]);
+  });
+
+  it("falls back to structural proof only when the reviewer is unavailable", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("gateway down"));
+    const outcome = await reviewClipOutcome(
+      [strongClip, { ...strongClip, title: "Sem prova", hookText: undefined }],
+      strongTranscript, config,
+    );
+    expect(outcome.status).toBe("unavailable");
+    expect(outcome.approved).toHaveLength(1);
+    expect(outcome.approved[0]?.viralScore).toBeGreaterThanOrEqual(8);
+    expect(outcome.rejected.map((clip) => clip.title)).toEqual(["Sem prova"]);
+  });
+
+  it("rejects a clip whose independent check misses its own bar", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue({
+      reviews: [{
+        candidateIndex: 0, editorialScore: 9, hookScore: 9, standaloneScore: 9,
+        payoffScore: 9, approved: true, reason: "Ótimo.",
+        checks: { selfContained: 0.9, completeEnding: 0.4, notSponsored: 0.99 },
+      }],
+    } as never);
+    const outcome = await reviewClipOutcome([strongClip], strongTranscript, config);
+    expect(outcome.status).toBe("ok");
+    expect(outcome.approved).toEqual([]);
+    expect(outcome.reasons[0]?.reason).toContain("completeEnding");
+  });
+
+  it("drops ad reads before spending a review call and passes the source brief", async () => {
+    const adTranscript: Transcript = {
+      ...strongTranscript,
       segments: [
-        { start: 389, end: 398, text: "Não. A verdade vai doer, mas vai libertar. Ela vai salvar." },
-        { start: 399, end: 404, text: "Não tenha medo. Ele fere para curar." },
+        { start: 389, end: 398, text: "Use o código PROMO no link na descrição." },
+        { start: 399, end: 404, text: "Ganhe cupom de desconto." },
       ],
     };
+    const outcome = await reviewClipOutcome([strongClip], adTranscript, config);
+    expect(outcome.rejected).toHaveLength(1);
+    expect(outcome.reasons[0]?.reason).toBe("Trecho patrocinado");
+    expect(gjModule.generateJsonObject).not.toHaveBeenCalled();
 
-    const result = await reviewClipCandidates([{
-      title: "A verdade dói, liberta e cura",
-      description: "Desc",
-      contentValue: "Reflexão",
-      hookText: strongTranscript.segments[0]!.text,
-      payoffText: strongTranscript.segments[1]!.text,
-      startTime: 389,
-      endTime: 404,
-      viralScore: 8.5,
-      reason: "Transformação clara",
-      hashtags: [],
-    }], strongTranscript, config);
-
-    expect(result).toHaveLength(1);
-    expect(result[0]?.viralScore).toBeGreaterThanOrEqual(8);
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue({ reviews: [] } as never);
+    await reviewClipOutcome([strongClip, { ...strongClip, title: "Ad" }], strongTranscript,
+      { ...config, sourceBrief: "RESUMO: vídeo sobre fé." });
+    expect(vi.mocked(gjModule.generateJsonObject).mock.calls[0]?.[0].prompt)
+      .toContain("RESUMO: vídeo sobre fé.");
   });
 });
