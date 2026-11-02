@@ -44,4 +44,32 @@ describe("clip repair", () => {
     vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("offline"));
     await expect(repairClipCandidates([clip], transcript, config, 1)).resolves.toEqual([]);
   });
+
+  const repaired = (extra = {}) => ({ ...clip, startTime: 0, endTime: 30, ...extra });
+
+  it("voids repairs whose cited quote is not in the transcript", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue({ clips: [
+      repaired({ title: "Inventada", diagnosis: { check: "completeEnding", quote: "frase inventada" } }),
+      repaired({ title: "Real", diagnosis: { check: "completeEnding", quote: "A VERDADE liberta." } }),
+      repaired({ title: "Sem citação" }),
+    ] } as never);
+    const result = await repairClipCandidates([clip], transcript, config, 3);
+    expect(result.map((item) => item.title)).toEqual(["Real", "Sem citação"]);
+  });
+
+  it("drops proposals that overlap approved footage and shows gaps and reasons", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue({ clips: [
+      repaired({ title: "Repetida" }), repaired({ title: "Nova", startTime: 25, endTime: 40 }),
+    ] } as never);
+    const result = await repairClipCandidates([clip], transcript, config, 3, {
+      reasons: [{ title: "Corte", reason: "payoff cortado" }],
+      gaps: [{ startTime: 20, endTime: 40 }],
+      exclude: [{ startTime: 0, endTime: 30 }],
+    });
+    expect(result.map((item) => item.title)).toEqual(["Nova"]);
+    const prompt = vi.mocked(gjModule.generateJsonObject).mock.calls[0]![0].prompt;
+    expect(prompt).toContain("payoff cortado");
+    expect(prompt).toContain("LACUNAS");
+    expect(prompt).toContain("TRECHOS JÁ APROVADOS");
+  });
 });
