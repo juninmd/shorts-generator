@@ -3,6 +3,7 @@ import type { PipelineConfig, PipelineProgress, PipelineResult, VideoInfo, Gener
 import { downloadAudioOnly, downloadVideoSection, cleanupVideo } from "./youtube.js";
 import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
+import { buildSourceBrief } from "./source-brief.js";
 import { computeAudioSignals } from "./audio-signals.js";
 import { applyBrandVocabulary, loadBrandVocabulary } from "./brand-vocabulary.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
@@ -42,7 +43,7 @@ export async function processVideo(
       },
     }), loadBrandVocabulary());
     emitProgress("analyzing", "Analisando momentos virais...", 40);
-    let clips = await analyzeTranscript(transcript, video.title, video.channelName, config, await computeAudioSignals(downloadedAudio.filePath));
+    let clips = await analyzeTranscript(transcript, video.title, video.channelName, { ...config, sourceBrief: buildSourceBrief(video) }, await computeAudioSignals(downloadedAudio.filePath));
     if (maxShorts !== undefined && maxShorts > 0 && clips.length > maxShorts) {
       clips = clips.slice(0, maxShorts);
     }

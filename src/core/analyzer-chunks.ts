@@ -89,7 +89,7 @@ export async function analyzeInChunks(
   for (let i = 0; i < chunks.length; i++) {
     const chunkSegments = chunks[i];
     const fraction = chunkSegments.length / transcript.segments.length;
-    const chunkMin = Math.max(1, Math.round(minCuts * fraction));
+    const chunkMin = minCuts > 0 ? Math.max(1, Math.round(minCuts * fraction)) : 0;
     const chunkMax = Math.max(chunkMin + 1, Math.round(maxCuts * fraction));
     const formatted = formatTranscriptForLLM(chunkSegments);
 
