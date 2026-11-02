@@ -1,5 +1,6 @@
 import { generateText, type LanguageModel } from "ai";
 import type { ZodType } from "zod";
+import { recordUsage } from "./llm-usage.js";
 
 // litellm-proxied models (llama/gemma) don't honor OpenAI structured-output
 // (response_format json_schema), so generateObject fails to parse their reply.
@@ -73,7 +74,8 @@ async function attempt<T>(opts: GenerateJsonOptions, timeoutMs: number, attemptI
       abortSignal: controller.signal,
       prompt: opts.prompt + JSON_INSTRUCTION + cacheBust,
     });
-    const { text } = await Promise.race([generation, timeout]);
+    const { text, usage } = await Promise.race([generation, timeout]);
+    recordUsage(usage);
     const raw = extractJson(text);
     if (!raw) throw new Error(`No JSON found in model output: ${text.slice(0, 200)}`);
     const parsed = opts.schema.safeParse(JSON.parse(raw));

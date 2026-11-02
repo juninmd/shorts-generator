@@ -61,6 +61,10 @@ export interface PipelineConfig {
   clipPrompt?: string;
   /** Extra analysis guidance (audio energy peaks) injected into the LLM prompt */
   analysisHints?: string;
+  /** Short brief about the source video (title, description, upload date) given to the reviewer */
+  sourceBrief?: string;
+  /** Receives per-stage records for the run's edit_audit.json */
+  audit?: { checkpoint(stage: string, detail: unknown): void };
   youtubeAuth?: YouTubeAuthConfig;
   managedRun?: ManagedRunContext;
   /** Public base URL of this server — used to build the YouTube OAuth callback URL */

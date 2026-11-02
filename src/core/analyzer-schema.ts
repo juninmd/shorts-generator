@@ -7,6 +7,8 @@ export const ClipItemSchema = z.object({
   contentValue: z.string().describe("Explique o valor deste trecho (ex: uma oração, um ensinamento, uma reflexão profunda)"),
   hookText: z.string().optional().describe("Primeira frase literal do corte"),
   payoffText: z.string().optional().describe("Última frase literal do corte"),
+  hookSegment: z.number().int().optional().describe("Índice do segmento (resolvido localmente) que contém o gancho"),
+  payoffSegment: z.number().int().optional().describe("Índice do segmento (resolvido localmente) que contém o payoff"),
   startTime: z.number().describe("Tempo de início em segundos"),
   endTime: z.number().describe("Tempo de fim em segundos"),
   viralScore: z.number().describe("Pontuação de relevância narrativa de 1 a 10"),

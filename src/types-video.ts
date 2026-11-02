@@ -10,6 +10,7 @@ export interface VideoInfo {
   liveStatus?: string;
   categories?: string[];
   viewCount?: number;
+  description?: string;
 }
 
 export interface DownloadedVideo extends VideoInfo {

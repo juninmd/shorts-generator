@@ -46,7 +46,7 @@ OBRIGATÓRIO:
 - Ideal: 30-45s; permitido: ${minDuration}-${maxDuration}s
 - Cada corte deve tratar de tema diferente
 - Use diretamente os timestamps [início-fim] da transcrição
-- Retorne no máximo ${maxClips}; mínimo ${minClips} só se houver material excelente
+- Retorne no máximo ${maxClips}; ${minClips > 0 ? `mínimo ${minClips} só se houver material excelente` : "zero é melhor que material mediano (sem cota mínima)"}
 - Nunca inclua nota abaixo de 7 para completar quantidade
 
 PROIBIDO:
