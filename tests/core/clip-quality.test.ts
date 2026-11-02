@@ -152,6 +152,15 @@ describe("clip-quality", () => {
     expect(outcome.rejected.map((clip) => clip.title)).toEqual(["Sem prova"]);
   });
 
+  it("does not trust an unreviewed clip whose length is out of range", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockRejectedValue(new Error("down"));
+    const outcome = await reviewClipOutcome(
+      [{ ...strongClip, startTime: 300 }], strongTranscript,
+      { ...config, minShortDuration: 15, maxShortDuration: 59 },
+    );
+    expect(outcome.approved).toEqual([]);
+  });
+
   it("rejects a clip whose independent check misses its own bar", async () => {
     vi.mocked(gjModule.generateJsonObject).mockResolvedValue({
       reviews: [{

@@ -39,6 +39,20 @@ describe("analyzer", () => {
     expect(prompt).not.toMatch(new RegExp("[\\u00f0\\u0178\\u00e2\\u20ac]"));
   });
 
+  it("asks for a minimum number of clips only under CLIP_QUOTA=strict", async () => {
+    vi.mocked(gjModule.generateJsonObject).mockResolvedValue({ clips: [] } as any);
+    await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+    expect(vi.mocked(gjModule.generateJsonObject).mock.calls[0]![0].prompt).toContain("sem cota mínima");
+    process.env.CLIP_QUOTA = "strict";
+    try {
+      vi.mocked(gjModule.generateJsonObject).mockClear();
+      await analyzeTranscript(mockTranscript, "Title", "Channel", mockConfig);
+      expect(vi.mocked(gjModule.generateJsonObject).mock.calls[0]![0].prompt).toMatch(/mínimo \d+ só se houver/);
+    } finally {
+      delete process.env.CLIP_QUOTA;
+    }
+  });
+
   it("should sort clips by viralScore in descending order", async () => {
     vi.mocked(gjModule.generateJsonObject).mockResolvedValue({
       clips: [
