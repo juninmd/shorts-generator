@@ -11,6 +11,7 @@ import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./stat
 import { logger } from "./logger.js";
 import { enqueueYoutubeUpload } from "./queue.js";
 import { enqueueSocialPosts } from "./social-queue.js";
+import { throwIfAborted } from "./run-context.js";
 import pLimit from "p-limit";
 export type ProgressCallback = (progress: PipelineProgress) => void;
 export async function processVideo(
@@ -54,6 +55,7 @@ export async function processVideo(
       clips.map((clip, index) =>
         limit(async () => {
           try {
+            throwIfAborted();
             emitProgress("cutting", `Baixando trecho ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
             const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
             const downloadedSection = { ...downloadedAudio, filePath: sectionPath };

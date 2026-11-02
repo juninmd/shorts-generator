@@ -9,6 +9,9 @@ import { z } from "zod";
 import { loadConfig } from "../core/config.js";
 import { runPipeline } from "../core/pipeline.js";
 import { logger } from "../core/logger.js";
+import { assertPublicUrl } from "../core/network-policy.js";
+import { cancelJob } from "../core/run-context.js";
+import { startJob } from "./job-runner.js";
 import { registerAdminRoutes } from "./admin-routes.js";
 import { registerDashboardRoutes } from "./dashboard-routes.js";
 import { registerSocialMediaRoutes } from "./social-media-routes.js";
@@ -48,6 +51,12 @@ app.post("/api/generate", async (c) => {
 
   const { urls, channels, videoLimit } = parsed.data;
 
+  try {
+    await Promise.all(urls.map((url) => assertPublicUrl(url)));
+  } catch {
+    return c.json({ error: "Only public http(s) URLs are accepted" }, 400);
+  }
+
   if (urls.length === 0 && channels.length === 0) {
     return c.json({ error: "Provide at least one url or channel" }, 400);
   }
@@ -56,21 +65,7 @@ app.post("/api/generate", async (c) => {
   const config = loadConfig({ specificUrls: urls, channels, videoLimit });
 
   await createJob(jobId);
-
-  void (async () => {
-    try {
-      const results = await runPipeline(config, (progress) => {
-        void updateJobProgress(jobId, progress);
-      });
-      await completeJob(jobId, results);
-    } catch (err) {
-      logger.error({ jobId, error: err }, "Job failed");
-      await failJob(jobId, err);
-    }
-  })().catch((err) => {
-    logger.error({ jobId, error: err }, "Unhandled error in job runner");
-    void failJob(jobId, err);
-  });
+  startJob(jobId, config);
 
   return c.json({ jobId, status: "processing" }, 202);
 });
@@ -104,6 +99,7 @@ app.delete("/api/jobs/:jobId", async (c) => {
     return c.json({ error: "Job not found" }, 404);
   }
 
+  cancelJob(jobId);
   await deleteJob(jobId);
 
   return c.json({ status: "deleted" });

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { writeJsonAtomic } from "./disk-cache.js";
 import { logger } from "./logger.js";
+import { memorySnapshot } from "./memory-monitor.js";
 
 export interface VideoAudit {
   checkpoint(stage: string, detail: unknown): void;
@@ -20,7 +21,7 @@ export function createVideoAudit(
   };
   return {
     checkpoint(stage, detail) {
-      (audit.stages as Record<string, unknown>)[stage] = { at: new Date().toISOString(), ...(detail as object) };
+      (audit.stages as Record<string, unknown>)[stage] = { at: new Date().toISOString(), memory: memorySnapshot(stage), ...(detail as object) };
       if (!file) return;
       try {
         writeJsonAtomic(file, audit);

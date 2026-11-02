@@ -6,6 +6,7 @@ import { sendFullVideoToTelegram, sendErrorAlert } from "./telegram.js";
 import { uploadFullVideoToYouTube } from "./youtube.service.js";
 import { logger } from "./logger.js";
 import { isMusicVideoByTitle, isVideoWithinLimits, selectValidVideos, matchesVideoQuery } from "./pipeline-filters.js";
+import { throwIfAborted } from "./run-context.js";
 import { processVideo } from "./pipeline-video-processor.js";
 import { buildFullVideoDescription, buildFullVideoTags } from "./full-video-metadata.js";
 
@@ -106,6 +107,7 @@ export async function runPipeline(
   let totalShorts = 0;
 
   for (const video of videos) {
+    throwIfAborted();
     if (config.targetShorts && totalShorts >= config.targetShorts) break;
     const remainingShorts = config.targetShorts ? Math.max(config.targetShorts - totalShorts, 0) : undefined;
     const videoResult = await processVideo(video, config, onProgress, remainingShorts || undefined);
