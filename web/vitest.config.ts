@@ -11,7 +11,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts', 'src/**/*.tsx'],
       all: true,
-      exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/types.ts', 'src/vitest.setup.ts', 'src/App.tsx'],
+      exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/types.ts', 'src/vitest.setup.ts'],
       thresholds: {
         lines: 100,
         functions: 100,
