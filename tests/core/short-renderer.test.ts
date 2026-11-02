@@ -15,6 +15,7 @@ vi.mock("node:fs", async (importOriginal) => {
       existsSync: vi.fn(),
       statSync: vi.fn(),
       mkdirSync: vi.fn(),
+      renameSync: vi.fn(),
     },
   };
 });
@@ -118,6 +119,28 @@ describe("short-renderer", () => {
       expect(args[args.indexOf("-filter_complex") + 1]).toContain("[2:a]aresample=48000,volume=");
       expect(args).toContain("[aout]");
       expect(args).not.toContain("-af");
+    });
+  });
+
+  describe("renderShort with speed", () => {
+    afterEach(() => { delete process.env.VIDEO_SPEED; });
+
+    it("speeds the rendered file up and verifies the shortened length", async () => {
+      process.env.VIDEO_SPEED = "1.5";
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ size: 150 * 1024 } as any);
+      vi.mocked(execFile).mockImplementation((file: any, args: any, options: any, callback?: any) => {
+        const cb = callback || options || args;
+        if (typeof cb === "function") cb(null, { stdout: file === "ffprobe" ? probeJson : "", stderr: "" });
+        return {} as any;
+      });
+      await renderShort(
+        "in.mp4", "out.mp4", "sub.ass", { startTime: 0, duration: 15 } as any,
+        { videoEncoder: "libx264", verticalWidth: 1080, verticalHeight: 1920 } as any,
+      );
+      const sped = vi.mocked(execFile).mock.calls.find((c) => (c[1] as string[]).join(" ").includes("atempo=1.5"))!;
+      expect((sped[1] as string[]).join(" ")).toContain("setpts=PTS/1.5,fps=30");
+      expect(fs.renameSync).toHaveBeenCalledWith("out.speed.mp4", "out.mp4");
     });
   });
 
