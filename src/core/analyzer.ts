@@ -63,9 +63,10 @@ export async function analyzeTranscript(
     ...deduplicateClips(rawClips).slice(0, candidateMax),
     ...deduplicateClips(discovered).slice(0, candidateMax),
   ];
-  const { clips: result } = await selectClips(
+  const { clips: result, trail } = await selectClips(
     candidates, transcript, config, maxCuts, candidateMax, signals,
   );
+  config.audit?.checkpoint("selection", { ...trail, rawCandidates: rawClips.length, discovered: discovered.length });
   logger.info(
     {
       videoId: transcript.videoId,
