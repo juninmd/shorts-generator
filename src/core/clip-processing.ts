@@ -11,6 +11,7 @@ import type { ClipItem } from "./analyzer-schema.js";
 import { snapToSentenceBoundaries } from "./clip-boundary.js";
 import { logger } from "./logger.js";
 import { energyBonus, type AudioSignals } from "./audio-signals.js";
+import { reactionEnd } from "./reaction-tail.js";
 import { findSentenceEnd } from "./sentence-end.js";
 
 const SPEECH_TAIL_SECONDS = 0.6;
@@ -96,10 +97,13 @@ export function processClips(
       snapped.startTime + config.minShortDuration,
       snapped.startTime + config.maxShortDuration - SPEECH_TAIL_SECONDS,
     );
+    const spoken = sentenceEnd ?? snapped.endTime;
+    // A laugh or applause answering the last line stays in, within the allowed length.
+    const reaction = reactionEnd(transcript.words, spoken, snapped.startTime + config.maxShortDuration - SPEECH_TAIL_SECONDS);
     const endTime = Math.min(
       transcript.duration,
       snapped.startTime + config.maxShortDuration,
-      (sentenceEnd ?? snapped.endTime) + SPEECH_TAIL_SECONDS,
+      (reaction ?? spoken) + SPEECH_TAIL_SECONDS,
     );
     return {
       id: nanoid(10),

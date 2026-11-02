@@ -1,4 +1,5 @@
 import type { FocusKeyframe } from "./focus-keyframes.js";
+import { isReaction } from "./reaction-tail.js";
 import type { BrollCue, ShortClip, TranscriptSegment, TranscriptWord } from "../types.js";
 
 /** A stretch of the clip (seconds from its start) that survives editing. */
@@ -15,6 +16,7 @@ const BREATH = 0.12;
 const FILLER_PAD = 0.03;
 const MIN_TOTAL_REMOVED = 0.5;
 const MAX_REMOVALS = 40;
+const MAX_QUESTION_BEAT = 2.5;
 
 const isFiller = (word: string): boolean => FILLERS.has(word.toLowerCase().replace(/[^\p{L}]/gu, ""));
 
@@ -32,7 +34,10 @@ function findRemovals(words: TranscriptWord[], duration: number): Removal[] {
     const gap = next.start - previous.end;
     const hasFiller = words.some((word) => isFiller(word.word) && word.start >= previous.end - 0.01 && word.end <= next.start + 0.01);
     const margin = hasFiller ? FILLER_PAD : BREATH;
-    if ((gap > MAX_SILENCE || hasFiller) && gap - 2 * margin >= 0.12) {
+    // A beat after a question, or next to a laugh/applause, carries meaning: keep it.
+    const protectedBeat = (/\?["'”’)]*$/.test(previous.word.trim()) && gap <= MAX_QUESTION_BEAT)
+      || isReaction(previous.word) || isReaction(next.word);
+    if (((gap > MAX_SILENCE && !protectedBeat) || hasFiller) && gap - 2 * margin >= 0.12) {
       removals.push({ start: previous.end + margin, end: next.start - margin });
     }
   });
