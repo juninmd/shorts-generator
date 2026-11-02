@@ -71,7 +71,7 @@ describe("processVideo (pipeline-video-processor)", () => {
     vi.mocked(analyzeTranscript).mockResolvedValue([]);
     await processVideo(mockVideoInfo, mockConfig);
     expect(computeAudioSignals).toHaveBeenCalledWith("/tmp/vid1.mp4");
-    expect(analyzeTranscript).toHaveBeenCalledWith(expect.anything(), "Test Video", "Test Channel", mockConfig, signals);
+    expect(analyzeTranscript).toHaveBeenCalledWith(expect.anything(), "Test Video", "Test Channel", expect.objectContaining({ sourceBrief: expect.stringContaining("Test Video") }), signals);
   });
 
   it("applies the brand vocabulary to the transcript before analysis", async () => {

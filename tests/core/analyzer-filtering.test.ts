@@ -9,7 +9,7 @@ vi.mock("../../src/core/ai-provider.js", () => ({
   createModel: vi.fn().mockReturnValue({ id: "mock-model" }),
 }));
 vi.mock("../../src/core/clip-quality.js", () => ({
-  reviewClipCandidates: vi.fn(async (clips) => clips),
+  reviewClipOutcome: vi.fn(async (clips) => ({ approved: clips, rejected: [], status: "ok", reasons: [] })),
 }));
 
 describe("analyzer filtering", () => {

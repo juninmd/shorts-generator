@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { buildFontEnv } from "./ffmpeg-env.js";
 import { ffmpegBin } from "./ffmpeg-bin.js";
 import { ffmpegTimeoutMs } from "./ffmpeg-timeout.js";
+import { currentSignal } from "./run-context.js";
 
 const execFileAsync = promisify(execFile);
 const STDERR_TAIL = 2000;
@@ -39,6 +40,7 @@ function tail(value: unknown): string {
 /** Human-readable reason for a failed run: timeout, exit status and the end of stderr. */
 export function describeFfmpegFailure(error: unknown, timeoutMs: number): string {
   const err = error as { killed?: boolean; code?: number | string; message?: string; stderr?: string };
+  if ((err as { name?: string }).name === "AbortError") return "FFmpeg cancelado com o job";
   if (err.killed) return `FFmpeg was killed after the ${timeoutMs}ms timeout`;
   const exit = typeof err.code === "number" ? ` (exit ${err.code})` : "";
   return `FFmpeg failed${exit}: ${tail(err.stderr) || err.message || "unknown error"}`;
@@ -67,6 +69,7 @@ export async function runFfmpeg(args: string[], options: FfmpegRunOptions = {}):
       maxBuffer: options.maxBufferBytes ?? 100 * 1024 * 1024,
       timeout: timeoutMs,
       killSignal: "SIGKILL",
+      signal: currentSignal(),
     });
     return { stderr: String(stderr ?? ""), durationMs: Date.now() - startedAt };
   } catch (error) {
