@@ -10,7 +10,9 @@ describe('youtube.service barrel', () => {
     expect(youtubeService.generateYoutubeMetadata).toBe(youtubeMetadata.generateYoutubeMetadata);
     expect(youtubeService.validateYouTubeToken).toBe(youtubeAuth.validateYouTubeToken);
     expect(youtubeService.getYouTubeAuth).toBe(youtubeAuth.getYouTubeAuth);
+    expect(youtubeService.extractYouTubeVideoId).toBe(youtubeComment.extractYouTubeVideoId);
     expect(youtubeService.buildEngagementComment).toBe(youtubeComment.buildEngagementComment);
+    expect(youtubeService.buildQuizEngagementComment).toBe(youtubeComment.buildQuizEngagementComment);
     expect(youtubeService.addCommentToVideo).toBe(youtubeComment.addCommentToVideo);
     expect(youtubeService.uploadToYouTube).toBe(youtubeUpload.uploadToYouTube);
     expect(youtubeService.uploadFullVideoToYouTube).toBe(youtubeUpload.uploadFullVideoToYouTube);

@@ -11,6 +11,7 @@ const YOUTUBE_SCOPES = [
   // authorized, so a wrong-account consent is caught instead of silently
   // uploading to the wrong channel.
   "https://www.googleapis.com/auth/youtube.readonly",
+  "https://www.googleapis.com/auth/youtube.force-ssl",
 ];
 const OAUTH_CALLBACK_PATH = "/api/youtube/callback";
 

@@ -64,6 +64,7 @@ vi.mock("../../src/core/youtube.service.js", () => ({
   generateYoutubeMetadata: vi.fn().mockResolvedValue({ title: "title", description: "desc", tags: [] }),
   buildEngagementComment: vi.fn(),
   addCommentToVideo: vi.fn(),
+  extractYouTubeVideoId: vi.fn().mockReturnValue(null),
   uploadToYouTube: vi.fn(),
   uploadFullVideoToYouTube: vi.fn(),
 }));
@@ -278,6 +279,7 @@ describe("pipeline", () => {
     process.env.DEFER_UPLOADS = "false";
     vi.mocked(state.isDailyLimitReachedAsync).mockResolvedValue(false);
     vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("12345");
+    vi.mocked(youtubeService.extractYouTubeVideoId).mockReturnValue("12345");
 vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
 
     vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
@@ -297,6 +299,7 @@ vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
     process.env.DEFER_UPLOADS = "false";
     vi.mocked(state.isDailyLimitReachedAsync).mockResolvedValue(false);
     vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com");
+    vi.mocked(youtubeService.extractYouTubeVideoId).mockReturnValue(null);
     vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
 
     const onProgress = vi.fn();

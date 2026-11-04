@@ -5,6 +5,7 @@ import {
   buildTelegramCaption,
   buildYoutubeMetadata,
   buildOutputFileName,
+  buildQuizEngagementComment,
 } from "../../../src/core/quiz/quiz-pipeline-helpers.js";
 import type { Quiz } from "../../../src/core/quiz/quiz.domain.js";
 
@@ -52,5 +53,11 @@ describe("quiz-pipeline helpers", () => {
 
   it("buildOutputFileName slugs the theme", () => {
     expect(buildOutputFileName(quiz)).toMatch(/^quiz_história_do_Brasil_\d+\.mp4$/);
+  });
+
+  it("buildQuizEngagementComment creates a score-prompt comment", () => {
+    const comment = buildQuizEngagementComment(quiz);
+    expect(comment).toContain("Quantas você acertou?");
+    expect(comment).toContain("de 0 a 2");
   });
 });

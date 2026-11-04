@@ -36,6 +36,7 @@ export function registerYouTubeAuthUrlRoute(admin: Hono, deps: AdminDeps): void 
         "https://www.googleapis.com/auth/youtube.upload",
         "https://www.googleapis.com/auth/youtube.readonly",
         "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
       ];
 
       const state = Buffer.from(JSON.stringify({ channelId, accountId: youtubeAccount.id, redirectUri })).toString("base64url");

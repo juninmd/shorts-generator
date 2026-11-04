@@ -64,7 +64,7 @@ describe("youtube-metadata.service", () => {
     const mockModel = {};
     vi.mocked(createModel).mockReturnValue(mockModel as any);
     vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({ title: "AI Title", tags: ["aiTag"] })
+      text: JSON.stringify({ title: "AI Title", tags: ["aiTag"], pinnedComment: "Qual a sua opinião?" })
     } as any);
 
     const clip = { title: "Title", description: "Desc" };
@@ -73,6 +73,7 @@ describe("youtube-metadata.service", () => {
     const metadata = await generateYoutubeMetadata({ clip, originalVideoUrl: "url" } as any, config);
     expect(metadata.title).toBe("AI Title");
     expect(metadata.tags).toEqual(["shorts", "viral", "aiTag"]);
+    expect(metadata.pinnedComment).toBe("Qual a sua opinião?");
   });
 
   it.each([
