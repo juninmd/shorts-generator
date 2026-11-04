@@ -7,7 +7,7 @@ import { computeAudioSignals } from "../../src/core/audio-signals.js";
 import { transcribeVideo } from "../../src/core/transcriber.js";
 import { processClip, getFileStartTime } from "../../src/core/video-processor.js";
 import { sendToTelegram, sendSummary } from "../../src/core/telegram.js";
-import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment } from "../../src/core/youtube.service.js";
+import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment, extractYouTubeVideoId } from "../../src/core/youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "../../src/core/state.js";
 import { enqueueYoutubeUpload } from "../../src/core/queue.js";
 import { enqueueSocialPosts } from "../../src/core/social-queue.js";
@@ -276,6 +276,7 @@ describe("processVideo (pipeline-video-processor)", () => {
     });
     vi.mocked(isDailyLimitReachedAsync).mockResolvedValue(false);
     vi.mocked(uploadToYouTube).mockResolvedValue("https://youtube.com/watch?v=123");
+    vi.mocked(extractYouTubeVideoId).mockReturnValue("123");
     vi.mocked(enqueueYoutubeUpload).mockResolvedValue();
     vi.mocked(sendToTelegram).mockResolvedValue(123);
     vi.mocked(buildEngagementComment).mockReturnValue("comment");
@@ -288,7 +289,41 @@ describe("processVideo (pipeline-video-processor)", () => {
     expect(res.shorts).toHaveLength(1);
     expect(res.shorts[0]?.telegramMessageId).toBe(123);
     expect(uploadToYouTube).toHaveBeenCalled();
-    expect(addCommentToVideo).toHaveBeenCalledWith("watch?v=123", "comment", mockConfig);
+    expect(addCommentToVideo).toHaveBeenCalledWith("123", "comment", mockConfig);
+  });
+
+  it("handles video with no clips found and keepTempFiles true", async () => {
+    vi.mocked(analyzeTranscript).mockResolvedValue([]);
+    const res = await processVideo(mockVideoInfo, { ...mockConfig, keepTempFiles: true }, vi.fn());
+    expect(res.shorts).toHaveLength(0);
+    expect(cleanupVideo).not.toHaveBeenCalled();
+  });
+
+  it("processes video without cleaning temp files when keepTempFiles is true", async () => {
+    vi.mocked(analyzeTranscript).mockResolvedValue([
+      { id: "clip1", startTime: 0, endTime: 10, title: "T1", viralScore: 100, reason: "R1", duration: 10, presentationTitle: "P1" }
+    ]);
+    vi.mocked(downloadVideoSection).mockResolvedValue({
+      ...mockVideoInfo,
+      audioPath: "/tmp/vid1.wav",
+      filePath: "/tmp/vid1.mp4",
+      fileSize: 1000,
+    });
+    vi.mocked(getFileStartTime).mockResolvedValue(0);
+    vi.mocked(processClip).mockResolvedValue({
+      id: "clip1",
+      clip: {} as any,
+      outputPath: "/out/clip1.mp4",
+      subtitlePath: "/out/clip1.ass",
+      originalVideoUrl: "url",
+      originalVideoTitle: "Title",
+      channelName: "channel",
+      status: "completed",
+      createdAt: "now"
+    });
+    const res = await processVideo(mockVideoInfo, { ...mockConfig, keepTempFiles: true }, vi.fn());
+    expect(res.shorts).toHaveLength(1);
+    expect(cleanupVideo).not.toHaveBeenCalled();
   });
 
   it("processes and uploads shorts without defer uploads and not reached daily limits, no videoId for comment", async () => {
