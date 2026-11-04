@@ -98,27 +98,34 @@ export function registerYoutubeOAuthRoutes(app: Hono): void {
 
       // Notify the CHANNEL's own Telegram chat, not the global env one — each
       // managed channel has its own telegram publishing account.
-      let botToken = process.env.TELEGRAM_BOT_TOKEN;
-      let chatId = process.env.TELEGRAM_CHAT_ID;
-      const telegramAccount = bundle.publishingAccounts.find(a => a.provider === "telegram");
-      if (telegramAccount) {
-        try {
-          botToken = secretStore.decryptToken(channelId, telegramAccount.id, telegramAccount.encryptedToken);
-          chatId = telegramAccount.accountIdentifier;
-        } catch (e) {
-          logger.warn({ channelId, error: e instanceof Error ? e.message : String(e) }, "Could not resolve channel Telegram account; falling back to global");
+      // The token is already stored at this point: a Telegram failure (401 from a
+      // stale bot token, for instance) must NOT turn a completed authorization
+      // into an error page, which is exactly what used to happen here.
+      try {
+        let botToken = process.env.TELEGRAM_BOT_TOKEN;
+        let chatId = process.env.TELEGRAM_CHAT_ID;
+        const telegramAccount = bundle.publishingAccounts.find(a => a.provider === "telegram");
+        if (telegramAccount) {
+          try {
+            botToken = secretStore.decryptToken(channelId, telegramAccount.id, telegramAccount.encryptedToken);
+            chatId = telegramAccount.accountIdentifier;
+          } catch (e) {
+            logger.warn({ channelId, error: e instanceof Error ? e.message : String(e) }, "Could not resolve channel Telegram account; falling back to global");
+          }
         }
-      }
-      if (botToken && chatId) {
-        const bot = new Bot(botToken);
-        const linked = authorizedChannelTitle
-          ? `📺 <b>Conta YouTube vinculada:</b> ${authorizedChannelTitle}`
-          : `⚠️ Não foi possível ler o canal autorizado (verifique manualmente).`;
-        await bot.api.sendMessage(
-          chatId,
-          `✅ <b>Token YouTube atualizado!</b>\nCanal interno: <b>${bundle.channel.name}</b>\n${linked}\n\n<i>⚠️ Se a conta vinculada acima não for a esperada, refaça a autorização e escolha o canal correto na tela do Google.</i>`,
-          { parse_mode: "HTML" },
-        );
+        if (botToken && chatId) {
+          const bot = new Bot(botToken);
+          const linked = authorizedChannelTitle
+            ? `📺 <b>Conta YouTube vinculada:</b> ${authorizedChannelTitle}`
+            : `⚠️ Não foi possível ler o canal autorizado (verifique manualmente).`;
+          await bot.api.sendMessage(
+            chatId,
+            `✅ <b>Token YouTube atualizado!</b>\nCanal interno: <b>${bundle.channel.name}</b>\n${linked}\n\n<i>⚠️ Se a conta vinculada acima não for a esperada, refaça a autorização e escolha o canal correto na tela do Google.</i>`,
+            { parse_mode: "HTML" },
+          );
+        }
+      } catch (notifyError) {
+        logger.warn({ channelId, error: notifyError instanceof Error ? notifyError.message : String(notifyError) }, "Failed to notify Telegram about the refreshed token");
       }
 
       const warn = authorizedChannelTitle
@@ -126,7 +133,18 @@ export function registerYoutubeOAuthRoutes(app: Hono): void {
         : "";
       return c.html(`<h1>✅ Token atualizado com sucesso!</h1>${warn}<p>Você pode fechar esta aba.</p>`);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       logger.error({ error, channelId }, "Failed to exchange OAuth code");
+      // A consent code is single-use and expires in minutes: replaying the same
+      // callback URL always lands here, so say that instead of a bare 500.
+      if (message.includes("invalid_grant")) {
+        return c.html(
+          "<h1>⚠️ Código de autorização expirado ou já usado</h1>" +
+          "<p>Códigos do Google valem por poucos minutos e só podem ser usados uma vez.</p>" +
+          "<p>Gere um novo link de autorização e tente de novo.</p>",
+          400,
+        );
+      }
       return c.text("Failed to exchange OAuth code", 500);
     }
   });
