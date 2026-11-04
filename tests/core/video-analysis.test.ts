@@ -33,6 +33,13 @@ describe("video analysis", () => {
     expect(audit.stages.transcript.language).toBe("pt");
   });
 
+  it("passes the replay heatmap to the analyzer", async () => {
+    vi.mocked(analyzeTranscript).mockResolvedValue([clip("a")]);
+    const heatmap = [{ start: 0, end: 5, value: 1 }];
+    await analyzeVideo({ ...video, heatmap }, transcript, "a.wav", config);
+    expect(vi.mocked(analyzeTranscript).mock.calls[0]![4]).toEqual({ rmsPerSecond: [], heatmap });
+  });
+
   it("never caches an empty plan", async () => {
     vi.mocked(analyzeTranscript).mockResolvedValue([]);
     await analyzeVideo(video, transcript, "a.wav", config);
@@ -48,5 +55,15 @@ describe("video analysis", () => {
     process.env.ANALYSIS_CACHE = "false";
     await withTranscriptCache("v1", config, transcribe);
     expect(transcribe).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("withHeatmap", async () => {
+  const { withHeatmap } = await import("../../src/core/video-analysis.js");
+  const heatmap = [{ start: 0, end: 1, value: 1 }];
+  it("merges the replay curve into the audio signals", () => {
+    expect(withHeatmap(null)).toBeNull();
+    expect(withHeatmap(null, heatmap)).toEqual({ rmsPerSecond: [], heatmap });
+    expect(withHeatmap({ rmsPerSecond: [-20] }, heatmap)).toEqual({ rmsPerSecond: [-20], heatmap });
   });
 });

@@ -1,13 +1,19 @@
 import path from "node:path";
-import type { PipelineConfig, ShortClip, Transcript, VideoInfo } from "../types.js";
+import type { HeatSegment, PipelineConfig, ShortClip, Transcript, VideoInfo } from "../types.js";
 import { analyzeTranscript } from "./analyzer.js";
-import { computeAudioSignals } from "./audio-signals.js";
+import { computeAudioSignals, type AudioSignals } from "./audio-signals.js";
 import { cacheEnabled, hashKey, readCache, writeCache } from "./disk-cache.js";
 import { withUsage } from "./llm-usage.js";
 import { createVideoAudit } from "./run-audit.js";
 import { buildSourceBrief } from "./source-brief.js";
 
 const CACHE_VERSION = 1;
+
+/** Loudness and the audience replay curve travel together; either one alone still ranks clips. */
+export function withHeatmap(signals: AudioSignals | null, heatmap?: HeatSegment[]): AudioSignals | null {
+  if (!heatmap) return signals;
+  return { rmsPerSecond: signals?.rmsPerSecond ?? [], heatmap };
+}
 
 /** Transcript cache: a re-run of the same video never pays for Whisper twice. */
 export async function withTranscriptCache(
@@ -41,7 +47,7 @@ export async function analyzeVideo(
   const name = hashKey({
     CACHE_VERSION, id: video.id, text: hashKey(transcript.fullText), model: config.aiModel,
     min: config.minShortDuration, max: config.maxShortDuration, score: config.minViralScore,
-    genre: config.videoGenre, prompt: config.clipPrompt, cap: config.maxClipsOverride,
+    genre: config.videoGenre, heat: video.heatmap ? hashKey(video.heatmap) : undefined, prompt: config.clipPrompt, cap: config.maxClipsOverride,
   });
   let clips = cacheEnabled() ? readCache<ShortClip[]>(dir, name) : null;
   if (clips) {
@@ -50,7 +56,7 @@ export async function analyzeVideo(
     const { result, usage } = await withUsage(async () => analyzeTranscript(
       transcript, video.title, video.channelName,
       { ...config, sourceBrief: buildSourceBrief(video), audit },
-      await computeAudioSignals(audioPath),
+      withHeatmap(await computeAudioSignals(audioPath), video.heatmap),
     ));
     clips = result;
     if (clips.length > 0) writeCache(dir, name, clips);

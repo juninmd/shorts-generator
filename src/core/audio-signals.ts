@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { ffmpegBin } from "./ffmpeg-bin.js";
+import type { HeatSegment } from "../types.js";
 
 const execFileAsync = promisify(execFile);
 const MAX_BONUS = 0.5;
@@ -9,6 +10,8 @@ const PEAK_SPAN_SECONDS = 20;
 /** Speech loudness per second of the source audio (dBFS RMS; silence is -Infinity-ish, floored at -90). */
 export interface AudioSignals {
   rmsPerSecond: number[];
+  /** Audience "Most replayed" curve from YouTube, ranked alongside loudness. */
+  heatmap?: HeatSegment[];
 }
 
 /** Parses ffmpeg `ametadata=print` output into per-window RMS levels. */
