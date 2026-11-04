@@ -51,7 +51,7 @@ export async function processVideo(
     }
     const totalClips = clips.length;
     emitProgress("cutting", `Gerando ${totalClips} shorts...`, 50, 0, totalClips);
-    const limit = pLimit(2);
+    const limit = pLimit(Math.max(1, config.clipConcurrency ?? 2));
     await Promise.all(
       clips.map((clip, index) =>
         limit(async () => {

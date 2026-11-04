@@ -53,6 +53,22 @@ describe("config", () => {
       expect(config.maxShortDuration).toBe(59);
     });
 
+    it("should default clip concurrency to 2", () => {
+      delete process.env.CLIP_CONCURRENCY;
+      expect(loadConfig().clipConcurrency).toBe(2);
+    });
+
+    it("should honor CLIP_CONCURRENCY and fall back to 2 on invalid values", () => {
+      process.env.CLIP_CONCURRENCY = "1";
+      expect(loadConfig().clipConcurrency).toBe(1);
+
+      process.env.CLIP_CONCURRENCY = "0";
+      expect(loadConfig().clipConcurrency).toBe(2);
+
+      process.env.CLIP_CONCURRENCY = "not-a-number";
+      expect(loadConfig().clipConcurrency).toBe(2);
+    });
+
     it("should read VIDEO_QUERY from env", () => {
       process.env.VIDEO_QUERY = "evangelho";
       const config = loadConfig();
