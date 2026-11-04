@@ -5,6 +5,7 @@ import { createModel } from "./ai-provider.js";
 import { buildPresenterTitle } from "./presenter-title.js";
 import { getChannelFeedback, formatFeedbackForPrompt } from "./viral-feedback.js";
 import { TITLE_STYLE_GUIDE, resolveTitleStyle } from "./social-copy.js";
+import { sanitizeYoutubeTags } from "./youtube-tags.js";
 
 const DEFAULT_MAX_RETRIES = 2;
 
@@ -96,7 +97,7 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto ex
             const parsed = JSON.parse(jsonMatch[0]);
             if (parsed.title) {
               const enhancedTitle = buildPresenterTitle(parsed.title.slice(0, 80), presenter);
-              const uniqueTags = Array.from(new Set([...tags, ...(parsed.tags || [])]));
+              const uniqueTags = sanitizeYoutubeTags(Array.from(new Set([...tags, ...(parsed.tags || [])])));
               const aiDescription = typeof parsed.description === "string" && parsed.description.trim()
                 ? `${parsed.description.trim()}\n\n🎥 Vídeo Original: ${short.originalVideoUrl}\n📱 Shorts gerado por IA - Cortado e editado automaticamente`
                 : description;
@@ -114,5 +115,5 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto ex
     }
   }
 
-  return { title, description, tags };
+  return { title, description, tags: sanitizeYoutubeTags(tags) };
 };
