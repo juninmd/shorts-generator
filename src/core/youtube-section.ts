@@ -1,11 +1,26 @@
 
-
 import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import type { VideoInfo, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
 import { getYtDlpBaseArgs, withCookies, execYtDlp } from "./youtube-ytdlp.js";
+import { probeVideoStream } from "./ffmpeg-bin.js";
+
+/**
+ * YouTube currently advertises HLS (m3u8) renditions with the highest
+ * bitrates. yt-dlp happily picks them for `--download-sections`, but when an
+ * HLS segment fails the ffmpeg downloader still exits 0 and writes an
+ * audio-only file — the renderer then dies with
+ * "Stream specifier ':v' in filtergraph description".
+ * Restricting the selector to DASH (`protocol=https`) keeps the picture.
+ */
+const SECTION_FORMAT = [
+  "bestvideo[protocol=https][height<=1080][vcodec^=avc1]+bestaudio[protocol=https][ext=m4a]",
+  "bestvideo[protocol=https][height<=1080][ext=mp4]+bestaudio[protocol=https][ext=m4a]",
+  "bestvideo[protocol=https][height<=1080]+bestaudio[protocol=https]",
+  "best[protocol=https]",
+].join("/");
 
 /**
  * Download ONLY a specific section of the video.
@@ -35,7 +50,7 @@ export async function downloadVideoSection(
   return withCookies(config, async (tempCookiePath) => {
     const args = [
       ...getYtDlpBaseArgs(config, tempCookiePath),
-      "-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+      "-f", SECTION_FORMAT,
       "--no-playlist",
       "--no-warnings",
       "--download-sections", `*${start}-${end}`,
@@ -53,12 +68,27 @@ export async function downloadVideoSection(
       if (!fs.existsSync(outputTemplate)) {
         throw new Error("Section download succeeded but file not found");
       }
+      await assertVideoStream(outputTemplate, video.id);
       return outputTemplate;
     } catch (err: any) {
       logger.error({ videoId: video.id, error: err.message }, "Failed to download video section");
       throw err;
     }
   });
+}
+
+/**
+ * A section without a picture is a broken download, not a usable cut: fail here
+ * (with a diagnostic) instead of letting the renderer crash on the filtergraph.
+ */
+async function assertVideoStream(filePath: string, videoId: string): Promise<void> {
+  const stream = await probeVideoStream(filePath);
+  if (stream.codec_name) return;
+  fs.rmSync(filePath, { force: true });
+  throw new Error(
+    `[VIDEO SECTION WITHOUT PICTURE] ${videoId}: downloaded section has no video stream ` +
+    `(yt-dlp produced an audio-only file)`,
+  );
 }
 
 /**
@@ -73,5 +103,3 @@ export function cleanupVideo(videoId: string, config: PipelineConfig): void {
     logger.warn({ videoId }, "Failed to cleanup temp files");
   }
 }
-
-
