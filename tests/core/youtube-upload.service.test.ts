@@ -205,7 +205,7 @@ describe("youtube-upload.service", () => {
         expect.objectContaining({
           requestBody: expect.objectContaining({
             snippet: expect.objectContaining({
-              tags: [longTag]
+              tags: ["a".repeat(30), "b".repeat(30), "c"]
             })
           })
         })
