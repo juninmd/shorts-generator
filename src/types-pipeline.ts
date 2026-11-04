@@ -14,6 +14,12 @@ export interface PipelineConfig {
   minShortsPerVideo: number;
   /** Hard cap on clips per video — overrides duration-based calculation (useful for testing) */
   maxClipsOverride?: number;
+  /**
+   * How many clips of the same video are rendered at once (default: 2).
+   * Each render runs an ffmpeg process (~1 GB peak), so set it to 1 on
+   * memory-constrained pods to avoid OOMKilled.
+   */
+  clipConcurrency?: number;
   outputDir: string;
   tempDir: string;
   /** Model identifier served by LiteLLM (e.g. "cloud/auto") */
