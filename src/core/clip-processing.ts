@@ -11,14 +11,17 @@ import type { ClipItem } from "./analyzer-schema.js";
 import { snapToSentenceBoundaries } from "./clip-boundary.js";
 import { logger } from "./logger.js";
 import { energyBonus, type AudioSignals } from "./audio-signals.js";
+import { replayBonus } from "./replay-heatmap.js";
 import { reactionEnd } from "./reaction-tail.js";
 import { findSentenceEnd } from "./sentence-end.js";
 
 const SPEECH_TAIL_SECONDS = 0.6;
 
-/** Editor score plus up to +0.5 for clips whose delivery is more energetic than the video's average. */
+/** Editor score plus up to +0.5 for energetic delivery and +0.5 for stretches the audience re-watches. */
 const rankScore = (clip: ClipItem, signals?: AudioSignals): number =>
-  clip.viralScore + (signals ? energyBonus(clip.startTime, clip.endTime, signals) : 0);
+  clip.viralScore + (signals
+    ? energyBonus(clip.startTime, clip.endTime, signals) + replayBonus(clip.startTime, clip.endTime, signals.heatmap)
+    : 0);
 
 const normalizeTitle = (title: string): string =>
   title.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()

@@ -11,6 +11,14 @@ export interface VideoInfo {
   categories?: string[];
   viewCount?: number;
   description?: string;
+  /** YouTube "Most replayed" curve (0..1 per segment), when the video has one. */
+  heatmap?: HeatSegment[];
+}
+
+export interface HeatSegment {
+  start: number;
+  end: number;
+  value: number;
 }
 
 export interface DownloadedVideo extends VideoInfo {
