@@ -1,4 +1,3 @@
-
 import { Queue } from "bullmq";
 import { Redis } from "ioredis";
 
@@ -9,6 +8,7 @@ export interface YoutubeUploadJobData {
   tags?: string[];
   channelId: string;
   config: import("../types.js").PipelineConfig;
+  commentText?: string;
 }
 
 export const QUEUE_NAME = "youtube-uploads";
@@ -31,4 +31,3 @@ export async function closeQueueConnections(): Promise<void> {
     redisClient = null;
   }
 }
-
