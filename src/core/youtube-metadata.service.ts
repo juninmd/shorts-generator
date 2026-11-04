@@ -1,4 +1,3 @@
-
 import { generateText } from "ai";
 import type { GeneratedShort, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
@@ -9,10 +8,17 @@ import { TITLE_STYLE_GUIDE, resolveTitleStyle } from "./social-copy.js";
 
 const DEFAULT_MAX_RETRIES = 2;
 
+export interface YoutubeMetadataResult {
+  title: string;
+  description: string;
+  tags: string[];
+  pinnedComment?: string;
+}
+
 export const generateYoutubeMetadata = async (
   short: GeneratedShort,
   config: PipelineConfig,
-): Promise<{ title: string; description: string; tags: string[] }> => {
+): Promise<YoutubeMetadataResult> => {
   const isTesting = process.env.VITEST === "true";
   const clip = short.clip;
   const presenter = (config.managedRun as any)?.presenterName || clip.presenter;
@@ -27,7 +33,7 @@ export const generateYoutubeMetadata = async (
   const titleStyle = resolveTitleStyle();
 
   const prompt = `Você é um especialista em YouTube Shorts focados em viralização. Responda em Português do Brasil (pt-BR).
-Crie um título, uma descrição e tags otimizados para este short.
+Crie um título, uma descrição, tags e uma pergunta para comentário fixado otimizados para este short.
 
 TÍTULO ORIGINAL DO SHORT: ${title}
 ASSUNTO: ${clip.description}
@@ -50,11 +56,15 @@ INSTRUÇÕES PARA AS TAGS:
 1. Gere de 20 a 30 palavras-chave de busca em minúsculas, sem "#", da mais relevante para a menos relevante.
 2. Cubra o nome do apresentador e variações, o tema, termos da transcrição e termos amplos (head tags) e específicos (long-tail).
 
+INSTRUÇÕES PARA O COMENTÁRIO FIXADO:
+1. Uma pergunta reflexiva, provocativa ou enquete curta (máx 120 caracteres) para incentivar comentários.
+
 RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto extra:
 {
   "title": "TÍTULO AQUI",
   "description": "DESCRIÇÃO AQUI",
-  "tags": ["tag1", "tag2", "tag3"]
+  "tags": ["tag1", "tag2", "tag3"],
+  "pinnedComment": "PERGUNTA PARA COMENTÁRIOS"
 }`;
 
   if (!isTesting && process.env.ENABLE_YOUTUBE === "true") {
@@ -90,7 +100,10 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto ex
               const aiDescription = typeof parsed.description === "string" && parsed.description.trim()
                 ? `${parsed.description.trim()}\n\n🎥 Vídeo Original: ${short.originalVideoUrl}\n📱 Shorts gerado por IA - Cortado e editado automaticamente`
                 : description;
-              return { title: enhancedTitle, description: aiDescription, tags: uniqueTags };
+              const pinnedComment = typeof parsed.pinnedComment === "string" && parsed.pinnedComment.trim()
+                ? parsed.pinnedComment.trim()
+                : undefined;
+              return { title: enhancedTitle, description: aiDescription, tags: uniqueTags, pinnedComment };
             }
           }
           throw new Error("Invalid AI JSON structure");
@@ -103,4 +116,3 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato, sem nenhum markdown ou texto ex
 
   return { title, description, tags };
 };
-

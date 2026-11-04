@@ -61,6 +61,11 @@ vi.mock("ioredis", () => {
 
 vi.mock("../../src/core/youtube.service.js", () => ({
   uploadToYouTube: vi.fn().mockResolvedValue("https://youtube.com/shorts/test"),
+  addCommentToVideo: vi.fn().mockResolvedValue(undefined),
+  extractYouTubeVideoId: vi.fn((url: string) => {
+    const match = url.match(/(?:shorts\/|v=|\/live\/|\/)([a-zA-Z0-9_-]{11})(?:[?&/]|$)/);
+    return match ? match[1] : null;
+  }),
 }));
 
 vi.mock("../../src/core/telegram.js", () => ({
@@ -213,6 +218,50 @@ describe("Queue System", () => {
     await promise;
     expect(mockWorkerClose).toHaveBeenCalled();
     vi.useRealTimers();
+  });
+
+  it("should post comment when commentText is present in job data", async () => {
+    const { uploadToYouTube, addCommentToVideo } = await import("../../src/core/youtube.service.js");
+    vi.mocked(uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/abc1234defg");
+    const fs = await import("node:fs");
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    createWorker();
+    await mockProcessFn({
+      id: "j-comment",
+      data: {
+        videoPath: "vid.mp4",
+        title: "t",
+        description: "d",
+        commentText: "Qual sua opinião?",
+        config: { dailyUploadLimit: 5, managedRun: { channelId: "ch1" } },
+        channelId: "ch1"
+      }
+    });
+
+    expect(addCommentToVideo).toHaveBeenCalledWith("abc1234defg", "Qual sua opinião?", expect.any(Object));
+  });
+
+  it("does not call addCommentToVideo if videoId is missing from youtubeUrl", async () => {
+    const { uploadToYouTube, addCommentToVideo } = await import("../../src/core/youtube.service.js");
+    vi.mocked(uploadToYouTube).mockResolvedValue("https://youtube.com/");
+    const fs = await import("node:fs");
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    createWorker();
+    await mockProcessFn({
+      id: "j-comment-empty",
+      data: {
+        videoPath: "vid.mp4",
+        title: "t",
+        description: "d",
+        commentText: "Qual sua opinião?",
+        config: { dailyUploadLimit: 5, managedRun: { channelId: "ch1" } },
+        channelId: "ch1"
+      }
+    });
+
+    expect(addCommentToVideo).not.toHaveBeenCalled();
   });
 
   describe("retryFailedWithExistingFiles", () => {
