@@ -57,11 +57,5 @@
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   },
-  "license": "MIT",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "msgpackr-extract"
-    ]
-  }
+  "license": "MIT"
 }

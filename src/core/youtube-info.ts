@@ -3,6 +3,7 @@
 
 import type { VideoInfo, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
+import { parseHeatmap } from "./replay-heatmap.js";
 import { getYtDlpBaseArgs, withCookies, execYtDlp } from "./youtube-ytdlp.js";
 
 
@@ -65,7 +66,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         [
           ...getYtDlpBaseArgs(undefined, tempCookiePath),
           "--print",
-          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j,"live_status":%(live_status)j,"categories":%(categories)j,"description":%(description)j}',
+          '{"id":%(id)j,"title":%(title)j,"url":%(webpage_url)j,"channel":%(channel)j,"channel_url":%(channel_url)j,"duration":%(duration)s,"upload_date":%(upload_date)j,"thumbnail":%(thumbnail)j,"live_status":%(live_status)j,"categories":%(categories)j,"description":%(description)j,"heatmap":%(heatmap)j}',
           "--no-warnings",
           "--no-playlist",
           url,
@@ -102,6 +103,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo | null> {
         liveStatus: raw.live_status,
         categories: raw.categories ?? [],
         description: typeof raw.description === "string" ? raw.description : undefined,
+        heatmap: parseHeatmap(raw.heatmap),
       };
     } catch (error) {
       logger.error({ error, url }, "Failed to get video info");

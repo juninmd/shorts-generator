@@ -9,6 +9,7 @@ import { analyzeSinglePass } from "./analyzer-generation.js";
 import { selectClips } from "./analyzer-select.js";
 import { discoverTextualCandidates } from "./candidate-discovery.js";
 import { buildEnergyHint, type AudioSignals } from "./audio-signals.js";
+import { buildReplayHint } from "./replay-heatmap.js";
 import { getMaxCuts, getMinCuts } from "./config.js";
 import { logger } from "./logger.js";
 
@@ -21,9 +22,8 @@ export async function analyzeTranscript(
   baseConfig: PipelineConfig,
   signals?: AudioSignals | null,
 ): Promise<ShortClip[]> {
-  const config = signals
-    ? { ...baseConfig, analysisHints: buildEnergyHint(signals) || baseConfig.analysisHints }
-    : baseConfig;
+  const hints = signals ? buildEnergyHint(signals) + buildReplayHint(signals.heatmap) : "";
+  const config = hints ? { ...baseConfig, analysisHints: hints } : baseConfig;
   const minCuts = config.maxClipsOverride ?? (process.env.CLIP_QUOTA === "strict" ? getMinCuts(transcript.duration) : 0);
   const maxCuts = config.maxClipsOverride ?? getMaxCuts(transcript.duration);
   const candidateMax = Math.min(12, maxCuts * 2);
