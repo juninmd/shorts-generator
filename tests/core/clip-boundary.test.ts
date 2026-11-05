@@ -84,7 +84,7 @@ describe("clip-boundary", () => {
     // Wait, earlier the test passed but it didn't cover the line?
     // Let's create an explicit array of segments that guarantees shrink is called and validSegments is empty.
     const customSegments: TranscriptSegment[] = [
-      { start: 1, end: 5, text: "Seg 1" },
+      { start: 1, end: 5, text: "Seg 1." },
       { start: 6, end: 15, text: "Seg 2" },
       { start: 16, end: 20, text: "Seg 3" },
     ];
