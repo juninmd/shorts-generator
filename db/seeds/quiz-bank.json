@@ -1,0 +1,20 @@
+[
+  { "theme": "geografia", "question": { "pergunta": "Qual é a capital da Austrália?", "opcoes": { "A": "Sydney", "B": "Camberra", "C": "Melbourne", "D": "Perth" }, "resposta_correta": "B" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/Camberra", "title": "Camberra", "excerpt": "Camberra é a capital da Austrália." } },
+  { "theme": "geografia", "question": { "pergunta": "Qual é a capital do Canadá?", "opcoes": { "A": "Toronto", "B": "Vancouver", "C": "Ottawa", "D": "Montreal" }, "resposta_correta": "C" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/Ottawa", "title": "Ottawa", "excerpt": "Ottawa é a capital do Canadá." } },
+  { "theme": "geografia", "question": { "pergunta": "Qual é o maior oceano da Terra?", "opcoes": { "A": "Atlântico", "B": "Índico", "C": "Ártico", "D": "Pacífico" }, "resposta_correta": "D" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/Oceano_Pac%C3%ADfico", "title": "Oceano Pacífico", "excerpt": "O Pacífico é o maior oceano da Terra." } },
+  { "theme": "espaço", "question": { "pergunta": "Qual é o maior planeta do Sistema Solar?", "opcoes": { "A": "Saturno", "B": "Júpiter", "C": "Netuno", "D": "Urano" }, "resposta_correta": "B" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/J%C3%BApiter_(planeta)", "title": "Júpiter", "excerpt": "Júpiter é o maior planeta do Sistema Solar." } },
+  { "theme": "história", "question": { "pergunta": "Em que ano foi a Independência do Brasil?", "opcoes": { "A": "1808", "B": "1889", "C": "1822", "D": "1500" }, "resposta_correta": "C" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/Independ%C3%AAncia_do_Brasil", "title": "Independência do Brasil", "excerpt": "Proclamada em 7 de setembro de 1822." } },
+  { "theme": "ciência", "question": { "pergunta": "Qual é o símbolo químico do ouro?", "opcoes": { "A": "Ag", "B": "Au", "C": "Or", "D": "Go" }, "resposta_correta": "B" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/Ouro", "title": "Ouro", "excerpt": "O ouro é o elemento químico de símbolo Au." } },
+  { "theme": "arte", "question": { "pergunta": "Quem pintou a Mona Lisa?", "opcoes": { "A": "Da Vinci", "B": "Michelangelo", "C": "Rafael", "D": "Van Gogh" }, "resposta_correta": "A" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/Mona_Lisa", "title": "Mona Lisa", "excerpt": "Pintura de Leonardo da Vinci." } },
+  { "theme": "bíblia", "question": { "pergunta": "Quantos livros tem o Novo Testamento?", "opcoes": { "A": "27", "B": "39", "C": "66", "D": "73" }, "resposta_correta": "A" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/Novo_Testamento", "title": "Novo Testamento", "excerpt": "O Novo Testamento é composto por 27 livros." } },
+  { "theme": "ciência", "question": { "pergunta": "Que gás as plantas absorvem na fotossíntese?", "opcoes": { "A": "Oxigênio", "B": "Nitrogênio", "C": "Gás carbônico", "D": "Hélio" }, "resposta_correta": "C" },
+    "source": { "url": "https://pt.wikipedia.org/wiki/Fotoss%C3%ADntese", "title": "Fotossíntese", "excerpt": "As plantas absorvem dióxido de carbono (gás carbônico)." } }
+]

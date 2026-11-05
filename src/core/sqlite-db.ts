@@ -12,8 +12,8 @@ export function getLocalPool(config: DatabaseConnectionConfig): SqlClient {
 
   const proxy = {
     query: async (sql: string, params: any[] = []) => {
-      // Basic Postgres-to-SQLite parameter conversion ($1 -> ?)
-      let sqliteSql = sql.replace(/\$(\d+)/g, "?");
+      // Postgres $N -> SQLite named @pN, so params may be reused or appear out of order
+      let sqliteSql = sql.replace(/\$(\d+)/g, "@p$1");
       
       // Remove Postgres type casts
       sqliteSql = sqliteSql.replace(/::jsonb/g, "");
@@ -29,20 +29,21 @@ export function getLocalPool(config: DatabaseConnectionConfig): SqlClient {
 
       // Polyfill for "!= ALL(?)" or "!= ALL(?::text[])" which is Postgres specific
       if (sqliteSql.includes("!= ALL(")) {
-        sqliteSql = sqliteSql.replace(/!= ALL\(\?\)/g, "NOT IN (?)");
+        sqliteSql = sqliteSql.replace(/!= ALL\((@p\d+)\)/g, "NOT IN ($1)");
       }
       
       // Polyfill for "ANY(?)" or "ANY(?::text[])"
       if (sqliteSql.includes("= ANY(")) {
-        sqliteSql = sqliteSql.replace(/= ANY\(\?\)/g, "IN (?)");
+        sqliteSql = sqliteSql.replace(/= ANY\((@p\d+)\)/g, "IN ($1)");
       }
 
-      const sanitizedParams = params.map(p => {
+      const sanitizedList = params.map(p => {
         if (typeof p === "boolean") return p ? 1 : 0;
         if (Array.isArray(p)) return p.join(","); // Note: IN (?) with join(",") only works for some simple cases
         if (typeof p === "object" && p !== null && !(p instanceof Buffer)) return JSON.stringify(p);
         return p;
       });
+      const sanitizedParams = Object.fromEntries(sanitizedList.map((p, i) => [`p${i + 1}`, p]));
 
       try {
         if (sqliteSql.trim().toUpperCase().startsWith("SELECT")) {

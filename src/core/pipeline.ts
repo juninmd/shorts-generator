@@ -72,9 +72,16 @@ export async function runTopVideoPipeline(
   }
 }
 
+/** Durable execution hooks: completed videos are skipped on resume. */
+export interface PipelineCheckpointHooks {
+  readonly completedVideoIds: ReadonlySet<string>;
+  readonly onVideoDone: (result: PipelineResult) => Promise<void>;
+}
+
 export async function runPipeline(
   config: PipelineConfig,
   onProgress?: (progress: import("../types.js").PipelineProgress) => void,
+  checkpoint?: PipelineCheckpointHooks,
 ): Promise<PipelineResult[]> {
   logger.info({ runId: config.managedRun?.runId, channelId: config.managedRun?.channelId, channels: config.channels, urls: config.specificUrls, videoQuery: config.videoQuery || "none" }, "Pipeline starting");
 
@@ -106,11 +113,16 @@ export async function runPipeline(
   let totalShorts = 0;
 
   for (const video of videos) {
+    if (checkpoint?.completedVideoIds.has(video.id)) {
+      logger.info({ videoId: video.id }, "Checkpoint: video already processed, skipping");
+      continue;
+    }
     if (config.targetShorts && totalShorts >= config.targetShorts) break;
     const remainingShorts = config.targetShorts ? Math.max(config.targetShorts - totalShorts, 0) : undefined;
     const videoResult = await processVideo(video, config, onProgress, remainingShorts || undefined);
     totalShorts += videoResult.shorts.length;
     results.push(videoResult);
+    await checkpoint?.onVideoDone(videoResult);
     if (config.targetShorts && totalShorts >= config.targetShorts) {
       logger.info({ targetShorts: config.targetShorts }, "Target de shorts alcançado; finalizando pipeline");
       break;

@@ -1,16 +1,29 @@
-
-import type { PipelineConfig, PipelineProgress, PipelineResult, VideoInfo, GeneratedShort } from "../types.js";
+import type { PipelineConfig, PipelineProgress, PipelineResult, VideoInfo, GeneratedShort, ShortClip, DownloadedVideo } from "../types.js";
 import { downloadAudioOnly, downloadVideoSection, cleanupVideo } from "./youtube.js";
 import { transcribeVideo } from "./transcriber.js";
 import { analyzeTranscript } from "./analyzer.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
-import { sendToTelegram, sendSummary } from "./telegram.js";
-import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment } from "./youtube.service.js";
-import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
+import { sendSummary } from "./telegram.js";
 import { logger } from "./logger.js";
-import { enqueueYoutubeUpload } from "./queue.js";
+import { deliverShort } from "./pipeline-delivery.js";
+import { publicationStore, reserveForClip, saveTranscriptCache } from "./publication/clip-publication-flow.js";
+import { PublicationRepository } from "./publication/publication-repository.js";
 import pLimit from "p-limit";
 export type ProgressCallback = (progress: PipelineProgress) => void;
+
+/** Cuts one clip; `clip` holds ABSOLUTE times, the rendered clip is relative to the downloaded section. */
+export async function renderClip(video: VideoInfo, clip: ShortClip, audio: DownloadedVideo, config: PipelineConfig): Promise<GeneratedShort> {
+  const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
+  const sectionStartTime = await getFileStartTime(sectionPath);
+  const expectedSectionStart = Math.max(0, clip.startTime - 2);
+  const timestampsPreserved = Math.abs(sectionStartTime - expectedSectionStart) <= 10;
+  const seekOffset = timestampsPreserved ? clip.startTime : Math.max(0, clip.startTime - expectedSectionStart);
+  const sectionClip = { ...clip, startTime: seekOffset, endTime: seekOffset + clip.duration };
+  logger.debug({ clipId: clip.id, sectionStartTime, expectedSectionStart, timestampsPreserved, seekOffset }, "Section seek offset");
+  const short = await processClip({ ...audio, filePath: sectionPath }, sectionClip, config);
+  return { ...short, source: { videoId: video.id, startTime: clip.startTime, endTime: clip.endTime } };
+}
+
 export async function processVideo(
   video: VideoInfo,
   config: PipelineConfig,
@@ -23,6 +36,7 @@ export async function processVideo(
   const emitProgress = (stage: PipelineProgress["stage"], message: string, progress = 0, currentShort?: number, totalShorts?: number) => {
     onProgress?.({ stage, videoId: video.id, videoTitle: video.title, currentShort, totalShorts, message, progress });
   };
+  const db = publicationStore();
   try {
     emitProgress("downloading", `Baixando áudio: ${video.title}`, 0);
     const downloadedAudio = await downloadAudioOnly(video, config);
@@ -38,6 +52,7 @@ export async function processVideo(
         }
       },
     });
+    if (db) saveTranscriptCache(config, transcript);
     emitProgress("analyzing", "Analisando momentos virais...", 40);
     let clips = await analyzeTranscript(transcript, video.title, video.channelName, config);
     if (maxShorts !== undefined && maxShorts > 0 && clips.length > maxShorts) {
@@ -54,77 +69,25 @@ export async function processVideo(
     await Promise.all(
       clips.map((clip, index) =>
         limit(async () => {
+          const publicationId = db ? await reserveForClip(db, video, clip, config) : undefined;
+          if (publicationId === null) return;
           try {
-            emitProgress("cutting", `Baixando trecho ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
-            const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
-            const downloadedSection = { ...downloadedAudio, filePath: sectionPath };
-            const sectionStartTime = await getFileStartTime(sectionPath);
-            const expectedSectionStart = Math.max(0, clip.startTime - 2);
-            const timestampsPreserved = Math.abs(sectionStartTime - expectedSectionStart) <= 10;
-            const seekOffset = timestampsPreserved
-              ? clip.startTime
-              : Math.max(0, clip.startTime - expectedSectionStart);
-            const sectionClip = { ...clip, startTime: seekOffset, endTime: seekOffset + clip.duration };
-            logger.debug({ clipId: clip.id, sectionStartTime, expectedSectionStart, timestampsPreserved, seekOffset }, "Section seek offset");
-            emitProgress("cutting", `Processando corte ${index + 1}/${totalClips}`, 65 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
-            const short = await processClip(downloadedSection, sectionClip, config);
-            shorts.push(short);
+            emitProgress("cutting", `Processando corte ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 30, index + 1, totalClips);
+            const short = await renderClip(video, clip, downloadedAudio, config);
+            shorts.push({ ...short, publicationId });
           } catch (err) {
-            errors.push(`Erro no corte ${clip.id}: ${err instanceof Error ? err.message : String(err)}`);
+            const message = err instanceof Error ? err.message : String(err);
+            if (db && publicationId) await new PublicationRepository(db).transition(publicationId, ["reserved"], "failed", { error: message });
+            errors.push(`Erro no corte ${clip.id}: ${message}`);
           }
         }),
       ),
     );
     emitProgress("uploading", "Enviando resultados...", 85);
-    const youtubeEnabled = process.env.ENABLE_YOUTUBE === "true";
-    const deferUploads = process.env.DEFER_UPLOADS === "true";
     for (const short of shorts) {
-      let sendStage = "metadata";
       try {
-        sendStage = "metadata";
-        const youtubeMeta = await generateYoutubeMetadata(short, config);
-        let youtubeUrl: string | undefined;
-        if (youtubeEnabled) {
-          sendStage = "youtube_upload_or_queue";
-          const channelId = config.managedRun?.channelId || "global";
-          let uploaded = false;
-          if (deferUploads) {
-            logger.info({ clipId: short.id, channelId }, "🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora");
-          } else if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
-            logger.warn({ limit: config.dailyUploadLimit, channelId }, "⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila");
-          } else {
-            youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags) ?? undefined;
-            if (!youtubeUrl) {
-              logger.warn({ clipId: short.id }, "YouTube upload failed, queueing for retry");
-            } else {
-              uploaded = true;
-              await incrementDailyUploadCountAsync(channelId);
-              const videoId = youtubeUrl.split("/").pop();
-              if (videoId) {
-                const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels);
-                await addCommentToVideo(videoId, commentText, config);
-              }
-            }
-          }
-          if (!uploaded) {
-            await enqueueYoutubeUpload(short, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags);
-          }
-        }
-        sendStage = "telegram";
-        const pendingRateLimit = youtubeEnabled && !youtubeUrl;
-        const msgId = await sendToTelegram(short, config, youtubeUrl, pendingRateLimit);
-        if (msgId) short.telegramMessageId = msgId;
+        await deliverShort(short, video, config);
       } catch (err) {
-        logger.error(
-          {
-            error: err,
-            clipId: short.id,
-            stage: sendStage,
-            runId: config.managedRun?.runId,
-            channelId: config.managedRun?.channelId,
-          },
-          "Failed to send generated short",
-        );
         errors.push(`Erro no envio de ${short.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }

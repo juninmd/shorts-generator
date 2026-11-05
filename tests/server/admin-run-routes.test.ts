@@ -243,4 +243,47 @@ describe("Admin Run Routes", () => {
 
     expect(mockDeps.runRepository.updateProgress).toHaveBeenCalled();
   });
+
+  describe("durable runs", () => {
+    beforeEach(() => {
+      app = new Hono();
+      Object.assign(mockDeps.runRepository, {
+        createQueuedRun: vi.fn().mockResolvedValue(undefined),
+        markFailed: vi.fn().mockResolvedValue(undefined),
+        getExecutionState: vi.fn(),
+        requeue: vi.fn(),
+      });
+      mockDeps.enqueueRun = vi.fn().mockResolvedValue(undefined);
+      registerRunRoutes(app, mockDeps);
+    });
+
+    it("queues the run by reference instead of executing in the API process", async () => {
+      vi.mocked(runPipeline).mockClear();
+      const res = await app.request("/channels/test/runs", { method: "POST" });
+      expect(res.status).toBe(202);
+      const body = await res.json();
+      expect(body.status).toBe("queued");
+      expect(mockDeps.runRepository.createQueuedRun).toHaveBeenCalledWith(body.runId, "test", "system", expect.any(Object), { kind: "cuts" });
+      expect(mockDeps.enqueueRun).toHaveBeenCalledWith({ runId: body.runId, channelId: "test" });
+      expect(JSON.stringify(mockDeps.enqueueRun.mock.calls)).not.toContain("tok");
+      expect(runPipeline).not.toHaveBeenCalled();
+    });
+
+    it("marks the run failed and answers 503 when the queue is unavailable", async () => {
+      mockDeps.enqueueRun.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+      const res = await app.request("/channels/test/runs", { method: "POST" });
+      expect(res.status).toBe(503);
+      expect(mockDeps.runRepository.markFailed).toHaveBeenCalled();
+    });
+
+    it("retries only failed runs", async () => {
+      mockDeps.runRepository.getExecutionState.mockResolvedValue({ channelId: "test", status: "failed", attempts: 2 });
+      mockDeps.runRepository.requeue.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      expect((await app.request("/runs/r1/retry", { method: "POST" })).status).toBe(202);
+      expect(mockDeps.enqueueRun).toHaveBeenCalledWith({ runId: "r1", channelId: "test" }, "retry2");
+      expect((await app.request("/runs/r1/retry", { method: "POST" })).status).toBe(409);
+      mockDeps.runRepository.getExecutionState.mockResolvedValueOnce(null);
+      expect((await app.request("/runs/nope/retry", { method: "POST" })).status).toBe(404);
+    });
+  });
 });

@@ -12,10 +12,12 @@
     "start": "tsx src/server/index.ts",
     "cli": "tsx src/cli.ts",
     "queue:process": "tsx src/cli.ts queue:process",
+    "worker": "tsx src/cli.ts worker",
+    "feedback:collect": "tsx src/cli.ts feedback:collect",
+    "quiz:seed": "tsx src/cli.ts quiz:seed",
     "generate": "tsx src/cli.ts generate",
     "generate:top": "tsx src/cli.ts generate:top",
     "generate:quiz": "tsx src/cli.ts generate:quiz",
-    "generate:metrics-digest": "tsx src/cli.ts generate:metrics-digest",
     "generate:url": "tsx src/cli.ts generate --url",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,6 +28,7 @@
     "web:build": "pnpm --dir web run build",
     "web:preview": "pnpm --dir web run preview",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests scripts",
     "smoke-test": "tsx scripts/smoke-test.ts",
     "bootstrap:control-plane": "tsx scripts/bootstrap-control-plane.ts",
     "diagnose:cluster": "tsx scripts/diagnose-cluster.ts"
@@ -53,12 +56,15 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/node": "^26.0.1",
     "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^10.10.0",
     "tsx": "^4.23.0",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^4.0.18"
   },
   "license": "MIT"

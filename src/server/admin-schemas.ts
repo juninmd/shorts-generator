@@ -1,6 +1,7 @@
 
 
 import { z } from "zod";
+import { editorialProfileSchema } from "../core/editorial/editorial-profile.js";
 
 export const channelIdSchema = z.string().min(3).max(80);
 
@@ -45,6 +46,7 @@ export const bundleSchema = z.object({
     sortByViews: z.boolean().default(false),
     aiProvider: z.enum(["openrouter", "ollama"]),
     aiModel: z.string().min(1).max(160),
+    editorial: editorialProfileSchema.optional(),
   }),
   focuses: z.array(focusSchema).default([]),
   sources: z.array(sourceSchema).default([]),

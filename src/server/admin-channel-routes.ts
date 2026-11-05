@@ -4,6 +4,7 @@ import { google } from "googleapis";
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 import { logger } from "../core/logger.js";
+import { DEFAULT_EDITORIAL_PROFILE, EDITORIAL_PRESETS } from "../core/editorial/editorial-profile.js";
 import { bundleSchema, channelIdSchema, focusSchema, publishingAccountSchema, sourceSchema } from "./admin-schemas.js";
 import { type AdminDeps, buildPublishingAccount, isCutsOnlyMode, toAdminBundleResponse } from "./admin-helpers.js";
 
@@ -14,6 +15,8 @@ export function registerChannelRoutes(admin: Hono, deps: AdminDeps): void {
     const bundles = await repository.listBundles();
     return c.json(bundles.map(toAdminBundleResponse));
   });
+
+  admin.get("/editorial-presets", (c) => c.json(EDITORIAL_PRESETS));
 
   admin.get("/channels/:channelId", async (c) => {
     const channelId = channelIdSchema.parse(c.req.param("channelId"));
@@ -36,6 +39,10 @@ export function registerChannelRoutes(admin: Hono, deps: AdminDeps): void {
     const now = new Date().toISOString();
     const existing = await repository.getBundle(channelId);
     const payload = parsed.data;
+    const formats = payload.profile.editorial?.allowedFormats;
+    if (formats && !formats.includes(payload.channelType)) {
+      return c.json({ error: `Profile does not allow the ${payload.channelType} format` }, 400);
+    }
     if (isCutsOnlyMode() && payload.channelType !== "cuts") {
       return c.json({ error: "Quiz channels are disabled while CHANNEL_FLOW_MODE=cuts" }, 409);
     }
@@ -66,6 +73,7 @@ export function registerChannelRoutes(admin: Hono, deps: AdminDeps): void {
         sortByViews: payload.profile.sortByViews,
         aiProvider: payload.profile.aiProvider,
         aiModel: payload.profile.aiModel,
+        editorial: payload.profile.editorial ?? existing?.profile?.editorial ?? DEFAULT_EDITORIAL_PROFILE,
       },
       focuses: payload.focuses.map((focus: z.infer<typeof focusSchema>) => ({ id: focus.id ?? randomUUID(), key: focus.key, label: focus.label })),
       sources: payload.sources.map((source: z.infer<typeof sourceSchema>) => ({ id: source.id ?? randomUUID(), kind: source.kind, value: source.value, label: source.label, createdAt: existing?.channel.createdAt ?? now })),

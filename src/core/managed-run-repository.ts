@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
 import type { PipelineProgress, PipelineResult } from "../types.js";
 import { queryRows } from "./control-plane-db.js";
+import { deriveRunStatus } from "./runs/run-status.js";
 
 export interface ManagedRunRecord {
   readonly id: string;
@@ -47,7 +48,7 @@ export class ManagedRunRepository {
   async completeRun(runId: string, results: readonly PipelineResult[]): Promise<void> {
     await this.db.query(
       "UPDATE pipeline_runs SET status = $2, results = $3::jsonb, updated_at = NOW() WHERE id = $1",
-      [runId, "completed", JSON.stringify(results)],
+      [runId, deriveRunStatus(results), JSON.stringify(results)],
     );
   }
 

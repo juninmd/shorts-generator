@@ -56,6 +56,10 @@ export interface ShortClip {
   transcript: TranscriptSegment[];
   words: TranscriptWord[];
   hashtags: string[];
+  /** Divergent editorial review: may be rendered but never auto-published. */
+  requiresHumanReview?: boolean;
+  editorialNotes?: string;
+  theme?: string;
 }
 
 export interface GeneratedShort {
@@ -70,6 +74,10 @@ export interface GeneratedShort {
   status: "pending" | "processing" | "completed" | "failed";
   error?: string;
   createdAt: string;
+  /** Absolute interval in the ORIGINAL video (clip times are relative to the downloaded section). */
+  source?: { videoId: string; startTime: number; endTime: number };
+  publicationId?: string;
+  publicationStatus?: string;
 }
 
 export interface YouTubeAuthConfig {
@@ -86,6 +94,8 @@ export interface ManagedRunContext {
   publishingAccounts?: any[]; // For legacy compatibility in youtube.service.ts
   focusLabels: string[];
   logoPath?: string | null;
+  editorial?: import("./core/editorial/editorial-profile.js").EditorialProfile;
+  channelType?: "cuts" | "quiz";
 }
 
 export interface PipelineConfig {
@@ -185,16 +195,5 @@ export interface PipelineProgress {
   progress: number;
 }
 
-export interface ApiGenerateRequest {
-  urls?: string[];
-  channels?: string[];
-  videoLimit?: number;
-}
-
-export interface ApiGenerateResponse {
-  jobId: string;
-  status: "queued" | "processing" | "completed" | "failed";
-  results?: PipelineResult[];
-  progress?: PipelineProgress;
-}
+export type { ApiGenerateRequest, ApiGenerateResponse } from "./types/api-types.js";
 

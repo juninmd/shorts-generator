@@ -12,6 +12,8 @@ import { repairClipCandidates } from "./clip-repair.js";
 import { discoverTextualCandidates } from "./candidate-discovery.js";
 import { getMaxCuts, getMinCuts } from "./config.js";
 import { logger } from "./logger.js";
+import { findExcludedThemes } from "./editorial/editorial-gate.js";
+import { clipText } from "./clip-structural-proof.js";
 
 export { analyzeSinglePass } from "./analyzer-generation.js";
 
@@ -57,7 +59,11 @@ export async function analyzeTranscript(
     candidateMax,
   );
   const modelCandidates = deduplicateClips(rawClips).slice(0, candidateMax);
-  const textualCandidates = deduplicateClips(discovered).slice(0, candidateMax);
+  const profile = config.managedRun?.editorial;
+  const allowedDiscovered = profile
+    ? discovered.filter((clip) => findExcludedThemes(clipText(clip, transcript), profile).length === 0)
+    : discovered;
+  const textualCandidates = deduplicateClips(allowedDiscovered).slice(0, candidateMax);
   const candidates = [...modelCandidates, ...textualCandidates];
   const reviewed = deduplicateClips(
     await reviewClipCandidates(candidates, transcript, config),

@@ -6,6 +6,7 @@ import { buildAnalysisPrompt } from "./analyzer-prompt.js";
 import { ClipSchema, type ClipItem } from "./analyzer-schema.js";
 import { generateJsonObject } from "./generate-json.js";
 import { logger } from "./logger.js";
+import { buildEditorialPromptBlock, DEFAULT_EDITORIAL_PROFILE } from "./editorial/editorial-profile.js";
 import { formatFeedbackForPrompt, getChannelFeedback } from "./viral-feedback.js";
 
 function parseFallback(text: string): ClipItem[] {
@@ -34,7 +35,9 @@ async function promptFor(
   minCuts: number,
   maxCuts: number,
 ): Promise<string> {
-  const feedback = formatFeedbackForPrompt(await getChannelFeedback(config));
+  const profile = config.managedRun?.editorial ?? DEFAULT_EDITORIAL_PROFILE;
+  const feedback = buildEditorialPromptBlock(profile, config.managedRun?.focusLabels ?? [])
+    + formatFeedbackForPrompt(await getChannelFeedback(config));
   return buildAnalysisPrompt(
     transcript, videoTitle, channelName, minCuts, maxCuts,
     config.minShortDuration, config.maxShortDuration, feedback,

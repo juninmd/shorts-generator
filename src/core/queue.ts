@@ -1,6 +1,6 @@
 import type { PipelineConfig, GeneratedShort } from "../types.js";
 import { logger } from "./logger.js";
-import { getQueue } from "./queue-client.js";
+import { getQueue, toJobConfig } from "./queue-client.js";
 
 export * from "./queue-client.js";
 export * from "./queue-worker.js";
@@ -10,7 +10,7 @@ export async function enqueueYoutubeUpload(
 ): Promise<void> {
   const queue = getQueue();
   const channelId = config.managedRun?.channelId || "global";
-  await queue.add(`upload-${short.id}` as any, { videoPath: short.outputPath, title, description, tags, channelId, config }, {
+  await queue.add(`upload-${short.id}` as any, { videoPath: short.outputPath, title, description, tags, channelId, config: toJobConfig(config) }, {
     attempts: 5,
     backoff: { type: "exponential", delay: 60000 },
   });

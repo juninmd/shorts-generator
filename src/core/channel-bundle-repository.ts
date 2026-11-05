@@ -1,56 +1,9 @@
 
-import type { Pool, PoolClient } from "pg";
-import type {
-  ChannelFocus,
-  FocusKey,
-  ChannelProfile,
-  ManagedChannel,
-  ManagedChannelBundle,
-  PublishingAccount,
-  SourceTarget,
-} from "./channel-domain.js";
+import type { PoolClient } from "pg";
+import type { ManagedChannelBundle } from "./channel-domain.js";
+import { buildBundle, type AccountRow, type ChannelRow, type FocusRow, type ProfileRow, type SourceRow } from "./channel-bundle-mapper.js";
+import { DEFAULT_EDITORIAL_PROFILE } from "./editorial/editorial-profile.js";
 import { queryRows, withTransaction } from "./control-plane-db.js";
-type ChannelRow = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  status: ManagedChannel["status"];
-  logo_path: string | null;
-  watermark_text: string;
-  channel_type: ManagedChannel["channelType"];
-  created_at: string;
-  updated_at: string;
-};
-type ProfileRow = {
-  channel_id: string;
-  video_limit: number;
-  min_short_duration: number;
-  max_short_duration: number;
-  target_shorts: number | null;
-  video_query: string | null;
-  sort_by_views: boolean;
-  ai_provider: ChannelProfile["aiProvider"];
-  ai_model: string;
-};
-type FocusRow = ChannelFocus & { channel_id: string };
-type SourceRow = SourceTarget & { channel_id: string };
-type AccountRow = {
-  id: string;
-  channel_id: string;
-  provider: PublishingAccount["provider"];
-  label: string;
-  status: PublishingAccount["status"];
-  account_identifier: string;
-  client_id: string | null;
-  client_secret: string | null;
-  created_at: string;
-  updated_at: string;
-  token_key_version: string;
-  token_iv: string;
-  token_auth_tag: string;
-  token_ciphertext: string;
-};
 export class ChannelBundleRepository {
   constructor(private readonly db: any) {}
   async listBundles(): Promise<readonly ManagedChannelBundle[]> {
@@ -74,12 +27,14 @@ export class ChannelBundleRepository {
         [bundle.channel.id, bundle.channel.slug, bundle.channel.name, bundle.channel.description, bundle.channel.status, bundle.channel.logoPath, bundle.channel.watermarkText, bundle.channel.channelType || "cuts", bundle.channel.createdAt, bundle.channel.updatedAt],
       );
       await client.query(
-        `INSERT INTO channel_profiles (channel_id, video_limit, min_short_duration, max_short_duration, target_shorts, video_query, sort_by_views, ai_provider, ai_model)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        `INSERT INTO channel_profiles (channel_id, video_limit, min_short_duration, max_short_duration, target_shorts, video_query, sort_by_views, ai_provider, ai_model, language, allowed_themes, excluded_themes, tone, allowed_formats, publish_mode)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
          ON CONFLICT (channel_id) DO UPDATE SET video_limit = EXCLUDED.video_limit, min_short_duration = EXCLUDED.min_short_duration,
          max_short_duration = EXCLUDED.max_short_duration, target_shorts = EXCLUDED.target_shorts, video_query = EXCLUDED.video_query,
-         sort_by_views = EXCLUDED.sort_by_views, ai_provider = EXCLUDED.ai_provider, ai_model = EXCLUDED.ai_model`,
-        [bundle.profile.channelId, bundle.profile.videoLimit, bundle.profile.minShortDuration, bundle.profile.maxShortDuration, bundle.profile.targetShorts, bundle.profile.videoQuery, bundle.profile.sortByViews, bundle.profile.aiProvider, bundle.profile.aiModel],
+         sort_by_views = EXCLUDED.sort_by_views, ai_provider = EXCLUDED.ai_provider, ai_model = EXCLUDED.ai_model,
+         language = EXCLUDED.language, allowed_themes = EXCLUDED.allowed_themes, excluded_themes = EXCLUDED.excluded_themes,
+         tone = EXCLUDED.tone, allowed_formats = EXCLUDED.allowed_formats, publish_mode = EXCLUDED.publish_mode`,
+        [bundle.profile.channelId, bundle.profile.videoLimit, bundle.profile.minShortDuration, bundle.profile.maxShortDuration, bundle.profile.targetShorts, bundle.profile.videoQuery, bundle.profile.sortByViews, bundle.profile.aiProvider, bundle.profile.aiModel, ...editorialColumns(bundle)],
       );
       await replaceChildren(client, "channel_focuses", bundle.channel.id, bundle.focuses, (focus) => [focus.id, bundle.channel.id, focus.key, focus.label]);
       await replaceChildren(client, "source_targets", bundle.channel.id, bundle.sources, (source) => [source.id, bundle.channel.id, source.kind, source.value, source.label, source.createdAt]);
@@ -171,68 +126,7 @@ async function replaceChildren<T>(
     await client.query("INSERT INTO source_targets (id, channel_id, kind, value, label, created_at) VALUES ($1,$2,$3,$4,$5,$6)", params);
   }
 }
-function buildBundle(
-  channel: ChannelRow,
-  profiles: readonly ProfileRow[],
-  focuses: readonly FocusRow[],
-  sources: readonly SourceRow[],
-  accounts: readonly AccountRow[],
-): ManagedChannelBundle {
-  const profile = profiles.find((entry) => entry.channel_id === channel.id);
-  if (!profile) {
-    throw new Error(`Missing profile for channel ${channel.id}`);
-  }
-  const channelAccounts = accounts.filter((entry) => entry.channel_id === channel.id);
-  return {
-    channel: {
-      id: channel.id,
-      slug: channel.slug,
-      name: channel.name,
-      description: channel.description,
-      status: channel.status,
-      logoPath: channel.logo_path,
-      watermarkText: channel.watermark_text,
-      channelType: channel.channel_type || "cuts",
-      createdAt: channel.created_at,
-      updatedAt: channel.updated_at,
-    },
-    profile: {
-      channelId: profile.channel_id,
-      videoLimit: profile.video_limit,
-      minShortDuration: profile.min_short_duration,
-      maxShortDuration: profile.max_short_duration,
-      targetShorts: profile.target_shorts,
-      videoQuery: profile.video_query,
-      sortByViews: profile.sort_by_views,
-      aiProvider: profile.ai_provider,
-      aiModel: profile.ai_model,
-    },
-    focuses: focuses.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...focus }) => ({
-      ...focus,
-      key: focus.key ?? (focus as { focus_key?: FocusKey }).focus_key,
-      label: focus.label ?? (focus as { focus_label?: string }).focus_label,
-    })),
-    sources: sources.filter((entry) => entry.channel_id === channel.id).map(({ channel_id: _ignore, ...source }) => ({
-      ...source,
-      createdAt: source.createdAt ?? (source as { created_at?: string }).created_at,
-    })),
-    publishingAccounts: channelAccounts.map((account) => ({
-      id: account.id,
-      channelId: account.channel_id,
-      provider: account.provider,
-      label: account.label,
-      status: account.status,
-      accountIdentifier: account.account_identifier,
-      clientId: account.client_id,
-      clientSecret: account.client_secret,
-      encryptedToken: {
-        keyVersion: account.token_key_version,
-        iv: account.token_iv,
-        authTag: account.token_auth_tag,
-        ciphertext: account.token_ciphertext,
-      },
-      createdAt: account.created_at,
-      updatedAt: account.updated_at,
-    })),
-  };
+function editorialColumns(bundle: ManagedChannelBundle): unknown[] {
+  const e = bundle.profile.editorial ?? DEFAULT_EDITORIAL_PROFILE;
+  return [e.language, JSON.stringify(e.allowedThemes), JSON.stringify(e.excludedThemes), e.tone, JSON.stringify(e.allowedFormats), e.publishMode];
 }

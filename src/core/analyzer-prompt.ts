@@ -61,7 +61,7 @@ viralScore (seja rigoroso):
 - 1-5: genérico ou dependente de contexto; não retorne
 - Bônus +1 se o fim emendar naturalmente no começo
 
-TÍTULO pt-BR:
+TÍTULO (no idioma do perfil editorial; pt-BR por padrão):
 - Único e específico; proíba títulos genéricos
 - Curiosidade nos primeiros 40 caracteres; total de 40-60 caracteres
 - Inclua o nome de quem fala quando identificável

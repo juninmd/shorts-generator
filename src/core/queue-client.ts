@@ -12,6 +12,24 @@ export interface YoutubeUploadJobData {
 }
 
 export const QUEUE_NAME = "youtube-uploads";
+
+/** Jobs must never carry resolved credentials: the worker resolves them by channel reference. */
+export function toJobConfig(config: import("../types.js").PipelineConfig): import("../types.js").PipelineConfig {
+  const { youtubeAuth: _auth, onProgress: _progress, ...rest } = config;
+  return { ...rest, litellmApiKey: "", telegramBotToken: "", youtubeCookiesBase64: undefined };
+}
+
+/** Re-hydrates secrets from the current environment/control plane at execution time. */
+export function hydrateJobConfig(jobConfig: import("../types.js").PipelineConfig, env: NodeJS.ProcessEnv = process.env): import("../types.js").PipelineConfig {
+  return {
+    ...jobConfig,
+    litellmApiKey: env.LITELLM_KEY ?? env.OPENAI_API_KEY ?? "",
+    telegramBotToken: env.TELEGRAM_BOT_TOKEN ?? "",
+    youtubeCookiesBase64: env.YOUTUBE_COOKIES_BASE64,
+    // Managed channels: getYouTubeAuth reads the current encrypted token from the DB.
+    youtubeAuth: undefined,
+  };
+}
 let redisClient: Redis | null = null;
 
 export function getRedisClient(): Redis {

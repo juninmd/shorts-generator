@@ -3,6 +3,7 @@ import type { PipelineConfig, VideoInfo } from "../types.js";
 import { getVideoFileSize } from "./youtube.js";
 import { generateText } from "ai";
 import { logger } from "./logger.js";
+import { findExcludedThemes } from "./editorial/editorial-gate.js";
 import { createModel } from "./ai-provider.js";
 
 export async function isMusicVideoByTitle(
@@ -73,6 +74,11 @@ export async function selectValidVideos(
   const selected: VideoInfo[] = [];
   for (const video of videos) {
     if (!matchesVideoQuery(video, config)) continue;
+    const excluded = config.managedRun?.editorial ? findExcludedThemes(video.title, config.managedRun.editorial) : [];
+    if (excluded.length) {
+      logger.info({ videoId: video.id, excluded }, "Video skipped by editorial profile");
+      continue;
+    }
     if (!(await isVideoWithinLimits(video, config))) continue;
     logger.info({ videoId: video.id, title: video.title }, "Selected valid video");
     selected.push(video);

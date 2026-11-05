@@ -109,18 +109,11 @@ describe("clip-quality", () => {
     expect(result).toEqual([]);
   });
 
-  it("keeps structurally proven rhetoric when the model produces a false negative", async () => {
-    vi.mocked(gjModule.generateJsonObject).mockResolvedValue({
-      reviews: [{
-        candidateIndex: 0,
-        editorialScore: 6,
-        hookScore: 8,
-        standaloneScore: 8,
-        payoffScore: 4,
-        approved: false,
-        reason: "Payoff truncado.",
-      }],
-    } as never);
+  describe("editorial veto (structural heuristic is auxiliary only)", () => {
+    const rejected = {
+      candidateIndex: 0, editorialScore: 6, hookScore: 8, standaloneScore: 8, payoffScore: 4,
+      approved: false, reason: "Payoff truncado.",
+    };
     const strongTranscript: Transcript = {
       ...transcript,
       duration: 404,
@@ -129,8 +122,7 @@ describe("clip-quality", () => {
         { start: 399, end: 404, text: "Não tenha medo. Ele fere para curar." },
       ],
     };
-
-    const result = await reviewClipCandidates([{
+    const candidate = () => [{
       title: "A verdade dói, liberta e cura",
       description: "Desc",
       contentValue: "Reflexão",
@@ -141,9 +133,60 @@ describe("clip-quality", () => {
       viralScore: 8.5,
       reason: "Transformação clara",
       hashtags: [],
-    }], strongTranscript, config);
+    }];
 
-    expect(result).toHaveLength(1);
-    expect(result[0]?.viralScore).toBeGreaterThanOrEqual(8);
+    it("does not publish an explicitly rejected clip when the second opinion also rejects", async () => {
+      const record = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(gjModule.generateJsonObject)
+        .mockResolvedValueOnce({ reviews: [rejected] } as never)
+        .mockResolvedValueOnce({ reviews: [{ ...rejected, reason: "Continua truncado." }] } as never);
+
+      const result = await reviewClipCandidates(candidate(), strongTranscript, config, { record });
+
+      expect(result).toHaveLength(0);
+      expect(record).toHaveBeenCalledWith(expect.objectContaining({ decision: "reevaluated_rejected", reasons: ["Payoff truncado.", "Continua truncado."] }));
+    });
+
+    it("keeps a traceable result when the limited re-evaluation legitimately approves", async () => {
+      const record = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(gjModule.generateJsonObject)
+        .mockResolvedValueOnce({ reviews: [rejected] } as never)
+        .mockResolvedValueOnce({ reviews: [{ ...rejected, editorialScore: 8, payoffScore: 8, approved: true, reason: "Payoff completo." }] } as never);
+
+      const result = await reviewClipCandidates(candidate(), strongTranscript, config, { record });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]!.viralScore).toBe(8);
+      expect(result[0]!.requiresHumanReview).toBeUndefined();
+      expect(result[0]!.editorialNotes).toContain("Payoff truncado.");
+      expect(record).toHaveBeenCalledWith(expect.objectContaining({ decision: "reevaluated_approved" }));
+    });
+
+    it("routes the divergence to human review when the re-evaluation fails", async () => {
+      vi.mocked(gjModule.generateJsonObject)
+        .mockResolvedValueOnce({ reviews: [rejected] } as never)
+        .mockRejectedValueOnce(new Error("litellm down"));
+
+      const result = await reviewClipCandidates(candidate(), strongTranscript, config, { record: vi.fn().mockResolvedValue(undefined) });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]!.requiresHumanReview).toBe(true);
+    });
+
+    it("never approves when the review omits the candidate or errors", async () => {
+      vi.mocked(gjModule.generateJsonObject).mockResolvedValueOnce({ reviews: [] } as never);
+      expect(await reviewClipCandidates(candidate(), strongTranscript, config, { record: vi.fn().mockResolvedValue(undefined) })).toHaveLength(0);
+      vi.mocked(gjModule.generateJsonObject).mockRejectedValueOnce(new Error("timeout"));
+      expect(await reviewClipCandidates(candidate(), strongTranscript, config, { record: vi.fn().mockResolvedValue(undefined) })).toHaveLength(0);
+    });
+
+    it("retains an approved clip whose theme is excluded by the channel profile", async () => {
+      vi.mocked(gjModule.generateJsonObject).mockResolvedValueOnce({ reviews: [{ ...rejected, editorialScore: 9, payoffScore: 9, approved: true }] } as never);
+      const profiled = { ...config, managedRun: { runId: "r", channelId: "c", channelName: "C", focusLabels: [], editorial: { language: "pt-BR", allowedThemes: [], excludedThemes: ["verdade"], tone: "", allowedFormats: ["cuts"], publishMode: "auto" } } } as PipelineConfig;
+      const record = vi.fn().mockResolvedValue(undefined);
+
+      expect(await reviewClipCandidates(candidate(), strongTranscript, profiled, { record })).toHaveLength(0);
+      expect(record).toHaveBeenCalledWith(expect.objectContaining({ decision: "rejected", reasons: ["tema excluído: verdade"] }));
+    });
   });
 });

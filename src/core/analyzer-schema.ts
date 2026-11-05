@@ -18,4 +18,11 @@ export const ClipSchema = z.object({
   clips: z.array(ClipItemSchema),
 });
 
-export type ClipItem = z.infer<typeof ClipItemSchema>;
+/** Editorial annotations added after review; never produced by the selection LLM. */
+export interface ClipEditorialMeta {
+  requiresHumanReview?: boolean;
+  editorialNotes?: string;
+  theme?: string;
+}
+
+export type ClipItem = z.infer<typeof ClipItemSchema> & ClipEditorialMeta;
