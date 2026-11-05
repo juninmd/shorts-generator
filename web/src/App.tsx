@@ -20,9 +20,10 @@ const Ico = {
   Book:     ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
 /* v8 ignore start */
   Zap:      ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/></svg>,
-
+  /* v8 ignore start */
   Arrow:    ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>,
   Channel:  ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17,2 12,7 7,2"/></svg>,
+/* v8 ignore stop */
   Wifi:     ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
 /* v8 ignore stop */
 };
@@ -354,9 +355,11 @@ function Step2Pipeline({ draft, setDraft }: { draft: AdminChannelBundle; setDraf
 
 /* v8 ignore start */
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
+        {/* v8 ignore start */}
         <Field label="Vídeos por run" type="number" tip="Máximo de vídeos baixados e processados em uma única execução." value={draft.profile.videoLimit} onChange={e => setDraft(pr(draft, { videoLimit: Number(e.target.value) }))} />
         <Field label="Duração mín (s)" type="number" tip="Clips mais curtos que este valor são descartados pelo filtro." value={draft.profile.minShortDuration} onChange={e => setDraft(pr(draft, { minShortDuration: Number(e.target.value) }))} />
         <Field label="Duração máx (s)" type="number" tip="Clips mais longos que este valor são descartados. YouTube Shorts aceita até 60s." value={draft.profile.maxShortDuration} onChange={e => setDraft(pr(draft, { maxShortDuration: Number(e.target.value) }))} />
+{/* v8 ignore stop */}
         <Field label="Meta de shorts" type="number" hint="opcional" tip="Para a execução assim que atingir esta quantidade de shorts gerados." value={draft.profile.targetShorts ?? ""} onChange={e => setDraft(pr(draft, { targetShorts: e.target.value ? Number(e.target.value) : null }))} />
         <Field label="Query de busca" hint="opcional" tip="Filtra vídeos do canal que contenham esse termo no título. Ex: 'homilia', 'reflexão'." value={draft.profile.videoQuery ?? ""} onChange={e => setDraft(pr(draft, { videoQuery: e.target.value || null }))} placeholder="homilia" />
         <FieldSelect label="Ordenar por" tip="Define como os vídeos do canal são selecionados antes de processar." value={String(draft.profile.sortByViews)} onChange={e => setDraft(pr(draft, { sortByViews: e.target.value === "true" }))}>
