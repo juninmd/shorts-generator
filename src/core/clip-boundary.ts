@@ -1,6 +1,7 @@
 
 import type { TranscriptSegment, PipelineConfig } from "../types.js";
 import { logger } from "./logger.js";
+import { sentenceStartIndex } from "./sentence-start.js";
 
 interface RawClipTimestamps {
     startTime: number;
@@ -68,16 +69,14 @@ function isStrongPunctuation(text: string): boolean {
 }
 
 /**
- * Snaps to the start of the segment containing the target time.
+ * Snaps to the start of the sentence containing the target time.
  */
 function findBestSegmentStart(targetTime: number, segments: TranscriptSegment[]): number {
-    for (const seg of segments) {
-        if (seg.start <= targetTime && targetTime < seg.end) return seg.start;
-    }
-    for (const seg of segments) {
-        if (seg.start >= targetTime) return seg.start;
-    }
-    return segments[0].start;
+    let index = segments.findIndex((seg) => seg.start <= targetTime && targetTime < seg.end);
+    if (index < 0) index = segments.findIndex((seg) => seg.start >= targetTime);
+    if (index < 0) return segments[0].start;
+    // Open on the beginning of the sentence, not a mid-thought Whisper split.
+    return segments[sentenceStartIndex(segments, index)]!.start;
 }
 
 /**
