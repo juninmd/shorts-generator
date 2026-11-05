@@ -190,6 +190,26 @@ describe("quiz-pipeline", () => {
     expect(sendMessageSpy).toHaveBeenCalled();
   });
 
+  it("posts engagement comment when youtube upload succeeds", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com/shorts/xyz999");
+    vi.mocked(youtubeService.extractYouTubeVideoId).mockReturnValue("xyz999");
+    await runQuizPipeline(config, vi.fn());
+    expect(youtubeService.addCommentToVideo).toHaveBeenCalledWith(
+      "xyz999",
+      expect.stringContaining("Quantas você acertou?"),
+      config
+    );
+  });
+
+  it("does not call addCommentToVideo if videoId is missing", async () => {
+    process.env.ENABLE_YOUTUBE = "true";
+    vi.mocked(youtubeService.uploadToYouTube).mockResolvedValue("https://youtube.com/");
+    vi.mocked(youtubeService.extractYouTubeVideoId).mockReturnValue(null);
+    await runQuizPipeline(config, vi.fn());
+    expect(youtubeService.addCommentToVideo).not.toHaveBeenCalled();
+  });
+
   it("keeps temp files if config says so", async () => {
       const configKeep = { ...config, keepTempFiles: true };
       await runQuizPipeline(configKeep, vi.fn());

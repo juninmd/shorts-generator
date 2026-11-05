@@ -1,8 +1,7 @@
-
 import { Worker } from "bullmq";
 import fs from "node:fs";
 import { logger } from "./logger.js";
-import { uploadToYouTube } from "./youtube.service.js";
+import { uploadToYouTube, addCommentToVideo, extractYouTubeVideoId } from "./youtube.service.js";
 import { notifyYoutubeRateLimited, notifyYoutubeResumed } from "./telegram.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync, getDailyUploadCountAsync } from "./state.js";
 import { getRedisClient, getQueue, QUEUE_NAME, type YoutubeUploadJobData } from "./queue-client.js";
@@ -27,6 +26,10 @@ export function createWorker(): Worker<YoutubeUploadJobData> {
     const youtubeUrl = await uploadToYouTube(videoPath, title, description, config, tags);
     if (!youtubeUrl) throw new Error("Upload falhou (retornou null)");
     await incrementDailyUploadCountAsync(channelId);
+    if (job.data.commentText) {
+      const videoId = extractYouTubeVideoId(youtubeUrl);
+      if (videoId) await addCommentToVideo(videoId, job.data.commentText, config);
+    }
     if (await getRedisClient().get(pausedKey(channelId))) {
       await getRedisClient().del(pausedKey(channelId));
       await notifyYoutubeResumed(config.managedRun?.channelName, config);
@@ -100,4 +103,3 @@ export async function retryFailedWithExistingFiles(): Promise<void> {
   logger.info({ retried, dropped, total: failed.length }, "♻️ Jobs falhados reprocessados (arquivo presente) / descartados (arquivo ausente)");
   if (retried > 0) await processQueueUntilEmpty();
 }
-

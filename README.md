@@ -22,7 +22,7 @@ cp .env.example .env   # preencha os valores localmente; nunca commite o .env
 
 Toda a configuração vem de variáveis de ambiente (`src/core/config.ts`). O `.env.example` lista todas; as principais:
 
-- Pipeline: `YOUTUBE_CHANNELS`, `VIDEO_LIMIT`, `MAX_CLIPS_PER_VIDEO`, `MIN_VIRAL_SCORE`, `MAX_SHORT_DURATION`, `MIN_SHORT_DURATION`, `OUTPUT_DIR`, `WATERMARK_TEXT`
+- Pipeline: `YOUTUBE_CHANNELS`, `VIDEO_LIMIT`, `MAX_CLIPS_PER_VIDEO`, `CLIP_CONCURRENCY`, `MIN_VIRAL_SCORE`, `MAX_SHORT_DURATION`, `MIN_SHORT_DURATION`, `OUTPUT_DIR`, `WATERMARK_TEXT`
 - IA e transcrição: `AI_MODEL`, `AI_TIMEOUT_MS`, `LITELLM_BASE_URL`, `LITELLM_KEY`, `WHISPER_BASE_URL`, `WHISPER_REQUEST_TIMEOUT_MS`
 - Entrega: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MAX_DAILY_UPLOADS`
 - Qualidade de entrega: `DELIVERY_PLATFORM` (`shorts` padrão, `reels`, `tiktok`), `LOUDNESS_NORMALIZE=false` para desligar o loudnorm, `FFMPEG_TIMEOUT_MS` (padrão 30 min)

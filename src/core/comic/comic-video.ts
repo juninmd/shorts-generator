@@ -37,7 +37,6 @@ export async function renderChapterClip(
     `scale=${width * 2}:${height * 2}:force_original_aspect_ratio=increase,` +
     `crop=${width * 2}:${height * 2},` +
     `zoompan=z='min(zoom+0.0006,1.15)':d=${frames}:s=${width}x${height}:fps=30`;
-
   const args = [
     "-y",
     "-loop", "1",
@@ -52,8 +51,6 @@ export async function renderChapterClip(
   ];
   await runFfmpeg(args, { outputPath, maxBufferBytes: 16 * 1024 * 1024 });
 }
-
-/** Faceless chapter: looped stock footage cropped to vertical, under the narration. */
 async function renderFootageClip(
   chapter: NarratedChapter,
   videoPath: string,
@@ -80,8 +77,6 @@ async function renderFootageClip(
   ];
   await runFfmpeg(args, { outputPath, maxBufferBytes: 16 * 1024 * 1024 });
 }
-
-/** Concatenate rendered chapter clips into a single video via the concat demuxer. */
 export async function concatChapterClips(
   clipPaths: string[],
   outputPath: string,
@@ -92,7 +87,6 @@ export async function concatChapterClips(
     .map((clipPath) => `file '${path.resolve(clipPath).replace(/\\/g, "/")}'`)
     .join("\n");
   fs.writeFileSync(listPath, listContent, "utf-8");
-
   const args = [
     "-y",
     "-f", "concat",

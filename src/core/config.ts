@@ -47,6 +47,8 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     ? parseFloat(maxVideoDurationMinutes) * 60
     : parseFloat(optionalEnv("MAX_VIDEO_DURATION_HOURS", "1")) * 3600;
   const videoQuery = optionalEnv("VIDEO_QUERY", "") || undefined;
+  const clipConcurrencyRaw = parseInt(optionalEnv("CLIP_CONCURRENCY", "2"), 10);
+  const clipConcurrency = Number.isFinite(clipConcurrencyRaw) && clipConcurrencyRaw > 0 ? clipConcurrencyRaw : 2;
 
   const config: PipelineConfig = {
     channels,
@@ -63,6 +65,8 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     maxVideoDurationSec,
     videoQuery,
     minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "1"), 10),
+    // Two ffmpeg renders at once peak near 2 GB; 1 serializes them on small pods.
+    clipConcurrency,
     minViralScore: parseFloat(optionalEnv("MIN_VIRAL_SCORE", "7")),
     videoGenre: optionalEnv("VIDEO_GENRE", "") || undefined,
     clipPrompt: optionalEnv("CLIP_PROMPT", "") || undefined,

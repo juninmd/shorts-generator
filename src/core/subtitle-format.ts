@@ -23,6 +23,26 @@ export function formatASSTime(seconds: number): string {
   return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
 }
 
+/** A word that closes a sentence ("dinheiro.", "sério?!", "assim…"); captions never run past it. */
+const SENTENCE_END = /[.!?…]["'”)\]]*$/;
+/** A comma/semicolon/colon: the speaker's own breath point, as good as a short pause. */
+const CLAUSE_END = /[,;:]["'”)\]]*$/;
+/**
+ * The bundled heavy font at 6.8% height fits ~13 characters per line in the
+ * 980 px between the margins; a phrase may wrap to two lines, never three.
+ */
+export const MAX_PHRASE_CHARS = 26;
+
+function phraseLength(phrase: TranscriptWord[], extra?: TranscriptWord): number {
+  const words = extra ? [...phrase, extra] : phrase;
+  return words.reduce((sum, w) => sum + w.word.trim().length, 0) + Math.max(0, words.length - 1);
+}
+
+/**
+ * Splits words into caption phrases of ~targetSize words. A phrase ends at a
+ * sentence end, a long pause, a comma/short pause once it is full, or before
+ * a word that would push it past one caption line.
+ */
 export function groupWords(words: TranscriptWord[], targetSize = 4): TranscriptWord[][] {
   const phrases: TranscriptWord[][] = [];
   let current: TranscriptWord[] = [];
@@ -31,9 +51,11 @@ export function groupWords(words: TranscriptWord[], targetSize = 4): TranscriptW
     current.push(word);
     const next = words[index + 1];
     const gap = next ? next.start - word.end : 0;
-    const naturalPause = gap > 0.3;
-    const hardPause = gap > 0.65;
-    if (index === words.length - 1 || hardPause
+    const text = word.word.trim();
+    const naturalPause = gap > 0.3 || CLAUSE_END.test(text);
+    const hardPause = gap > 0.65 || SENTENCE_END.test(text);
+    const overflows = next !== undefined && phraseLength(current, next) > MAX_PHRASE_CHARS;
+    if (index === words.length - 1 || hardPause || overflows
       || (current.length >= targetSize && naturalPause)
       || current.length >= targetSize + 1) {
       phrases.push(current);
@@ -43,10 +65,12 @@ export function groupWords(words: TranscriptWord[], targetSize = 4): TranscriptW
   const tail = phrases.at(-1);
   const previous = phrases.at(-2);
   if (tail && previous && tail.length < 3
+    && !SENTENCE_END.test(previous.at(-1)!.word.trim())
     && tail[0]!.start - previous.at(-1)!.end <= 0.3) {
     const combined = [...previous, ...tail];
     const splitAt = Math.ceil(combined.length / 2);
-    phrases.splice(-2, 2, combined.slice(0, splitAt), combined.slice(splitAt));
+    const halves = [combined.slice(0, splitAt), combined.slice(splitAt)];
+    if (halves.every((half) => half.length < 2 || phraseLength(half) <= MAX_PHRASE_CHARS)) phrases.splice(-2, 2, ...halves);
   }
   return phrases;
 }

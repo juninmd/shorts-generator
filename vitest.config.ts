@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     pool: 'forks',
+    env: { ANALYSIS_CACHE: 'false' },
     fileParallelism: false,
     testTimeout: 20000,
     include: ['tests/**/*.test.ts', 'tests/**/*.health.ts'],
@@ -18,8 +19,6 @@ export default defineConfig({
         'src/types-video.ts',
         'src/core/comic/comic-types.ts',
         'src/core/publishers/types.ts',
-        'src/core/youtube.ts',
-        'src/core/comic/demo-books.ts'
       ],
       all: true,
       thresholds: {

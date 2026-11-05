@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { buildTimeline, type Quiz } from "./quiz.domain.js";
-import { ensureFont, prepareBackground, prepareTextFiles, normalizePath } from "./quiz-assets.service.js";
+import { resolveQuizFont, prepareTextFiles, normalizePath } from "./quiz-assets.service.js";
+import { prepareQuizBackground } from "./quiz-background.js";
 import { generateFilters } from "./quiz-filters.service.js";
 import { runFFmpeg } from "./quiz-ffmpeg.service.js";
 import { logger } from "../logger.js";
@@ -44,7 +45,7 @@ export const assembleVideo = async (
   logger.info({ questions: quiz.perguntas.length }, "🎬 Montando vídeo de quiz multi-pergunta...");
 
   try {
-    const fontFile = ensureFont();
+    const fontFile = resolveQuizFont();
     const questionDurs = narrations.questionAudioPaths.map(probeDuration);
     const answerDurs = narrations.answerAudioPaths.map(probeDuration);
     const outroDur = probeDuration(narrations.outroAudioPath);
@@ -65,17 +66,21 @@ export const assembleVideo = async (
     const beepPath = normalizePath("assets/music/beep.mp3");
     const logoPath = normalizePath("assets/logo/logo.png");
 
-    const bgVideo = prepareBackground(resolvedTempDir, timeline.total);
-    const { questions: textFiles, outroTxtPath, hookTxtPath } = prepareTextFiles(quiz, resolvedTempDir);
+    const background = prepareQuizBackground(resolvedTempDir, timeline.total);
+    const { questions: textFiles, outroTxtPath,
+      outroLinePaths, hookTxtPath } = prepareTextFiles(quiz, resolvedTempDir);
 
     const { ffmpegInputs, filterComplex } = generateFilters(quiz, timeline, {
-      bgVideo,
+      bgVideo: background.path,
+      bgIsImage: background.kind === "image",
+      bgHasPanel: background.hasPanel,
       questionAudioPaths: narrations.questionAudioPaths.map(normalizePath),
       answerAudioPaths: narrations.answerAudioPaths.map(normalizePath),
       outroAudioPath: normalizePath(narrations.outroAudioPath),
       fontFile,
       textFiles,
       outroTxtPath,
+      outroLinePaths,
       hookTxtPath,
       hasMusic: fs.existsSync(musicPath) && musicPath !== "",
       hasBeep: fs.existsSync(beepPath),
