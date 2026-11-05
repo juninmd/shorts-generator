@@ -16,7 +16,7 @@ const normalizeTitle = (title: string): string =>
   title.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
     .replace(/[^a-z0-9]+/g, " ").trim();
 
-function segmentsInRange(
+export function segmentsInRange(
   segments: TranscriptSegment[],
   start: number,
   end: number,
@@ -30,7 +30,7 @@ function segmentsInRange(
     }));
 }
 
-function wordsInRange(words: TranscriptWord[], start: number, end: number): TranscriptWord[] {
+export function wordsInRange(words: TranscriptWord[], start: number, end: number): TranscriptWord[] {
   return words
     .filter((word) => word.start >= start - 0.1 && word.end <= end + 0.1)
     .map((word) => ({
@@ -91,6 +91,9 @@ export function processClips(
       transcript: segmentsInRange(transcript.segments, snapped.startTime, endTime),
       words: wordsInRange(transcript.words, snapped.startTime, endTime),
       hashtags: clip.hashtags,
+      requiresHumanReview: clip.requiresHumanReview,
+      editorialNotes: clip.editorialNotes,
+      theme: clip.theme,
     };
   });
 }

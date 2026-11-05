@@ -30,6 +30,12 @@ describe("buildPresenterTitle", () => {
 });
 
   it("handles null or undefined title", () => {
-    expect(buildPresenterTitle(undefined as any, "Presenter")).toBe("Presenter: ");
-    expect(buildPresenterTitle(null as any, "Presenter")).toBe("Presenter: ");
+    expect(buildPresenterTitle(undefined as any, "Ana")).toBe("Ana: ");
+    expect(buildPresenterTitle(null as any, "Ana")).toBe("Ana: ");
+  });
+
+  it("never prefixes placeholder presenter names", () => {
+    for (const placeholder of ["Presenter", "unknown", "null", "Não informado", "Padre", "{presenter}"]) {
+      expect(buildPresenterTitle("O segredo da oração", placeholder)).toBe("O segredo da oração");
+    }
   });

@@ -32,6 +32,12 @@ vi.mock("../../../src/core/quiz/quiz-video.service.js");
 vi.mock("../../../src/core/youtube.service.js");
 vi.mock("../../../src/core/queue.js");
 vi.mock("../../../src/core/state.js");
+vi.mock("../../../src/core/editorial/editorial-decisions.js", () => ({ recordEditorialDecision: vi.fn().mockResolvedValue(undefined) }));
+// Sourcing/verification has its own suite (quiz-sourcing.test.ts); here it just yields the fixture.
+vi.mock("../../../src/core/quiz/quiz-sourcing.js", async () => {
+  const mod = await import("../../../src/core/quiz/quiz-content.service.js");
+  return { prepareVerifiedQuiz: vi.fn(async (config: any, topic?: string) => ({ status: "ready", quiz: await mod.generateQuiz(config, topic), hashes: [], provenance: [] })) };
+});
 vi.mock("../../../src/core/logger.js", () => ({ logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 
 describe("quiz-pipeline", () => {

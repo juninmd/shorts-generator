@@ -32,7 +32,7 @@ describe("ManagedRunRepository", () => {
     expect(JSON.parse(params[1])).toMatchObject({ stage: "transcribing" });
   });
 
-  it("completeRun sets status to completed with results", async () => {
+  it("completeRun derives a truthful status instead of a blanket completed", async () => {
     const pool = makePool();
     const repo = new ManagedRunRepository(pool as any);
     const results = [{ videoId: "v1", videoTitle: "T", channelName: "C", shorts: [], errors: [], processingTimeMs: 100 }];
@@ -40,7 +40,8 @@ describe("ManagedRunRepository", () => {
 
     const [sql, params] = pool.query.mock.calls[0];
     expect(sql).toContain("UPDATE pipeline_runs");
-    expect(params[1]).toBe("completed");
+    // No shorts and no errors: nothing was delivered, so the run is "generated", never "completed/published".
+    expect(params[1]).toBe("generated");
     expect(JSON.parse(params[2])).toHaveLength(1);
   });
 

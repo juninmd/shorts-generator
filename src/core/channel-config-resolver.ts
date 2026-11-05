@@ -1,6 +1,7 @@
 import type { PipelineConfig } from "../types.js";
 import type { PublishingAccount, ResolvedChannelRun, ResolvedPublishingCredentials } from "./channel-domain.js";
 import { loadConfig } from "./config.js";
+import { DEFAULT_EDITORIAL_PROFILE } from "./editorial/editorial-profile.js";
 import { logger } from "./logger.js";
 import type { ChannelBundleRepository } from "./channel-bundle-repository.js";
 import type { SecretStore } from "./secret-store.js";
@@ -93,6 +94,8 @@ export function buildManagedPipelineConfig(
       accountId: resolvedRun.publishingAccount.accountId,
       focusLabels: resolvedRun.focuses.map((focus) => focus.label),
       logoPath: resolvedRun.channel.logoPath,
+      editorial: resolvedRun.profile.editorial ?? DEFAULT_EDITORIAL_PROFILE,
+      channelType: resolvedRun.channel.channelType,
     },
   });
 }

@@ -1,3 +1,5 @@
+import type { EditorialProfile } from "./editorial/editorial-profile.js";
+
 export type PublishingProvider = "youtube" | "telegram" | "openrouter";
 
 export type FocusKey =
@@ -78,6 +80,8 @@ export interface ChannelProfile {
   readonly sortByViews: boolean;
   readonly aiProvider: "openrouter" | "ollama";
   readonly aiModel: string;
+  /** Absent on legacy callers; the repository always fills it with explicit defaults. */
+  readonly editorial?: EditorialProfile;
 }
 
 export interface ResolvedPublishingCredentials {

@@ -45,9 +45,9 @@ describe("quiz.domain", () => {
     it("accepts a multi-question quiz with metadata fields", () => {
       const parsed = quizSchema.parse({
         tema: "futebol",
-        titulo_youtube: "Só 1% acerta a 3ª de futebol",
-        hook: "SÓ 1% ACERTA A 3ª",
-        perguntas: [validQuestion, validQuestion, validQuestion],
+        titulo_youtube: "Você acerta a 3ª de futebol?",
+        hook: "VOCÊ ACERTA A 3ª?",
+        perguntas: [validQuestion, { ...validQuestion, pergunta: "Quem fez o gol de 1970?" }, { ...validQuestion, pergunta: "Onde foi a Copa de 2014?" }],
         fato_curioso: "O Brasil é o único pentacampeão.",
         tags: ["futebol", "copa"],
       });

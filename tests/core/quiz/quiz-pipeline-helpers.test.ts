@@ -41,7 +41,9 @@ describe("quiz-pipeline helpers", () => {
     const meta = buildYoutubeMetadata(quiz, "@akitemquiz");
     expect(meta.title).toBe(quiz.titulo_youtube);
     expect(meta.description).toContain("#shorts #quiz #historiadobrasil");
-    expect(meta.description).toContain("Comenta quantas você acertou");
+    // Our own copy must not add unmeasured claims (the fixture hook is the LLM's text).
+    expect(meta.description).not.toContain("quase ninguém acerta");
+    expect(meta.description).toContain(`em ${quiz.perguntas.length} perguntas`);
     expect(meta.tags).toEqual(["história", "brasil", "história do Brasil", "quiz"]);
   });
 

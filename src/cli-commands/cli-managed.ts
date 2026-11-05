@@ -1,88 +1,34 @@
-
 import { randomUUID } from "node:crypto";
-import { ChannelBundleRepository } from "../core/channel-bundle-repository.js";
-import { ChannelConfigResolver, buildManagedPipelineConfig } from "../core/channel-config-resolver.js";
 import { loadConfig } from "../core/config.js";
 import { loadControlPlaneConfig } from "../core/control-plane-config.js";
 import { getControlPlanePool } from "../core/control-plane-db.js";
-import { runPipeline } from "../core/pipeline.js";
-import { runQuizPipeline } from "../core/quiz/quiz-pipeline.js";
-import { ManagedRunRepository } from "../core/managed-run-repository.js";
-import { logger } from "../core/logger.js";
-import { createSecretStore } from "../core/secret-store.js";
 import { runControlPlaneMigrations } from "../core/control-plane-migrations.js";
-import type { PipelineConfig, PipelineProgress } from "../types.js";
+import { logger } from "../core/logger.js";
+import type { RunOptions } from "../core/runs/durable-run-repository.js";
+import { executeRun } from "../core/runs/run-executor.js";
+import type { PipelineConfig } from "../types.js";
+import { buildWorkerContext } from "../worker/worker-deps.js";
 
-export async function runManagedChannel(channelId: string, baseConfig = loadConfig(), overrides?: Partial<PipelineConfig>): Promise<void> {
-  const controlPlaneConfig = loadControlPlaneConfig();
-  const db = getControlPlanePool(controlPlaneConfig);
-  const repository = new ChannelBundleRepository(db as any);
-  const runRepository = new ManagedRunRepository(db as any);
-  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
+/** CLI runs use the same durable record/lease/checkpoint path as the worker, executed in-process. */
+async function runDurable(channelId: string, options: RunOptions): Promise<void> {
+  const cp = loadControlPlaneConfig();
+  const db = getControlPlanePool(cp);
+  await runControlPlaneMigrations(db);
+  const ctx = buildWorkerContext(db, cp);
   const runId = randomUUID();
-
-  await runControlPlaneMigrations(db as any);
-  const resolved = await resolver.resolveRunConfig(runId, channelId);
-  const config = buildManagedPipelineConfig(baseConfig, runId, resolved, overrides);
-
-  await runRepository.createRun(runId, channelId, "cli", {
-    channel: resolved.channel,
-    profile: resolved.profile,
-    focuses: resolved.focuses,
-    sources: resolved.sources,
-    youtubeAccount: {
-      provider: resolved.publishingAccount.provider,
-      accountId: resolved.publishingAccount.accountId,
-      accountIdentifier: resolved.publishingAccount.accountIdentifier,
-    },
-  });
-
-  try {
-    const results = await runPipeline(config, (progress) => {
-      void runRepository.updateProgress(runId, progress as PipelineProgress);
-      logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Pipeline status");
-    });
-    await runRepository.completeRun(runId, results);
-  } catch (error) {
-    await runRepository.failRun(runId, error);
-    throw error;
-  }
+  const bundle = await ctx.bundles.getBundle(channelId);
+  if (!bundle) throw new Error(`Channel ${channelId} not found`);
+  await ctx.runs.createQueuedRun(runId, channelId, "cli", { channel: bundle.channel, profile: bundle.profile }, options);
+  const outcome = await executeRun(runId, ctx.runDeps);
+  logger.info({ runId, channelId, outcome }, "Managed run finished");
+  if (outcome.status === "deferred") throw new Error(`Run ${runId} deferred: ${outcome.reason}`);
+  if (outcome.status === "failed") process.exitCode = 1;
 }
 
-export async function runQuizManagedChannel(channelId: string, quizTopic?: string, baseConfig = loadConfig()): Promise<void> {
-  const controlPlaneConfig = loadControlPlaneConfig();
-  const db = getControlPlanePool(controlPlaneConfig);
-  const repository = new ChannelBundleRepository(db as any);
-  const runRepository = new ManagedRunRepository(db as any);
-  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
-  const runId = randomUUID();
-
-  await runControlPlaneMigrations(db as any);
-  const resolved = await resolver.resolveRunConfig(runId, channelId);
-  const config = buildManagedPipelineConfig(baseConfig, runId, resolved);
-
-  await runRepository.createRun(runId, channelId, "cli", {
-    channel: resolved.channel,
-    profile: resolved.profile,
-    focuses: resolved.focuses,
-    sources: resolved.sources,
-    youtubeAccount: {
-      provider: resolved.publishingAccount.provider,
-      accountId: resolved.publishingAccount.accountId,
-      accountIdentifier: resolved.publishingAccount.accountIdentifier,
-    },
-  });
-
-  try {
-    const result = await runQuizPipeline(config, async (progress) => {
-      await runRepository.updateProgress(runId, progress as PipelineProgress).catch((e) => logger.warn({ e }, "progress update failed"));
-      logger.info({ stage: progress.stage, progress: `${Math.round(progress.progress)}%`, message: progress.message, runId, channelId }, "Quiz Pipeline status");
-    }, quizTopic);
-    await runRepository.completeRun(runId, []);
-    logger.info({ runId, channelId, success: result.success, youtubeUrl: result.youtubeUrl }, "✅ Quiz pipeline completed");
-  } catch (error) {
-    await runRepository.failRun(runId, error);
-    throw error;
-  }
+export async function runManagedChannel(channelId: string, _baseConfig = loadConfig(), overrides?: Partial<PipelineConfig>): Promise<void> {
+  await runDurable(channelId, { kind: "cuts", overrides: overrides as Record<string, unknown> | undefined });
 }
 
+export async function runQuizManagedChannel(channelId: string, quizTopic?: string, _baseConfig = loadConfig()): Promise<void> {
+  await runDurable(channelId, { kind: "quiz", quizTopic });
+}

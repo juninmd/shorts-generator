@@ -4,15 +4,24 @@ import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 import type { ChannelBundleRepository } from "../core/channel-bundle-repository.js";
 import type { ChannelConfigResolver } from "../core/channel-config-resolver.js";
-import type { ManagedRunRepository } from "../core/managed-run-repository.js";
+import type { DurableRunRepository } from "../core/runs/durable-run-repository.js";
+import type { RunJobData } from "../core/runs/run-queue.js";
+import type { PublicationRepository } from "../core/publication/publication-repository.js";
+import type { PublicationJobData } from "../core/publication/publication-queue.js";
+import type { QuizBankRepository } from "../core/quiz/quiz-bank-repository.js";
+import type { SqlClient } from "../core/control-plane-db.js";
 import type { createSecretStore } from "../core/secret-store.js";
-import type { runQuizPipeline } from "../core/quiz/quiz-pipeline.js";
-import type { PipelineResult } from "../types.js";
 import type { publishingAccountSchema } from "./admin-schemas.js";
 
 export interface AdminDeps {
   repository: ChannelBundleRepository;
-  runRepository: ManagedRunRepository;
+  runRepository: DurableRunRepository;
+  publications?: PublicationRepository;
+  quizBank?: QuizBankRepository;
+  decisionsDb?: SqlClient;
+  enqueueRun?: (data: RunJobData, attempt?: string | number) => Promise<void>;
+  enqueuePublication?: (data: PublicationJobData) => Promise<void>;
+  enqueueRegeneration?: (data: PublicationJobData) => Promise<void>;
   secretStore: ReturnType<typeof createSecretStore>;
   resolver: ChannelConfigResolver;
 }
@@ -70,44 +79,7 @@ export function buildPublishingAccount(
   };
 }
 
-export function mapQuizResultToPipeline(
-  result: Awaited<ReturnType<typeof runQuizPipeline>>,
-  channelName: string,
-): PipelineResult {
-  return {
-    videoId: "quiz",
-    videoTitle: result.quiz.tema,
-    channelName,
-    shorts: [
-      {
-        id: "quiz-short",
-        clip: {
-          id: "quiz-short",
-          videoId: "quiz",
-          title: result.quiz.tema,
-          description: result.quiz.fato_curioso,
-          startTime: 0,
-          endTime: 0,
-          duration: 0,
-          viralScore: 100,
-          reason: "Quiz",
-          transcript: [],
-          words: [],
-          hashtags: ["quiz"],
-        },
-        outputPath: result.outputPath,
-        subtitlePath: "",
-        originalVideoUrl: "",
-        originalVideoTitle: "",
-        channelName,
-        status: "completed",
-        createdAt: new Date().toISOString(),
-      },
-    ],
-    errors: [],
-    processingTimeMs: 0,
-  };
-}
+export { mapQuizResultToPipeline } from "../core/runs/quiz-result.js";
 
 export function isCutsOnlyMode(): boolean {
   return process.env.CHANNEL_FLOW_MODE === "cuts";

@@ -5,14 +5,15 @@ import { logger } from "./logger.js";
 import { uploadToYouTube } from "./youtube.service.js";
 import { notifyYoutubeRateLimited, notifyYoutubeResumed } from "./telegram.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync, getDailyUploadCountAsync } from "./state.js";
-import { getRedisClient, getQueue, QUEUE_NAME, type YoutubeUploadJobData } from "./queue-client.js";
+import { getRedisClient, getQueue, hydrateJobConfig, QUEUE_NAME, type YoutubeUploadJobData } from "./queue-client.js";
 
 const DAILY_LIMIT_DEFER_MS = 60 * 60 * 1000;
 const pausedKey = (channelId: string) => `youtube:paused:${channelId}`;
 
 export function createWorker(): Worker<YoutubeUploadJobData> {
   return new Worker<YoutubeUploadJobData>(QUEUE_NAME, async (job) => {
-    const { videoPath, title, description, tags, channelId, config } = job.data;
+    const { videoPath, title, description, tags, channelId } = job.data;
+    const config = hydrateJobConfig(job.data.config);
     logger.info({ jobId: job.id, videoPath, channelId }, "🔄 Processando upload enfileirado...");
     if (!fs.existsSync(videoPath)) {
       logger.error({ jobId: job.id, videoPath }, "❌ Vídeo não encontrado. Abortando.");

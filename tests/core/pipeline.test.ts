@@ -383,7 +383,9 @@ vi.mocked(youtubeService.addCommentToVideo).mockResolvedValue(undefined);
 
     expect(result.videoId).toBe("vid1");
     expect(result.shorts).toHaveLength(1);
-    expect(result.shorts[0]).toEqual(mockGeneratedShort);
+    expect(result.shorts[0]).toMatchObject(mockGeneratedShort);
+    // The original-video interval is kept apart from section-relative clip times.
+    expect(result.shorts[0]!.source).toEqual({ videoId: "vid1", startTime: expect.any(Number), endTime: expect.any(Number) });
     expect(result.errors).toHaveLength(0);
 
     expect(youtube.downloadAudioOnly).toHaveBeenCalled();
