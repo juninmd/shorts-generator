@@ -80,6 +80,9 @@ vi.mock("../../src/core/youtube.service.js", () => ({
   generateYoutubeMetadata: vi.fn().mockResolvedValue({ title: "Clip de Teste", description: "Desc" }),
   uploadToYouTube: vi.fn().mockResolvedValue(null),
   uploadFullVideoToYouTube: vi.fn().mockResolvedValue(null),
+  buildEngagementComment: vi.fn().mockReturnValue("comment"),
+  addCommentToVideo: vi.fn().mockResolvedValue(undefined),
+  extractYouTubeVideoId: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("../../src/core/state.js", () => ({
@@ -236,6 +239,7 @@ describe("Pipeline smoke test", () => {
         "Desc",
         config,
         undefined,
+        "comment",
       );
       expect(incrementDailyUploadCountAsync).not.toHaveBeenCalled();
       expect(sendToTelegram).toHaveBeenCalledTimes(1);

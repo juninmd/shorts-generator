@@ -68,7 +68,8 @@ describe('youtube-info', () => {
           upload_date: '20230101',
           thumbnail: 'http://thumb',
           live_status: 'none',
-          categories: ['Cat']
+          categories: ['Cat'],
+          description: 'Sobre fé'
         }),
         stderr: ''
       } as any);
@@ -76,6 +77,7 @@ describe('youtube-info', () => {
       const info = await getVideoInfo('https://youtube.com/watch?v=123');
       expect(info?.id).toBe('123');
       expect(info?.title).toBe('Title');
+      expect(info?.description).toBe('Sobre fé');
     });
 
     it('returns null on execYtDlp throw', async () => {
@@ -97,6 +99,7 @@ describe('youtube-info', () => {
       } as any);
       const info = await getVideoInfo('https://youtube.com/watch?v=123');
       expect(info?.duration).toBe(0);
+      expect(info?.description).toBeUndefined();
     });
 
     it('defaults fields if missing in JSON', async () => {

@@ -6,11 +6,10 @@ import {
   formatTranscriptForLLM,
 } from "./analyzer-chunks.js";
 import { analyzeSinglePass } from "./analyzer-generation.js";
-import { reviewClipCandidates } from "./clip-quality.js";
-import { processClips } from "./clip-processing.js";
-import { repairClipCandidates } from "./clip-repair.js";
+import { selectClips } from "./analyzer-select.js";
 import { discoverTextualCandidates } from "./candidate-discovery.js";
 import { buildEnergyHint, type AudioSignals } from "./audio-signals.js";
+import { buildReplayHint } from "./replay-heatmap.js";
 import { getMaxCuts, getMinCuts } from "./config.js";
 import { logger } from "./logger.js";
 
@@ -23,10 +22,9 @@ export async function analyzeTranscript(
   baseConfig: PipelineConfig,
   signals?: AudioSignals | null,
 ): Promise<ShortClip[]> {
-  const config = signals
-    ? { ...baseConfig, analysisHints: buildEnergyHint(signals) || baseConfig.analysisHints }
-    : baseConfig;
-  const minCuts = config.maxClipsOverride ?? getMinCuts(transcript.duration);
+  const hints = signals ? buildEnergyHint(signals) + buildReplayHint(signals.heatmap) : "";
+  const config = hints ? { ...baseConfig, analysisHints: hints } : baseConfig;
+  const minCuts = config.maxClipsOverride ?? (process.env.CLIP_QUOTA === "strict" ? getMinCuts(transcript.duration) : 0);
   const maxCuts = config.maxClipsOverride ?? getMaxCuts(transcript.duration);
   const candidateMax = Math.min(12, maxCuts * 2);
   const formatted = formatTranscriptForLLM(transcript.segments);
@@ -61,24 +59,14 @@ export async function analyzeTranscript(
     config.maxShortDuration,
     candidateMax,
   );
-  const modelCandidates = deduplicateClips(rawClips).slice(0, candidateMax);
-  const textualCandidates = deduplicateClips(discovered).slice(0, candidateMax);
-  const candidates = [...modelCandidates, ...textualCandidates];
-  const reviewed = deduplicateClips(
-    await reviewClipCandidates(candidates, transcript, config),
+  const candidates = [
+    ...deduplicateClips(rawClips).slice(0, candidateMax),
+    ...deduplicateClips(discovered).slice(0, candidateMax),
+  ];
+  const { clips: result, trail } = await selectClips(
+    candidates, transcript, config, maxCuts, candidateMax, signals,
   );
-  let result = processClips(reviewed, transcript, config, maxCuts, signals ?? undefined);
-  if (result.length === 0 && candidates.length > 0) {
-    const repaired = deduplicateClips(
-      await repairClipCandidates(candidates, transcript, config, candidateMax),
-    );
-    const reviewedRepairs = await reviewClipCandidates(repaired, transcript, config);
-    result = processClips(reviewedRepairs, transcript, config, maxCuts, signals ?? undefined);
-    logger.info(
-      { repairedCandidates: repaired.length, approvedRepairs: result.length },
-      "Clip repair pass completed",
-    );
-  }
+  config.audit?.checkpoint("selection", { ...trail, rawCandidates: rawClips.length, discovered: discovered.length });
   logger.info(
     {
       videoId: transcript.videoId,

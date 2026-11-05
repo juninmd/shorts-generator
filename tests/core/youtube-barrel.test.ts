@@ -1,15 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import * as youtube from '../../src/core/youtube.js';
+import { verifyYoutubeAccess, getVideoInfo, getVideoFileSize } from '../../src/core/youtube-info.js';
+import { getChannelVideos, getTopChannelVideos } from '../../src/core/youtube-channel.js';
+import { downloadAudioOnly } from '../../src/core/youtube-download.js';
+import { downloadVideoSection, cleanupVideo } from '../../src/core/youtube-section.js';
 
-describe('youtube barrel module mapping test', () => {
-    it('forces import to be analyzed', () => {
-        expect(youtube.verifyYoutubeAccess).toBeDefined();
-        expect(youtube.getVideoInfo).toBeDefined();
-        expect(youtube.getVideoFileSize).toBeDefined();
-        expect(youtube.getChannelVideos).toBeDefined();
-        expect(youtube.getTopChannelVideos).toBeDefined();
-        expect(youtube.downloadAudioOnly).toBeDefined();
-        expect(youtube.downloadVideoSection).toBeDefined();
-        expect(youtube.cleanupVideo).toBeDefined();
+describe('youtube barrel', () => {
+    it('strict exports', () => {
+        expect(youtube.verifyYoutubeAccess).toBe(verifyYoutubeAccess);
+        expect(youtube.getVideoInfo).toBe(getVideoInfo);
+        expect(youtube.getVideoFileSize).toBe(getVideoFileSize);
+        expect(youtube.getChannelVideos).toBe(getChannelVideos);
+        expect(youtube.getTopChannelVideos).toBe(getTopChannelVideos);
+        expect(youtube.downloadAudioOnly).toBe(downloadAudioOnly);
+        expect(youtube.downloadVideoSection).toBe(downloadVideoSection);
+        expect(youtube.cleanupVideo).toBe(cleanupVideo);
+
+        expect(youtube.default.verifyYoutubeAccess).toBe(verifyYoutubeAccess);
     });
 });

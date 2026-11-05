@@ -1,19 +1,20 @@
-
 import type { PipelineConfig, PipelineProgress, PipelineResult, VideoInfo, GeneratedShort } from "../types.js";
 import { downloadAudioOnly, downloadVideoSection, cleanupVideo } from "./youtube.js";
 import { transcribeVideo } from "./transcriber.js";
-import { analyzeTranscript } from "./analyzer.js";
-import { computeAudioSignals } from "./audio-signals.js";
+import { analyzeVideo, withTranscriptCache } from "./video-analysis.js";
 import { applyBrandVocabulary, loadBrandVocabulary } from "./brand-vocabulary.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
 import { sendToTelegram, sendSummary } from "./telegram.js";
-import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment } from "./youtube.service.js";
+import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment, extractYouTubeVideoId } from "./youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
 import { enqueueYoutubeUpload } from "./queue.js";
 import { enqueueSocialPosts } from "./social-queue.js";
+import { throwIfAborted } from "./run-context.js";
 import pLimit from "p-limit";
+
 export type ProgressCallback = (progress: PipelineProgress) => void;
+
 export async function processVideo(
   video: VideoInfo,
   config: PipelineConfig,
@@ -31,7 +32,7 @@ export async function processVideo(
     const downloadedAudio = await downloadAudioOnly(video, config);
     let lastProgress = 20;
     emitProgress("transcribing", "Transcrevendo com Whisper...", lastProgress);
-    const transcript = applyBrandVocabulary(await transcribeVideo(downloadedAudio, {
+    const transcript = applyBrandVocabulary(await withTranscriptCache(video.id, config, () => transcribeVideo(downloadedAudio, {
       ...config,
       onProgress: (percent: number) => {
         const mapped = 20 + (percent / 100) * 20;
@@ -40,12 +41,9 @@ export async function processVideo(
           emitProgress("transcribing", `Transcrevendo com Whisper... (${percent.toFixed(1)}%)`, mapped);
         }
       },
-    }), loadBrandVocabulary());
+    })), loadBrandVocabulary());
     emitProgress("analyzing", "Analisando momentos virais...", 40);
-    let clips = await analyzeTranscript(transcript, video.title, video.channelName, config, await computeAudioSignals(downloadedAudio.filePath));
-    if (maxShorts !== undefined && maxShorts > 0 && clips.length > maxShorts) {
-      clips = clips.slice(0, maxShorts);
-    }
+    const clips = await analyzeVideo(video, transcript, downloadedAudio.filePath, config, maxShorts);
     if (clips.length === 0) {
       logger.warn({ videoId: video.id, videoTitle: video.title }, "Transcrição analisada, mas a IA considerou que não há trechos interessantes ou relevantes. Pulando vídeo.");
       if (!config.keepTempFiles) cleanupVideo(video.id, config);
@@ -53,20 +51,19 @@ export async function processVideo(
     }
     const totalClips = clips.length;
     emitProgress("cutting", `Gerando ${totalClips} shorts...`, 50, 0, totalClips);
-    const limit = pLimit(2);
+    const limit = pLimit(Math.max(1, config.clipConcurrency ?? 2));
     await Promise.all(
       clips.map((clip, index) =>
         limit(async () => {
           try {
+            throwIfAborted();
             emitProgress("cutting", `Baixando trecho ${index + 1}/${totalClips}`, 50 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
             const sectionPath = await downloadVideoSection(video, clip.startTime, clip.endTime, config);
             const downloadedSection = { ...downloadedAudio, filePath: sectionPath };
             const sectionStartTime = await getFileStartTime(sectionPath);
             const expectedSectionStart = Math.max(0, clip.startTime - 2);
             const timestampsPreserved = Math.abs(sectionStartTime - expectedSectionStart) <= 10;
-            const seekOffset = timestampsPreserved
-              ? clip.startTime
-              : Math.max(0, clip.startTime - expectedSectionStart);
+            const seekOffset = timestampsPreserved ? clip.startTime : Math.max(0, clip.startTime - expectedSectionStart);
             const sectionClip = { ...clip, startTime: seekOffset, endTime: seekOffset + clip.duration };
             logger.debug({ clipId: clip.id, sectionStartTime, expectedSectionStart, timestampsPreserved, seekOffset }, "Section seek offset");
             emitProgress("cutting", `Processando corte ${index + 1}/${totalClips}`, 65 + ((index + 1) / totalClips) * 15, index + 1, totalClips);
@@ -90,6 +87,7 @@ export async function processVideo(
         if (youtubeEnabled) {
           sendStage = "youtube_upload_or_queue";
           const channelId = config.managedRun?.channelId || "global";
+          const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels, youtubeMeta.pinnedComment);
           let uploaded = false;
           if (deferUploads) {
             logger.info({ clipId: short.id, channelId }, "🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora");
@@ -102,15 +100,12 @@ export async function processVideo(
             } else {
               uploaded = true;
               await incrementDailyUploadCountAsync(channelId);
-              const videoId = youtubeUrl.split("/").pop();
-              if (videoId) {
-                const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels);
-                await addCommentToVideo(videoId, commentText, config);
-              }
+              const videoId = extractYouTubeVideoId(youtubeUrl);
+              if (videoId) await addCommentToVideo(videoId, commentText, config);
             }
           }
           if (!uploaded) {
-            await enqueueYoutubeUpload(short, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags);
+            await enqueueYoutubeUpload(short, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags, commentText);
           }
         }
         await enqueueSocialPosts(short, youtubeMeta, config).catch((err) => logger.warn({ clipId: short.id, error: err instanceof Error ? err.message : String(err) }, "Falha ao enfileirar posts sociais"));
@@ -119,16 +114,7 @@ export async function processVideo(
         const msgId = await sendToTelegram(short, config, youtubeUrl, pendingRateLimit);
         if (msgId) short.telegramMessageId = msgId;
       } catch (err) {
-        logger.error(
-          {
-            error: err,
-            clipId: short.id,
-            stage: sendStage,
-            runId: config.managedRun?.runId,
-            channelId: config.managedRun?.channelId,
-          },
-          "Failed to send generated short",
-        );
+        logger.error({ error: err, clipId: short.id, stage: sendStage, runId: config.managedRun?.runId, channelId: config.managedRun?.channelId }, "Failed to send generated short");
         errors.push(`Erro no envio de ${short.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }

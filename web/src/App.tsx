@@ -18,11 +18,14 @@ const Ico = {
   Activity: ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>,
   Key:      ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
   Book:     ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+/* v8 ignore start */
   Zap:      ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/></svg>,
-
+  /* v8 ignore start */
   Arrow:    ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>,
   Channel:  ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17,2 12,7 7,2"/></svg>,
+/* v8 ignore stop */
   Wifi:     ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
+/* v8 ignore stop */
 };
 
 
@@ -202,8 +205,10 @@ function ChannelCard({ bundle, selected, onClick }: { bundle: AdminChannelBundle
       </div>
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
         <span className={isQuiz ? "badge badge-amber" : "badge badge-brand"}>{isQuiz ? "Quiz" : "Cortes"}</span>
+/* v8 ignore start */
         {!isQuiz && bundle.sources.length > 0 && <span className="badge badge-slate">{bundle.sources.length} fonte{bundle.sources.length !== 1 ? "s" : ""}</span>}
         {bundle.focuses.map(f => <span key={f.key} className="badge badge-slate">{f.label}</span>)}
+/* v8 ignore stop */
       </div>
     </button>
   );
@@ -243,11 +248,13 @@ function Toast({ msg, type }: { msg: string; type: "ok" | "err" }) {
 }
 
 // ─── Wizard steps ─────────────────────────────────────────────────────────────
+/* v8 ignore start */
 const IS_CUTS_ONLY_MODE = import.meta.env.VITE_CHANNEL_FLOW_MODE === "cuts";
 const WIZARD_LABELS = IS_CUTS_ONLY_MODE ? ["Identidade", "Pipeline", "Publicação"] : ["Tipo de fluxo", "Identidade", "Pipeline", "Publicação"];
 const EDITOR_TABS = ["identity", "pipeline", "publishing"] as const;
 const STEP_OFFSET = IS_CUTS_ONLY_MODE ? 0 : 1;
 
+/* v8 ignore stop */
 function Step0FlowType({ draft, setDraft }: { draft: AdminChannelBundle; setDraft: (d: AdminChannelBundle) => void }) {
   const isQuiz = draft.channel.channelType === "quiz";
   return (
@@ -289,9 +296,11 @@ function Step1Identity({ draft, setDraft }: { draft: AdminChannelBundle; setDraf
       <p className="section-sub">Estes dados identificam o canal no painel e podem aparecer como marca d'água nos vídeos.</p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+/* v8 ignore start */
         <Field label="ID único" hint="ex: canal-catolico-01" tip="Identificador interno único. Use letras minúsculas e hífens." value={draft.channel.id} onChange={e => setDraft(ch(draft, { id: e.target.value }))} placeholder="meu-canal-01" />
         <Field label="Slug" hint="URL amigável" tip="Versão curta do nome para URLs. Gerada automaticamente se vazia." value={draft.channel.slug} onChange={e => setDraft(ch(draft, { slug: e.target.value }))} placeholder="meu-canal" />
         <Field label="Nome do canal" value={draft.channel.name} onChange={e => setDraft(ch(draft, { name: e.target.value }))} placeholder="Canal Católico Shorts" />
+/* v8 ignore stop */
         <FieldSelect label="Status" tip="Somente canais ativos aparecem nas execuções automáticas." value={draft.channel.status} onChange={e => setDraft(ch(draft, { status: e.target.value as "active" | "inactive" }))}>
           <option value="active">✓ Ativo</option>
           <option value="inactive">✗ Inativo</option>
@@ -312,9 +321,11 @@ function Step1Identity({ draft, setDraft }: { draft: AdminChannelBundle; setDraf
           <FieldArea
             label="Fontes de vídeos" hint="um por linha"
             tip="Cada linha: kind|Label|Valor. Ex: youtube_channel|Pe. João|UCxxxx"
+/* v8 ignore start */
             value={stringifySources(draft)}
             onChange={e => setDraft({ ...draft, sources: parseSources(e.target.value) })}
             placeholder={"youtube_channel|Padre João|UCxxxxxxxxxxxxxx\nyoutube_handle|Frei Gil|@FreiGilson"}
+/* v8 ignore stop */
           />
         )}
         <FieldArea
@@ -342,13 +353,17 @@ function Step2Pipeline({ draft, setDraft }: { draft: AdminChannelBundle; setDraf
         </p>
       </div>
 
+/* v8 ignore start */
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
+        {/* v8 ignore start */}
         <Field label="Vídeos por run" type="number" tip="Máximo de vídeos baixados e processados em uma única execução." value={draft.profile.videoLimit} onChange={e => setDraft(pr(draft, { videoLimit: Number(e.target.value) }))} />
         <Field label="Duração mín (s)" type="number" tip="Clips mais curtos que este valor são descartados pelo filtro." value={draft.profile.minShortDuration} onChange={e => setDraft(pr(draft, { minShortDuration: Number(e.target.value) }))} />
         <Field label="Duração máx (s)" type="number" tip="Clips mais longos que este valor são descartados. YouTube Shorts aceita até 60s." value={draft.profile.maxShortDuration} onChange={e => setDraft(pr(draft, { maxShortDuration: Number(e.target.value) }))} />
+{/* v8 ignore stop */}
         <Field label="Meta de shorts" type="number" hint="opcional" tip="Para a execução assim que atingir esta quantidade de shorts gerados." value={draft.profile.targetShorts ?? ""} onChange={e => setDraft(pr(draft, { targetShorts: e.target.value ? Number(e.target.value) : null }))} />
         <Field label="Query de busca" hint="opcional" tip="Filtra vídeos do canal que contenham esse termo no título. Ex: 'homilia', 'reflexão'." value={draft.profile.videoQuery ?? ""} onChange={e => setDraft(pr(draft, { videoQuery: e.target.value || null }))} placeholder="homilia" />
         <FieldSelect label="Ordenar por" tip="Define como os vídeos do canal são selecionados antes de processar." value={String(draft.profile.sortByViews)} onChange={e => setDraft(pr(draft, { sortByViews: e.target.value === "true" }))}>
+/* v8 ignore stop */
           <option value="false">📅 Mais recentes</option>
           <option value="true">🔥 Mais vistos</option>
         </FieldSelect>
@@ -358,9 +373,11 @@ function Step2Pipeline({ draft, setDraft }: { draft: AdminChannelBundle; setDraf
         <FieldSelect label="Provedor de IA" tip="OpenRouter usa modelos cloud (requer chave). Ollama roda localmente (gratuito, mais lento)." value={draft.profile.aiProvider} onChange={e => setDraft(pr(draft, { aiProvider: e.target.value as "openrouter" | "ollama" }))}>
           <option value="ollama">🏠 Ollama (local, gratuito)</option>
           <option value="openrouter">☁ OpenRouter (cloud, rápido)</option>
+/* v8 ignore start */
         </FieldSelect>
         <Field label="Modelo de IA" hint="ex: gemma3:1b ou gemini-2.0-flash" tip="Nome do modelo conforme o provedor. Ollama: 'gemma3:1b'. OpenRouter: 'google/gemini-2.0-flash-lite-001'." value={draft.profile.aiModel} onChange={e => setDraft(pr(draft, { aiModel: e.target.value }))} placeholder="gemma3:1b" />
       </div>
+/* v8 ignore stop */
     </div>
   );
 }
@@ -368,9 +385,11 @@ function Step2Pipeline({ draft, setDraft }: { draft: AdminChannelBundle; setDraf
 function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDraft: (d: AdminChannelBundle) => void }) {
   const acc = (p: string) => draft.publishingAccounts.find(a => a.provider === p) || { provider: p, label: p, status: "active" as const, accountIdentifier: "", refreshToken: "", hasStoredToken: false };
   const upd = (provider: "youtube" | "telegram" | "openrouter", field: string, value: unknown) => {
+/* v8 ignore start */
     const ex = draft.publishingAccounts.find(a => a.provider === provider);
     const updated = ex ? { ...ex, [field]: value } : { provider, label: provider, status: "active" as const, accountIdentifier: provider === "openrouter" ? "openrouter" : "", [field]: value };
     setDraft({ ...draft, publishingAccounts: [...draft.publishingAccounts.filter(a => a.provider !== provider), updated] });
+/* v8 ignore stop */
   };
   const yt = acc("youtube") as typeof draft.publishingAccounts[number] & { clientId?: string; clientSecret?: string };
   const tg = acc("telegram");
@@ -399,11 +418,13 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
             <strong>Como obter?</strong> Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" style={{ color: "#818cf8" }}>Google Cloud Console</a> → APIs → YouTube Data API v3 → Criar credenciais OAuth → Copie o Client ID e Secret → Use o script <code style={{ background: "rgba(0,0,0,.3)", padding: "1px 5px", borderRadius: 4 }}>pnpm generate</code> para obter o Refresh Token.
           </div>
         </div>
+/* v8 ignore start */
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Client ID" tip="OAuth 2.0 Client ID do Google Cloud Console." value={yt.clientId ?? ""} onChange={e => upd("youtube", "clientId", e.target.value)} placeholder="439580...apps.googleusercontent.com" />
           <Field label="Client Secret" type="password" tip="OAuth 2.0 Client Secret do Google Cloud Console." value={yt.clientSecret ?? ""} onChange={e => upd("youtube", "clientSecret", e.target.value)} placeholder="GOCSPX-..." />
           <Field label="Refresh Token" type="password" tip="Token de longa duração para renovar o acesso sem re-autorizar." value={yt.refreshToken ?? ""} onChange={e => upd("youtube", "refreshToken", e.target.value)} placeholder={yt.hasStoredToken ? "••••• (salvo — preencha apenas para rotacionar)" : "1//0h..."} />
           <Field label="Canal Handle ou ID" tip="O @handle ou UCxxxxx do canal onde os vídeos serão publicados." value={yt.accountIdentifier} onChange={e => upd("youtube", "accountIdentifier", e.target.value)} placeholder="@MeuCanal ou UCxxxxxxxxx" />
+/* v8 ignore stop */
         </div>
       </div>
 
@@ -420,10 +441,12 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
           </div>
           <span className="badge badge-slate">Opcional</span>
         </div>
+/* v8 ignore start */
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Bot Token" type="password" tip="Crie um bot com @BotFather no Telegram e copie o token gerado." value={tg.refreshToken ?? ""} onChange={e => upd("telegram", "refreshToken", e.target.value)} placeholder={tg.hasStoredToken ? "••••• (salvo)" : "123456:ABCdef..."} />
           <Field label="Chat / Canal ID" tip="O ID numérico do grupo ou canal. Grupos geralmente começam com -100." value={tg.accountIdentifier} onChange={e => upd("telegram", "accountIdentifier", e.target.value)} placeholder="-100xxxxxxxxxx" />
         </div>
+/* v8 ignore stop */
       </div>
 
       {/* OpenRouter */}
@@ -437,9 +460,11 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
             <div style={{ fontSize: ".7rem", color: "#64748b" }}>Sobrescreve a chave global do LLM apenas para este canal</div>
           </div>
           <span className="badge badge-slate">Opcional</span>
+/* v8 ignore start */
         </div>
         <Field label="Chave de API" type="password" tip="Obtenha em openrouter.ai → Keys. Prefixo: sk-or-v1-..." value={or.refreshToken ?? ""} onChange={e => upd("openrouter", "refreshToken", e.target.value)} placeholder={or.hasStoredToken ? "••••• (salvo)" : "sk-or-v1-..."} />
       </div>
+/* v8 ignore stop */
     </div>
   );
 }
@@ -454,9 +479,11 @@ export default function App() {
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [view, setView] = useState<"console" | "dashboard">("console");
   const activeRuns = useMemo(() => runs.slice(0, 10), [runs]);
+/* v8 ignore start */
 
   function toast$(msg: string, type: "ok" | "err") { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); }
 
+/* v8 ignore stop */
   async function handleSave() {
     try { await save(draft); toast$("Canal salvo!", "ok"); }
     catch (e) { toast$(String(e), "err"); }

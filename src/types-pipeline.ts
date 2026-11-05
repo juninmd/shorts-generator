@@ -14,6 +14,12 @@ export interface PipelineConfig {
   minShortsPerVideo: number;
   /** Hard cap on clips per video — overrides duration-based calculation (useful for testing) */
   maxClipsOverride?: number;
+  /**
+   * How many clips of the same video are rendered at once (default: 2).
+   * Each render runs an ffmpeg process (~1 GB peak), so set it to 1 on
+   * memory-constrained pods to avoid OOMKilled.
+   */
+  clipConcurrency?: number;
   outputDir: string;
   tempDir: string;
   /** Model identifier served by LiteLLM (e.g. "cloud/auto") */
@@ -61,6 +67,10 @@ export interface PipelineConfig {
   clipPrompt?: string;
   /** Extra analysis guidance (audio energy peaks) injected into the LLM prompt */
   analysisHints?: string;
+  /** Short brief about the source video (title, description, upload date) given to the reviewer */
+  sourceBrief?: string;
+  /** Receives per-stage records for the run's edit_audit.json */
+  audit?: { checkpoint(stage: string, detail: unknown): void };
   youtubeAuth?: YouTubeAuthConfig;
   managedRun?: ManagedRunContext;
   /** Public base URL of this server — used to build the YouTube OAuth callback URL */

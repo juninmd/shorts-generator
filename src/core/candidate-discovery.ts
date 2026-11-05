@@ -1,15 +1,6 @@
 import type { Transcript, TranscriptSegment } from "../types.js";
 import type { ClipItem } from "./analyzer-schema.js";
-
-const IMPACT_PATTERNS = [
-  /\bverdade\b/, /\blibert/, /\bsalv/, /\bcur/, /\bn[aã]o posso\b/,
-  /\bser[aá] que\b/, /\bego\b/, /\bporta estreita\b/, /\bcruz\b/,
-  /\bmedo\b/, /\b[oó]di/, /\bperseg/, /\bnunca\b/, /\bsegredo\b/,
-];
-const WEAK_STARTS = [
-  /\bol[aá]\b/, /\bhoje eu (quero|vou) falar\b/, /\bessa palavra [eé] importante\b/,
-  /\bem nome do pai\b/, /\bescreva .*coment[aá]rio/, /\bcompartilh/, /\binscrev/,
-];
+import { activeImpactProfile } from "./impact-profile.js";
 
 function normalize(text: string): string {
   return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -17,12 +8,13 @@ function normalize(text: string): string {
 
 export function scoreTextualImpact(text: string): number {
   const normalized = normalize(text);
-  const impact = IMPACT_PATTERNS.reduce(
+  const { impact: impactPatterns, weakStarts } = activeImpactProfile();
+  const impact = impactPatterns.reduce(
     (score, pattern) => score + (pattern.test(normalized) ? 2 : 0),
     0,
   );
   const rhetoric = (text.includes("?") ? 2 : 0) + (text.includes("!") ? 1 : 0);
-  const penalty = WEAK_STARTS.some((pattern) => pattern.test(normalized)) ? 6 : 0;
+  const penalty = weakStarts.some((pattern) => pattern.test(normalized)) ? 6 : 0;
   return impact + rhetoric - penalty;
 }
 

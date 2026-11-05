@@ -1,3 +1,4 @@
+import { runWithSignal } from "../../src/core/run-context.js";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import { execFile } from "node:child_process";
@@ -100,6 +101,18 @@ describe("ffmpeg runner", () => {
     await expect(runFfmpeg(["-i", "in.mp4"])).rejects.toThrow(
       "FFmpeg was killed after the 1800000ms timeout",
     );
+  });
+
+  it("hands the running job's abort signal to ffmpeg and reports a cancellation", async () => {
+    const controller = new AbortController();
+    vi.mocked(execFile).mockImplementation((...args: any[]) => {
+      args.at(-1)(Object.assign(new Error("aborted"), { name: "AbortError" }));
+      return {} as any;
+    });
+
+    await expect(runWithSignal(controller.signal, () => runFfmpeg(["-i", "in.mp4"])))
+      .rejects.toThrow("FFmpeg cancelado com o job");
+    expect(vi.mocked(execFile).mock.calls[0]![2]).toMatchObject({ signal: controller.signal });
   });
 
   it("falls back to the error message when stderr is empty", async () => {

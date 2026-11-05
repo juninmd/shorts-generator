@@ -8,6 +8,7 @@ import * as secretStore from "../../src/core/secret-store.js";
 const mockGetToken = vi.fn().mockResolvedValue({ tokens: {} });
 const mockSetCredentials = vi.fn();
 const mockList = vi.fn().mockResolvedValue({ data: { items: [] } });
+const mockSendMessage = vi.fn().mockResolvedValue({});
 
 vi.mock("googleapis", () => {
   return {
@@ -31,7 +32,7 @@ vi.mock("grammy", () => {
     return {
         Bot: class {
             api = {
-                sendMessage: vi.fn().mockResolvedValue({}),
+                sendMessage: vi.fn().mockImplementation((...args) => mockSendMessage(...args)),
             };
         }
     }
@@ -90,6 +91,8 @@ describe("youtube-oauth-routes", () => {
     mockList.mockResolvedValue({ data: { items: [] } });
     mockGetBundle.mockReset();
     mockSaveBundle.mockReset();
+    mockSendMessage.mockReset();
+    mockSendMessage.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -136,6 +139,53 @@ describe("youtube-oauth-routes", () => {
 
     it("handles 500 on exchange error", async () => {
       mockGetToken.mockRejectedValueOnce(new Error("exchange failed"));
+
+      const res = await app.request("/api/youtube/callback?code=123&state=channel1");
+      expect(res.status).toBe(500);
+      expect(await res.text()).toBe("Failed to exchange OAuth code");
+    });
+
+    it("returns 400 with retry guidance when the code was already used or expired", async () => {
+      mockGetToken.mockRejectedValueOnce(new Error("invalid_grant"));
+
+      const res = await app.request("/api/youtube/callback?code=123&state=channel1");
+      expect(res.status).toBe(400);
+      expect(await res.text()).toContain("expirado ou já usado");
+    });
+
+    it("still returns success when the Telegram notification fails", async () => {
+      mockGetToken.mockResolvedValueOnce({ tokens: { refresh_token: "refresh" } });
+      mockSendMessage.mockRejectedValueOnce(new Error("Call to 'sendMessage' failed! (401: Unauthorized)"));
+      mockGetBundle.mockResolvedValueOnce({
+        channel: { name: "Bundle Channel" },
+        publishingAccounts: [{ provider: "youtube", id: "existing1", encryptedToken: "old" }],
+      });
+      process.env.TELEGRAM_BOT_TOKEN = "global-token";
+      process.env.TELEGRAM_CHAT_ID = "global-chat";
+
+      const res = await app.request("/api/youtube/callback?code=123&state=channel1");
+      expect(res.status).toBe(200);
+      expect(await res.text()).toContain("Token atualizado com sucesso!");
+      expect(mockSaveBundle).toHaveBeenCalled();
+    });
+
+    it("still returns success when the Telegram notification throws a non-Error", async () => {
+      mockGetToken.mockResolvedValueOnce({ tokens: { refresh_token: "refresh" } });
+      mockSendMessage.mockRejectedValueOnce("network down");
+      mockGetBundle.mockResolvedValueOnce({
+        channel: { name: "Bundle Channel" },
+        publishingAccounts: [{ provider: "youtube", id: "existing1", encryptedToken: "old" }],
+      });
+      process.env.TELEGRAM_BOT_TOKEN = "global-token";
+      process.env.TELEGRAM_CHAT_ID = "global-chat";
+
+      const res = await app.request("/api/youtube/callback?code=123&state=channel1");
+      expect(res.status).toBe(200);
+      expect(await res.text()).toContain("Token atualizado com sucesso!");
+    });
+
+    it("returns 500 when the exchange fails with a non-Error", async () => {
+      mockGetToken.mockRejectedValueOnce("boom");
 
       const res = await app.request("/api/youtube/callback?code=123&state=channel1");
       expect(res.status).toBe(500);

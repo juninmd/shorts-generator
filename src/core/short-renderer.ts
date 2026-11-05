@@ -15,6 +15,7 @@ import { activeDeliverySpec } from "./delivery-spec.js";
 import { buildAudioEncoderArgs, buildVideoEncoderArgs } from "./encode-settings.js";
 import { resolveColourPlan } from "./colour-plan.js";
 import { runFfmpeg } from "./ffmpeg-run.js";
+import { applySpeed, videoSpeed } from "./video-speed.js";
 import { ffmpegBin, probeVideoStream } from "./ffmpeg-bin.js";
 
 export { buildSafeFramingFilter } from "./short-framing.js";
@@ -97,8 +98,10 @@ export async function renderShort(
     throw new Error(`FFmpeg failed to render short: ${(err as Error).message}`);
   }
   verifyOutput(outputPath);
+  const speed = videoSpeed();
+  if (speed > 1) await applySpeed(outputPath, speed, config, spec);
   await finishDelivery(outputPath, {
-    duration: clip.duration,
+    duration: clip.duration / speed,
     width: config.verticalWidth,
     height: config.verticalHeight,
   }, spec);

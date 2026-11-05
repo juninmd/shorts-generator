@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { wrapText, normalizePath, rel, esc, ensureFont, prepareBackground, prepareTextFiles } from '../../../src/core/quiz/quiz-assets.service.js';
+import { wrapText, normalizePath, rel, esc, ensureFont, resolveQuizFont, prepareTextFiles } from '../../../src/core/quiz/quiz-assets.service.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import child_process from 'node:child_process';
@@ -187,57 +187,18 @@ describe('quiz-assets.service', () => {
     });
   });
 
-  describe('prepareBackground', () => {
-    beforeEach(() => {
-        vi.resetAllMocks();
-    });
-
-    it('returns gradient video if render succeeds', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 0 } as any);
+  describe('resolveQuizFont', () => {
+    it('prefers the bundled Poppins ExtraBold', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.join('tmp', 'bg_gradient.mp4'));
-      expect(child_process.spawnSync).toHaveBeenCalledWith('ffmpeg', expect.any(Array));
+      expect(resolveQuizFont()).toBe('assets/fonts/Poppins-ExtraBold.ttf');
     });
 
-    it('returns existing fallback image if render fails', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 1, stderr: Buffer.from('err') } as any);
-      vi.mocked(fs.existsSync).mockImplementation((p) => {
-        const fp = typeof p === 'string' ? p : p.toString();
-        return fp.includes('neon.png');
-      });
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.resolve('assets/backgrounds/neon.png'));
-      expect(logger.warn).toHaveBeenCalledWith({ stderr: 'err' }, 'Fundo animado falhou — usando fallback estático');
-    });
-
-    it('generates fallback image if neon.png does not exist', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 1, stderr: Buffer.from('err') } as any);
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.join('tmp', 'bg_default.jpg'));
-      expect(child_process.spawnSync).toHaveBeenCalledWith('ffmpeg', expect.arrayContaining(['color=c=darkblue:s=1080x1920:d=1']));
-    });
-
-    it('uses generated fallback image if already exists', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 1, stderr: Buffer.from('err') } as any);
-      vi.mocked(fs.existsSync).mockImplementation((p) => p === path.join('tmp', 'bg_default.jpg'));
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.join('tmp', 'bg_default.jpg'));
-      expect(child_process.spawnSync).toHaveBeenCalledTimes(1); // Only for bg_gradient
-    });
-
-    it('handles undefined stderr', () => {
-      vi.mocked(child_process.spawnSync).mockReturnValue({ status: 1, stderr: undefined } as any);
-      vi.mocked(fs.existsSync).mockImplementation((p) => {
-        const fp = typeof p === 'string' ? p : p.toString();
-        return fp.includes('neon.png');
-      });
-      const bg = prepareBackground('tmp', 60);
-      expect(bg).toBe(path.resolve('assets/backgrounds/neon.png'));
-      expect(logger.warn).toHaveBeenCalledWith({ stderr: undefined }, 'Fundo animado falhou — usando fallback estático');
+    it('falls back to the platform Arial when the bundled font is missing', () => {
+      vi.mocked(fs.existsSync).mockImplementation((p) => String(p) !== 'assets/fonts/Poppins-ExtraBold.ttf');
+      expect(resolveQuizFont()).toBe('assets/fonts/arialbd.ttf');
     });
   });
+
 
   describe('prepareTextFiles', () => {
     beforeEach(() => {

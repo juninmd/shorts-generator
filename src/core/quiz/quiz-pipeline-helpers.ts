@@ -1,5 +1,7 @@
 import type { Quiz, QuizQuestion } from "./quiz.domain.js";
 
+export { buildQuizEngagementComment } from "../youtube-comment.service.js";
+
 export const buildRevealNarration = (question: QuizQuestion): string =>
   `Letra ${question.resposta_correta}: ${question.opcoes[question.resposta_correta]}!`;
 

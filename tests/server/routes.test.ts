@@ -49,6 +49,17 @@ describe("Server Routes", () => {
   });
 
   describe("POST /api/generate", () => {
+    it("rejects non-public URLs before creating a job", async () => {
+      const res = await app.request("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls: ["http://169.254.169.254/latest/meta-data"] }),
+      });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toContain("public");
+      expect(jobs.size).toBe(0);
+    });
+
     it("should return 400 for invalid request body", async () => {
       const res = await app.request("/api/generate", {
         method: "POST",
