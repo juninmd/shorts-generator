@@ -9,6 +9,7 @@ import { notifyYoutubePublished, notifyYoutubeRateLimited } from "./telegram.js"
 import { generateReauthUrl, sendReauthAlert } from "./youtube-reauth.js";
 import { getYouTubeAuth, validateYouTubeToken } from "./youtube-auth.service.js";
 import { sanitizeYoutubeTags } from "./youtube-tags.js";
+import { sanitizeYoutubeDescription, sanitizeYoutubeTitle } from "./youtube-snippet.js";
 
 interface YouTubeVideoInsertBody {
   snippet: { title: string; description: string; tags?: string[]; categoryId?: string };
@@ -93,7 +94,7 @@ export const uploadToYouTube = async (videoPath: string, title: string, descript
   if (!validation.valid) { logger.error({ error: validation.error }, "❌ Token do YouTube inválido - upload cancelado"); return null; }
 
   const uploadTags = sanitizeYoutubeTags(tags && tags.length > 0 ? tags : [...config.managedRun?.focusLabels ?? [], "shorts"]);
-  return performUpload(videoPath, { snippet: { title: title.slice(0, 100), description, tags: uploadTags, categoryId: "22" }, status: { privacyStatus: "public", selfDeclaredMadeForKids: false } }, auth, config, "🚀 Fazendo upload para o YouTube Shorts...", true);
+  return performUpload(videoPath, { snippet: { title: sanitizeYoutubeTitle(title), description: sanitizeYoutubeDescription(description), tags: uploadTags, categoryId: "22" }, status: { privacyStatus: "public", selfDeclaredMadeForKids: false } }, auth, config, "🚀 Fazendo upload para o YouTube Shorts...", true);
 };
 
 export const uploadFullVideoToYouTube = async (videoPath: string, title: string, description: string, config: PipelineConfig, tags?: string[]): Promise<string | null> => {
@@ -106,6 +107,6 @@ export const uploadFullVideoToYouTube = async (videoPath: string, title: string,
   if (!validation.valid) { logger.error({ error: validation.error }, "❌ Token do YouTube inválido - upload cancelado"); return null; }
 
   const uploadTags = sanitizeYoutubeTags(tags && tags.length > 0 ? tags : ["viral", "curiosidades", ...config.managedRun?.focusLabels ?? []]);
-  return performUpload(videoPath, { snippet: { title: title.slice(0, 100), description, tags: uploadTags, categoryId: "22" }, status: { privacyStatus: "public", selfDeclaredMadeForKids: false } }, auth, config, "🚀 Fazendo upload do vídeo COMPLETO para o YouTube...", false);
+  return performUpload(videoPath, { snippet: { title: sanitizeYoutubeTitle(title), description: sanitizeYoutubeDescription(description), tags: uploadTags, categoryId: "22" }, status: { privacyStatus: "public", selfDeclaredMadeForKids: false } }, auth, config, "🚀 Fazendo upload do vídeo COMPLETO para o YouTube...", false);
 };
 
