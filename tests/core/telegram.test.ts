@@ -348,6 +348,9 @@ describe("telegram", () => {
     await sendToTelegram(longShort, mockConfig);
     const caption = mockSendVideo.mock.calls[0][2].caption as string;
     expect(caption.length).toBeLessThanOrEqual(1000);
+    expect(caption).toMatch(/<i>a+…<\/i>\n/);
+    expect(caption).toContain('<a href="');
+    expect(caption.endsWith("</a>")).toBe(true);
   });
 
   it("should handle error in notifyYoutubeRateLimited gracefully", async () => {
