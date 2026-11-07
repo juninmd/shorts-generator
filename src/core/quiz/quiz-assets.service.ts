@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Quiz } from "./quiz.domain.js";
 import { logger } from "../logger.js";
 import { ffmpegBin } from "../ffmpeg-bin.js";
+export { ensureFont, resolveQuizFont, BUNDLED_FONT } from "./quiz-fonts.js";
 
 export const wrapText = (text: string, maxLen: number): string => {
   if (!text) return "";
@@ -29,8 +30,6 @@ export const wrapText = (text: string, maxLen: number): string => {
 export const normalizePath = (p: string) => path.resolve(p).replace(/\\/g, "/");
 export const rel = (p: string) => path.relative(process.cwd(), p).replace(/\\/g, "/");
 export const esc = (p: string) => rel(p).replace(/([:])/g, "\\$1");
-
-export { ensureFont, resolveQuizFont, BUNDLED_FONT } from "./quiz-fonts.js";
 
 export interface QuestionTextFiles {
   qTxtPath: string;

@@ -12,10 +12,19 @@ import {
   buildVideoEncoderArgs,
 } from "../encode-settings.js";
 import { DELIVERY_SPECS } from "../delivery-spec.js";
+
 const SPEC = DELIVERY_SPECS.custom!;
+
 function escapeFilterPath(filePath: string): string {
   return filePath.replace(/\\/g, "/").replace(/:/g, "\\:");
 }
+
+/**
+ * Render one chapter: still image + narration audio, with a slow Ken Burns
+ * zoom so a static comic page doesn't feel dead on video. Chapter clips are an
+ * intermediate, so they are encoded at delivery quality to limit generation loss
+ * when the final burn re-encodes them.
+ */
 export async function renderChapterClip(
   chapter: NarratedChapter,
   outputPath: string,
@@ -89,6 +98,13 @@ export async function concatChapterClips(
   ];
   await runFfmpeg(args, { outputPath, maxBufferBytes: 16 * 1024 * 1024 });
 }
+
+/**
+ * Burn ASS subtitles onto the concatenated video. With a music track, the
+ * narration is mixed over it and the music ducks whenever the narrator speaks.
+ * The final re-encode is a delivery encode: a chapter that kept HDR tags is
+ * tone-mapped (or kept HDR) here, never relabelled as BT.709.
+ */
 export async function burnSubtitles(
   inputPath: string,
   subtitlePath: string,
