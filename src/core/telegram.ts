@@ -7,7 +7,11 @@ import { logger } from "./logger.js";
 import { withRetry } from "./retry-backoff.js";
 import { buildPresenterTitle } from "./presenter-title.js";
 import { getBot, sendTelegramMessage } from "./telegram-bot.js";
-import { escapeHtml, formatScoreBreakdown } from "./telegram-formatting.js";
+import { escapeHtml, escapeHtmlWithin, formatScoreBreakdown } from "./telegram-formatting.js";
+
+/** Telegram allows 1024 caption characters; 1000 leaves room for entity counting. */
+const CAPTION_MAX_CHARS = 1000;
+const REASON_SLOT = "\u0000reason\u0000";
 
 export * from "./telegram-alerts.js";
 
@@ -91,16 +95,19 @@ export async function sendToTelegram(
     `📈 <b>Viral Score:</b> ${scoreText}`,
     clip.scoreBreakdown ? `📊 ${formatScoreBreakdown(clip.scoreBreakdown)}` : "",
     ``,
-    `💡 <b>Motivo:</b> <i>${escapeHtml(clip.reason || clip.description)}</i>`,
+    REASON_SLOT,
     ``,
     youtubeUrl ? `🔴 <b>Link:</b> <a href="${youtubeUrl}">${youtubeUrl}</a>` : "",
     pendingRateLimit ? `⏳ <b>Pendente:</b> Postagem adiada devido a limites de upload do YT` : "",
     `🔗 <b>Original:</b> <a href="${short.originalVideoUrl}">Ver completo</a>`,
   ].filter(line => line !== "").join("\n");
+  // Only the LLM's reason is unbounded: it is shortened so the HTML is never cut inside a tag.
+  const reasonPrefix = "💡 <b>Motivo:</b> <i>";
+  const budget = CAPTION_MAX_CHARS - (caption.length - REASON_SLOT.length) - reasonPrefix.length - "</i>".length;
+  const finalCaption = caption.replace(REASON_SLOT, `${reasonPrefix}${escapeHtmlWithin(clip.reason || clip.description, budget)}</i>`);
 
   try {
     const fileSize = fs.statSync(short.outputPath).size;
-    const finalCaption = caption.slice(0, 1000);
 
     if (fileSize > 50 * 1024 * 1024) {
       logger.warn({ clipId: short.id, sizeMB: (fileSize / 1024 / 1024).toFixed(1) }, "Video too large for Telegram, sending link instead");

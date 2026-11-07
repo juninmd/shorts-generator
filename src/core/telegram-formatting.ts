@@ -10,6 +10,22 @@ export function escapeHtml(text: string): string {
 }
 
 /**
+ * Escapes `text` for Telegram HTML within `maxLength` escaped characters,
+ * cut on a whole character (never inside an entity or an emoji) with "…".
+ */
+export function escapeHtmlWithin(text: string, maxLength: number): string {
+  const full = escapeHtml(text);
+  if (full.length <= maxLength) return full;
+  let out = "";
+  for (const char of text) {
+    const piece = escapeHtml(char);
+    if (out.length + piece.length + 1 > maxLength) break;
+    out += piece;
+  }
+  return maxLength > 0 ? `${out.trimEnd()}…` : "";
+}
+
+/**
  * Build a short, human-friendly preview of the tags applied to a YouTube upload.
  * Caps the number shown so the Telegram message stays readable, and signals how
  * many extra tags were sent beyond the preview.
