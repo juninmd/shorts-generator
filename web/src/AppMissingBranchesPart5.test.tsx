@@ -1,6 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "./App";
-import { Ico } from "./App";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import * as UseAdminConsoleModule from "./hooks/useAdminConsole";
 
@@ -15,8 +14,8 @@ describe("AppMissingBranchesPart5", () => {
       setAdminToken: vi.fn(),
       channels: [
         {
-          channel: { id: "c1", name: "C1", slug: "c1", channelType: "quiz" },
-          profile: { targetShorts: 1 },
+          channel: { id: "c1", name: "C1", slug: "c1", channelType: "quiz", logoPath: null, watermarkText: "" },
+          profile: { videoLimit: 1, minShortDuration: 15, maxShortDuration: 60, targetShorts: 1 },
           focuses: [],
           sources: [],
           publishingAccounts: [
@@ -52,6 +51,10 @@ describe("AppMissingBranchesPart5", () => {
     const slug = screen.getAllByPlaceholderText(/meu-canal/i).find(el => (el as HTMLInputElement).placeholder === 'meu-canal');
     if(slug) fireEvent.change(slug, { target: { value: 'slug2' } });
 
+    const logoInput = screen.getAllByRole("textbox").find(el => (el as HTMLInputElement).placeholder === '/app/assets/logo.png');
+    if (logoInput) fireEvent.change(logoInput, { target: { value: '/new/logo.png' } });
+    if (logoInput) fireEvent.change(logoInput, { target: { value: '' } });
+
     const pipeTab = screen.getAllByRole("button").find(t => t.textContent?.includes("Pipeline"));
     if (pipeTab) fireEvent.click(pipeTab);
 
@@ -59,13 +62,21 @@ describe("AppMissingBranchesPart5", () => {
     const videoLimit = screen.queryByDisplayValue(/10/i);
     if(videoLimit) fireEvent.change(videoLimit, { target: { value: '2' } });
 
+    const minDur = screen.getAllByRole("spinbutton").find(el => (el as HTMLInputElement).value === '15');
+    if (minDur) fireEvent.change(minDur, { target: { value: '20' } });
+
+    const maxDur = screen.getAllByRole("spinbutton").find(el => (el as HTMLInputElement).value === '60');
+    if (maxDur) fireEvent.change(maxDur, { target: { value: '50' } });
+
     const allInputsNum = document.querySelectorAll('input[type="number"]');
 
     const meta = Array.from(allInputsNum).find(i => (i.parentElement?.previousElementSibling as any)?.textContent === 'Meta de shorts');
     if(meta) fireEvent.change(meta, { target: { value: '' } });
+    if(meta) fireEvent.change(meta, { target: { value: '2' } });
 
     const q = screen.queryByPlaceholderText(/homilia/i);
     if(q) fireEvent.change(q, { target: { value: 'q2' } });
+    if(q) fireEvent.change(q, { target: { value: '' } });
 
     const sort = screen.getAllByDisplayValue(/Mais recentes/i).find(s => s.tagName === 'SELECT');
     if (sort) fireEvent.change(sort, { target: { value: 'true' } });
