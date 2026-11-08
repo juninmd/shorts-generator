@@ -48,8 +48,8 @@ jobs:
       - name: Install yt-dlp
         run: |
           base=https://github.com/yt-dlp/yt-dlp/releases/latest/download
-          curl -fsSL "$base/yt-dlp" -o yt-dlp
-          curl -fsSL "$base/SHA2-256SUMS" | grep ' yt-dlp$' | sha256sum -c -
+          curl -fsSL --retry 5 --retry-connrefused "$base/yt-dlp" -o yt-dlp
+          curl -fsSL --retry 5 --retry-connrefused "$base/SHA2-256SUMS" | grep ' yt-dlp$' | sha256sum -c -
           sudo install -m 755 yt-dlp /usr/local/bin/yt-dlp
 
       - name: Install ffmpeg
