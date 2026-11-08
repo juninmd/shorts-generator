@@ -9,7 +9,9 @@ import os
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets",
                      "models", "face_detection_yunet_2023mar.onnx")
-MIN_RELATIVE_WIDTH = 0.45
+# Smallest face kept, as a share of the frame width. Tiny detections (logos,
+# texture) are far below this; a corner speaker in a wide shot is not.
+MIN_FRAME_WIDTH_SHARE = 0.035
 SCORE = 0.5
 
 
@@ -61,5 +63,4 @@ class FaceFinder:
             found = [(tuple(int(v) for v in b), _mouth_from_box(b)) for b in boxes]
         if not found:
             return []
-        widest = max(face[2] for face, _ in found)
-        return [f for f in found if f[0][2] >= MIN_RELATIVE_WIDTH * widest]
+        return [f for f in found if f[0][2] >= MIN_FRAME_WIDTH_SHARE * width]
