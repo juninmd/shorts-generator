@@ -1,1 +1,0 @@
-{"verdict":"APPROVE","summary":"Mudança segura: adiciona flags --retry 5 --retry-connrefused ao curl ao baixar yt-dlp e seu checksum no CI. Melhora resiliência contra falhas transitórias de rede. Sem bugs, falhas de segurança ou regressões.","findings":[]}
