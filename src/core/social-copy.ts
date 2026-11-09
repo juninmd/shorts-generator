@@ -30,12 +30,20 @@ const LIMITS: Record<PlatformName, Limits> = {
   pinterest: { caption: 500, title: 100, description: 500, hashtags: 5 },
 };
 
-/** Cuts at a word boundary and ends with an ellipsis when it had to shorten. */
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/**
+ * Cuts at a word boundary and ends with an ellipsis when it had to shorten.
+ * Counts and cuts by grapheme (what Bluesky/Threads count), so an emoji —
+ * even a ZWJ sequence like 👨‍👩‍👧 — is never split into an invalid half.
+ */
 export function truncateText(text: string, max: number): string {
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max - 1);
-  const lastSpace = /\s/.test(text[max - 1]!) ? cut.length : cut.lastIndexOf(" ");
-  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+  const chars = Array.from(graphemes.segment(text), (part) => part.segment);
+  if (chars.length <= max) return text;
+  const cut = chars.slice(0, max - 1).join("");
+  const lastSpace = /\s/.test(chars[max - 1]!) ? cut.length : cut.lastIndexOf(" ");
+  const keepWords = lastSpace >= 0 && Array.from(graphemes.segment(cut.slice(0, lastSpace))).length > max * 0.6;
+  return `${(keepWords ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
 }
 
 const toHashtag = (tag: string): string => `#${tag.replace(/^#/, "").replace(/[^\p{L}\p{N}_]/gu, "")}`;
