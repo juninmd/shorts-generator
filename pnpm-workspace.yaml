@@ -3,6 +3,17 @@ packages:
 
 minimumReleaseAge: 1440
 
+minimumReleaseAgeExclude:
+  - "ai"
+  - "@ai-sdk/*"
+  - "dotenv"
+  - "vite"
+  - "@vitejs/*"
+  - "@rolldown/*"
+  - "rolldown"
+  - "google-auth-library"
+  - "google-logging-utils"
+
 onlyBuiltDependencies:
   - esbuild
   - better-sqlite3
