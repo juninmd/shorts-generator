@@ -41,3 +41,7 @@ scripts/print-redis-queue.ts
 
 # Python wheels must never be committed (install via requirements instead)
 *.whl
+
+# Segredos e artefatos locais: nunca versionar (smoke test de seguranca)
+.env.*
+!.env.example
