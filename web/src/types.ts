@@ -161,3 +161,59 @@ export interface DashboardData {
   generatedAt: string;
   channels: ChannelDashboard[];
 }
+
+export interface ManualCut {
+  id: string;
+  channelId: string;
+  sourceVideoId: string;
+  title: string;
+  startSec: number;
+  endSec: number;
+  createdAt: string;
+}
+
+export interface ManualCutInput {
+  sourceVideoId: string;
+  title: string;
+  startSec: number;
+  endSec: number;
+}
+
+export interface ScheduleEntry {
+  id: string;
+  channelId: string;
+  cutId: string | null;
+  kind: "programmed" | "manual";
+  runAt: string;
+  createdAt: string;
+}
+
+export interface ScheduleEntryInput {
+  runAt: string;
+  kind: "programmed" | "manual";
+  cutId?: string | null;
+}
+
+export interface SuggestedCut {
+  startSec: number;
+  endSec: number;
+  title: string;
+  viralScore: number;
+  reason: string;
+  scoreBreakdown: { hook: number; flow: number; engagement: number; trend: number };
+}
+
+export interface SourceAnalysisPayload {
+  energy: number[];
+  replay: number[];
+  speakerLanes: { startSec: number; endSec: number; speaker: number }[];
+  suggestions: SuggestedCut[];
+}
+
+export interface SourceAnalysis {
+  channelId: string;
+  sourceVideoId: string;
+  durationSec: number;
+  analysis: SourceAnalysisPayload;
+  createdAt: string;
+}

@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { DashboardPage } from "./components/DashboardPage";
+import { ToolPage } from "./features/ToolPage";
 import { parseSources, stringifySources, parseFocuses, stringifyFocuses, dotClass, badgeClass, timeAgo } from "./utils";
 import { useAdminConsole } from "./hooks/useAdminConsole";
 import type { AdminChannelBundle } from "./types";
@@ -477,7 +478,7 @@ export default function App() {
   const [wizardStep, setWizardStep] = useState(0);
   const [isNew, setIsNew] = useState(true);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
-  const [view, setView] = useState<"console" | "dashboard">("console");
+  const [view, setView] = useState<"console" | "dashboard" | "tools">("console");
   const activeRuns = useMemo(() => runs.slice(0, 10), [runs]);
 /* v8 ignore start */
 
@@ -512,6 +513,17 @@ export default function App() {
     return <DashboardPage adminToken={adminToken} onBack={() => setView("console")} />;
   }
 
+  if (view === "tools") {
+    return (
+      <ToolPage
+        adminToken={adminToken}
+        channelId={selectedChannelId || draft.channel.id}
+        onBack={() => setView("console")}
+        onSaveChannel={async (bundle) => { await save(bundle); }}
+      />
+    );
+  }
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#050914" }}>
 
@@ -530,6 +542,10 @@ export default function App() {
 
         <button className="btn btn-ghost" style={{ justifyContent: "flex-start", gap: 8, marginBottom: 8 }} onClick={() => setView("dashboard")}>
           <Ico.Activity /> Dashboard de métricas
+        </button>
+
+        <button className="btn btn-ghost" style={{ justifyContent: "flex-start", gap: 8, marginBottom: 8 }} onClick={() => setView("tools")}>
+          <Ico.Scissors /> Cortes, agenda e Radar
         </button>
 
         {/* Token */}

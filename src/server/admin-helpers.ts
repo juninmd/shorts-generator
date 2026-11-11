@@ -5,6 +5,9 @@ import type { z } from "zod";
 import type { ChannelBundleRepository } from "../core/channel-bundle-repository.js";
 import type { ChannelConfigResolver } from "../core/channel-config-resolver.js";
 import type { ManagedRunRepository } from "../core/managed-run-repository.js";
+import type { ChannelCutsRepository } from "../core/channel-cuts-repository.js";
+import type { ChannelScheduleRepository } from "../core/channel-schedule-repository.js";
+import type { ChannelAnalysisRepository } from "../core/channel-analysis-repository.js";
 import type { createSecretStore } from "../core/secret-store.js";
 import type { runQuizPipeline } from "../core/quiz/quiz-pipeline.js";
 import type { PipelineResult } from "../types.js";
@@ -15,6 +18,9 @@ export interface AdminDeps {
   runRepository: ManagedRunRepository;
   secretStore: ReturnType<typeof createSecretStore>;
   resolver: ChannelConfigResolver;
+  cutsRepository: ChannelCutsRepository;
+  scheduleRepository: ChannelScheduleRepository;
+  analysisRepository: ChannelAnalysisRepository;
 }
 
 type Bundle = Awaited<ReturnType<ChannelBundleRepository["getBundle"]>> extends infer T
