@@ -1,4 +1,4 @@
-import type { AdminChannelBundle, AdminRunRecord, DashboardData } from "./types";
+import type { AdminChannelBundle, AdminRunRecord, DashboardData, ManualCut, ManualCutInput, ScheduleEntry, ScheduleEntryInput, SourceAnalysis } from "./types";
 
 const API_BASE = "/api/admin";
 
@@ -85,4 +85,33 @@ async function request<T>(adminToken: string, path: string, init?: RequestInit):
     return undefined as T;
   }
   return res.json() as Promise<T>;
+}
+
+// ─── Cortes manuais, agenda e análise do vídeo-fonte ──────────────────────────
+export async function listCuts(adminToken: string, channelId: string): Promise<ManualCut[]> {
+  return request<ManualCut[]>(adminToken, `/channels/${channelId}/cuts`);
+}
+
+export async function createCut(adminToken: string, channelId: string, input: ManualCutInput): Promise<{ id: string }> {
+  return request<{ id: string }>(adminToken, `/channels/${channelId}/cuts`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function deleteCut(adminToken: string, channelId: string, cutId: string): Promise<void> {
+  await request(adminToken, `/channels/${channelId}/cuts/${cutId}`, { method: "DELETE" });
+}
+
+export async function listSchedule(adminToken: string, channelId: string): Promise<ScheduleEntry[]> {
+  return request<ScheduleEntry[]>(adminToken, `/channels/${channelId}/schedule`);
+}
+
+export async function createScheduleEntry(adminToken: string, channelId: string, input: ScheduleEntryInput): Promise<{ id: string }> {
+  return request<{ id: string }>(adminToken, `/channels/${channelId}/schedule`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function deleteScheduleEntry(adminToken: string, channelId: string, entryId: string): Promise<void> {
+  await request(adminToken, `/channels/${channelId}/schedule/${entryId}`, { method: "DELETE" });
+}
+
+export async function getSourceAnalysis(adminToken: string, channelId: string, sourceVideoId: string): Promise<SourceAnalysis> {
+  return request<SourceAnalysis>(adminToken, `/channels/${channelId}/analysis/${sourceVideoId}`);
 }
