@@ -34,7 +34,7 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.90",
     "@hono/node-server": "^2.1.6",
-    "ai": "^7.0.169",
+    "ai": "^7.0.170",
     "better-sqlite3": "^13.0.3",
     "bullmq": "^6.7.3",
     "dotenv": "^18.0.10",
