@@ -1,0 +1,17 @@
+{
+  "bookTitle": "Ada Lovelace (protótipo)",
+  "chapters": [
+    { "title": "1815: nasce em Londres", "narration": "Ada Byron nasceu em Londres, filha do poeta Lord Byron.", "durationSec": 4 },
+    { "title": "Uma mente de matemática", "narration": "Desde cedo, Ada mostrou talento para números e máquinas.", "durationSec": 4 },
+    { "title": "O primeiro algoritmo", "narration": "Em 1843, ela escreveu o que é considerado o primeiro programa de computador.", "durationSec": 5 }
+  ],
+  "stats": {
+    "title": "Ano a ano na história da computação",
+    "bars": [
+      { "label": "1801", "value": 12 },
+      { "label": "1843", "value": 48 },
+      { "label": "1936", "value": 71 },
+      { "label": "1945", "value": 100 }
+    ]
+  }
+}
