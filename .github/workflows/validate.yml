@@ -58,5 +58,8 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Test (with coverage gate)
+      - name: Test (Bun runtime)
+        run: bun run test
+
+      - name: Test (with coverage gate, Node runtime)
         run: bun run test:coverage

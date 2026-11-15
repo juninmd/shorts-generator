@@ -18,7 +18,7 @@
     "generate:quiz": "bun src/cli.ts generate:quiz",
     "generate:metrics-digest": "bun src/cli.ts generate:metrics-digest",
     "generate:url": "bun src/cli.ts generate --url",
-    "test": "vitest run",
+    "test": "bun --bun run vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:youtube-health": "vitest run tests/core/youtube.health.ts",
@@ -59,5 +59,10 @@
   "license": "MIT",
   "workspaces": [
     "web"
+  ],
+  "trustedDependencies": [
+    "better-sqlite3",
+    "esbuild",
+    "msgpackr-extract"
   ]
 }

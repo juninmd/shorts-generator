@@ -27,7 +27,7 @@ WORKDIR /app
 # Copy package files and install Node dependencies
 COPY bun.lock package.json bunfig.toml ./
 COPY web/package.json ./web/package.json
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --production
 
 # Copy Python dependency files and install them using uv
 COPY tests/yt-download/pyproject.toml ./tests/yt-download/
