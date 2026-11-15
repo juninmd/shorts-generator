@@ -9,9 +9,14 @@ const out = path.join(root, 'out');
 const browserExecutable = process.env.BROWSER_EXECUTABLE || '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome';
 const serveUrl = await bundle({entryPoint: path.join(root, 'src/index.ts')});
 
-for (const id of ['NarratedShort', 'StatsReveal']) {
+const only = process.argv.slice(2);
+for (const id of (only.length ? only : ['NarratedShort', 'StatsReveal', 'MoodGallery'])) {
   const composition = await selectComposition({serveUrl, id, browserExecutable, chromiumOptions: {args: ['--no-sandbox']}});
-  await renderStill({composition, serveUrl, output: path.join(out, `${id}-frame.png`), frame: 60, browserExecutable, chromiumOptions: {args: ['--no-sandbox']}});
+  const frames = id === 'NarratedShort' ? [60, 175, 300] : [60];
+  for (const frame of frames) {
+    const output = path.join(out, frames.length > 1 ? `${id}-frame-${frame}.png` : `${id}-frame.png`);
+    await renderStill({composition, serveUrl, output, frame, browserExecutable, chromiumOptions: {args: ['--no-sandbox']}, logLevel: 'error'});
+  }
   await renderMedia({
     composition, serveUrl, codec: 'h264', outputLocation: path.join(out, `${id}.mp4`),
     browserExecutable, chromiumOptions: {args: ['--no-sandbox']}, logLevel: 'error',

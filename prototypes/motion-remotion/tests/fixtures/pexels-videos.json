@@ -1,0 +1,6 @@
+{"videos":[
+ {"id":101,"url":"https://www.pexels.com/video/london-street-at-night-101/","duration":12,"user":{"name":"Ana"},
+  "video_files":[{"file_type":"video/mp4","width":720,"height":1280,"link":"https://cdn.example/101-720.mp4"},{"file_type":"video/mp4","width":1080,"height":1920,"link":"https://cdn.example/101-1080.mp4"}]},
+ {"id":102,"url":"https://www.pexels.com/video/big-ben-london-102/","duration":8,"user":{"name":"Bruno"},
+  "video_files":[{"file_type":"video/mp4","width":1080,"height":1920,"link":"https://cdn.example/102.mp4"}]}
+]}
