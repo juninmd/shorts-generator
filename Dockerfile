@@ -1,5 +1,5 @@
-# Node base image (kept in sync by Dependabot)
-FROM node:26-slim AS base
+# Bun base image (kept in sync by Dependabot)
+FROM oven/bun:1-debian AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,8 +16,7 @@ RUN echo "✓ ffmpeg" && ffmpeg -version | head -1 && \
     echo "✓ python3" && python3 --version && \
     echo "✓ curl" && curl --version | head -1
 
-# Install pnpm and uv
-RUN npm install -g pnpm@10.28.0
+# Install uv
 ADD https://astral.sh/uv/install.sh /install.sh
 RUN chmod +x /install.sh && sh /install.sh && rm /install.sh
 ENV PATH="/root/.local/bin:$PATH"
@@ -26,9 +25,9 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Copy package files and install Node dependencies
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml* .npmrc* ./
+COPY bun.lock package.json bunfig.toml ./
 COPY web/package.json ./web/package.json
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 # Copy Python dependency files and install them using uv
 COPY tests/yt-download/pyproject.toml ./tests/yt-download/
@@ -46,4 +45,4 @@ COPY . .
 RUN mkdir -p output
 
 # Default command (can be overridden by CronJobs)
-CMD ["pnpm", "start"]
+CMD ["bun", "run", "start"]

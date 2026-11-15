@@ -78,15 +78,15 @@ async function main() {
     default: {
       console.log(`
 Usage:
-  pnpm generate [options]
-  pnpm generate:top [options]
-  pnpm generate:quiz [options]
-  pnpm generate:metrics-digest
-  pnpm generate:faceless --topic "assunto"
-  pnpm queue:process
-  pnpm queue:retry
-  pnpm server
-  pnpm interactive
+  bun run generate [options]
+  bun run generate:top [options]
+  bun run generate:quiz [options]
+  bun run generate:metrics-digest
+  bun run generate:faceless --topic "assunto"
+  bun run queue:process
+  bun run queue:retry
+  bun run server
+  bun run interactive
 
 Options (generate):
   --url            Comma-separated list of YouTube URLs to process
@@ -101,10 +101,10 @@ Options (generate:quiz):
   --prompt         The topic or specific question for the quiz (ex: "História do Brasil")
 
 Examples:
-  pnpm generate --url "https://youtube.com/watch?v=abc,https://youtube.com/watch?v=def"
-  pnpm generate --channel "@Handle1,@Handle2" --limit 1 --clips 1
-  pnpm generate:top --clips 3
-  pnpm generate:quiz --prompt "Curiosidades sobre o Espaço"
+  bun run generate --url "https://youtube.com/watch?v=abc,https://youtube.com/watch?v=def"
+  bun run generate --channel "@Handle1,@Handle2" --limit 1 --clips 1
+  bun run generate:top --clips 3
+  bun run generate:quiz --prompt "Curiosidades sobre o Espaço"
 
 Environment Variables:
   See .env.example for all configuration options.

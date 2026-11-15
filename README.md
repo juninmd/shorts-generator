@@ -4,7 +4,7 @@ Gerador automatizado de YouTube Shorts: baixa vídeos de canais/URLs, transcreve
 
 ## Requisitos
 
-- Node.js >= 20 (CI usa 24) e pnpm 12 (`packageManager` no `package.json`)
+- Bun >= 1.4 (`packageManager` no `package.json`)
 - FFmpeg e yt-dlp no `PATH`
 - Serviço faster-whisper acessível via HTTP (`WHISPER_BASE_URL`)
 - Gateway LiteLLM compatível com OpenAI (`LITELLM_BASE_URL`)
@@ -14,7 +14,7 @@ Gerador automatizado de YouTube Shorts: baixa vídeos de canais/URLs, transcreve
 ## Instalação
 
 ```bash
-pnpm install --frozen-lockfile
+bun install --frozen-lockfile
 cp .env.example .env   # preencha os valores localmente; nunca commite o .env
 ```
 
@@ -44,31 +44,31 @@ Todo short passa por um acabamento antes de ser publicado, inspirado no contrato
 ## Uso
 
 ```bash
-pnpm start                       # API Hono em http://localhost:3001 (health: /api/health)
-pnpm dev                         # API com hot reload
-pnpm web:dev                     # painel admin (Vite) em http://localhost:5173, proxy /api -> :3001
-pnpm bootstrap:control-plane     # cria canal inicial de dev, sem gravar token em texto puro
+bun run start                       # API Hono em http://localhost:3001 (health: /api/health)
+bun run dev                         # API com hot reload
+bun run web:dev                     # painel admin (Vite) em http://localhost:5173, proxy /api -> :3001
+bun run bootstrap:control-plane     # cria canal inicial de dev, sem gravar token em texto puro
 
-pnpm generate --url "<url1>,<url2>"                       # shorts a partir de URLs
-pnpm generate --channel "@Handle" --limit 1 --clips 1     # shorts a partir de canais
-pnpm generate:top --clips 3                               # vídeo mais popular ainda não postado
-pnpm generate:quiz --prompt "Curiosidades sobre o Espaço" # quiz
-pnpm generate:metrics-digest
-pnpm queue:process               # drena a fila BullMQ (CronJob no cluster)
-pnpm smoke-test                  # valida FFmpeg e o provedor de IA
-pnpm diagnose:cluster
+bun run generate --url "<url1>,<url2>"                       # shorts a partir de URLs
+bun run generate --channel "@Handle" --limit 1 --clips 1     # shorts a partir de canais
+bun run generate:top --clips 3                               # vídeo mais popular ainda não postado
+bun run generate:quiz --prompt "Curiosidades sobre o Espaço" # quiz
+bun run generate:metrics-digest
+bun run queue:process               # drena a fila BullMQ (CronJob no cluster)
+bun run smoke-test                  # valida FFmpeg e o provedor de IA
+bun run diagnose:cluster
 ```
 
-Depois do bootstrap, abra o painel, salve as credenciais de publicação do canal e dispare o run por lá. A saída de `pnpm cli --help` está em [`docs/terminal.txt`](docs/terminal.txt). Os modos narrados (`generate:comic|movie|series|bio|news|book --demo`, `generate:faceless --topic`) e o detalhamento da arquitetura estão em [`CLAUDE.md`](CLAUDE.md). Setup auxiliar: [`QUICKSTART.md`](QUICKSTART.md), [`WHISPER_SETUP.md`](WHISPER_SETUP.md), [`docs/`](docs/). Renovação de tokens do YouTube: [`AGENTS.md`](AGENTS.md).
+Depois do bootstrap, abra o painel, salve as credenciais de publicação do canal e dispare o run por lá. A saída de `bun run cli --help` está em [`docs/terminal.txt`](docs/terminal.txt). Os modos narrados (`generate:comic|movie|series|bio|news|book --demo`, `generate:faceless --topic`) e o detalhamento da arquitetura estão em [`CLAUDE.md`](CLAUDE.md). Setup auxiliar: [`QUICKSTART.md`](QUICKSTART.md), [`WHISPER_SETUP.md`](WHISPER_SETUP.md), [`docs/`](docs/). Renovação de tokens do YouTube: [`AGENTS.md`](AGENTS.md).
 
 ## Testes, lint e build
 
 ```bash
-pnpm test                   # vitest (run único)
-pnpm test:coverage          # exige 100% de lines/functions/branches/statements
-pnpm build                  # typecheck (tsc --noEmit); não há bundle
-pnpm --dir web run test     # testes do painel
-pnpm --dir web run build    # tsc -b + vite build
+bun run test                   # vitest (run único)
+bun run test:coverage          # exige 100% de lines/functions/branches/statements
+bun run build                  # typecheck (tsc --noEmit); não há bundle
+bun --cwd web run test     # testes do painel
+bun --cwd web run build    # tsc -b + vite build
 ```
 
 Não há linter dedicado; o gate estático é o typecheck TypeScript.
@@ -81,7 +81,7 @@ Screenshot pendente: o painel exige PostgreSQL, `ADMIN_API_TOKEN` e chave de cri
 
 | Workflow | O que checa |
 |---|---|
-| `validate.yml` | PRs e push em main/master: bloqueia arquivos de segredo versionados, gitleaks, `pnpm install --frozen-lockfile`, `pnpm run build` (typecheck) e `pnpm test:coverage` (100%) |
+| `validate.yml` | PRs e push em main/master: bloqueia arquivos de segredo versionados, gitleaks, `bun install --frozen-lockfile`, `bun run build` (typecheck) e `bun run test:coverage` (100%) |
 | `security.yml` | Gitleaks via workflow reutilizável (push em main/master e manual) |
 | `deploy.yml` | Build e push da imagem Docker no GHCR a cada push em main/master |
 | `update-yt-dlp.yml` | Diário: atualiza a versão do yt-dlp em `tests/yt-download` |

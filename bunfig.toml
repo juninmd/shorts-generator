@@ -1,0 +1,5 @@
+[install]
+# Supply-chain guard (replaces pnpm minimumReleaseAge=1440 minutes): seconds.
+minimumReleaseAge = 86400
+minimumReleaseAgeExcludes = ["ai", "@ai-sdk/*", "dotenv", "vite", "@vitejs/*", "@rolldown/*", "rolldown", "google-auth-library", "google-logging-utils"]
+linker = "hoisted"

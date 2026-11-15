@@ -36,14 +36,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@v7
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 24
-
-      - uses: pnpm/action-setup@v6
+          bun-version: 1.4.4
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Install yt-dlp
         run: |
@@ -58,7 +56,7 @@ jobs:
           sudo apt-get install -y ffmpeg
 
       - name: Build
-        run: pnpm run build
+        run: bun run build
 
       - name: Test (with coverage gate)
-        run: pnpm test:coverage
+        run: bun run test:coverage

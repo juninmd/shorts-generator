@@ -22,7 +22,7 @@ spec:
           - name: generate-quiz
             image: ghcr.io/juninmd/shorts-generator:latest
             imagePullPolicy: Always
-            command: ["pnpm", "run", "cli"]
+            command: ["bun", "run", "cli"]
             args: ["--", "generate:quiz", "--managed-channel", "akitemquiz"]
             volumeMounts:
             - name: output-storage

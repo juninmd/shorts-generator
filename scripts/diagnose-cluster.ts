@@ -63,7 +63,7 @@ test('Current working directory', () => {
 
 // Dependencies
 test('Node dependencies installed', () => {
-  return fs.existsSync('node_modules') ? true : 'Run: npm install or pnpm install';
+  return fs.existsSync('node_modules') ? true : 'Run: npm install or bun install';
 });
 
 test('Python3 available', () => {

@@ -6,31 +6,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Development
-pnpm dev                    # Start web server with hot reload
-pnpm cli generate           # Generate shorts from configured channels/URLs
-pnpm cli generate:top       # Send top unposted video (full) to Telegram/YouTube
-pnpm cli generate:comic --demo         # Narrate the built-in comic smoke-test book (Flashpoint)
-pnpm cli generate:movie --demo         # Narrate the built-in movie-recap smoke-test book (Shrek)
-pnpm cli generate:series --demo        # Narrate the built-in series-recap smoke-test book (The Flash 1x01)
-pnpm cli generate:bio --demo           # Narrate the built-in biography smoke-test book (Ada Lovelace)
-pnpm cli generate:news --demo          # Narrate the built-in news-digest smoke-test book (example headlines)
-pnpm cli generate:book --demo          # Narrate the built-in book-recap smoke-test book (Dom Casmurro)
-pnpm cli generate:<kind> --book <path.json>  # Any kind: narrate a custom ComicBook definition
-pnpm cli generate:faceless --topic "assunto"  # Faceless short: LLM script + Pexels stock footage + edge-tts narration
+bun run dev                    # Start web server with hot reload
+bun run cli generate           # Generate shorts from configured channels/URLs
+bun run cli generate:top       # Send top unposted video (full) to Telegram/YouTube
+bun run cli generate:comic --demo         # Narrate the built-in comic smoke-test book (Flashpoint)
+bun run cli generate:movie --demo         # Narrate the built-in movie-recap smoke-test book (Shrek)
+bun run cli generate:series --demo        # Narrate the built-in series-recap smoke-test book (The Flash 1x01)
+bun run cli generate:bio --demo           # Narrate the built-in biography smoke-test book (Ada Lovelace)
+bun run cli generate:news --demo          # Narrate the built-in news-digest smoke-test book (example headlines)
+bun run cli generate:book --demo          # Narrate the built-in book-recap smoke-test book (Dom Casmurro)
+bun run cli generate:<kind> --book <path.json>  # Any kind: narrate a custom ComicBook definition
+bun run cli generate:faceless --topic "assunto"  # Faceless short: LLM script + Pexels stock footage + edge-tts narration
 
 # Testing
-pnpm test                   # Run all tests once
-pnpm test:watch             # Watch mode
-pnpm test:coverage          # Generate coverage report
+bun run test                   # Run all tests once
+bun run test:watch             # Watch mode
+bun run test:coverage          # Generate coverage report
 
 # Type checking
-pnpm build                  # TypeScript type-check (no emit)
+bun run build                  # TypeScript type-check (no emit)
 
 # Web UI
-pnpm web:dev                # Start React frontend (Vite, separate from API)
+bun run web:dev                # Start React frontend (Vite, separate from API)
 ```
 
-To run a single test file: `pnpm vitest run tests/core/pipeline.test.ts`
+To run a single test file: `bun run test tests/core/pipeline.test.ts`
 
 ## Architecture
 
@@ -74,11 +74,11 @@ ComicBook { id, title, chapters: [{ id, title, imagePath, narrationText }] }
   → comic-pipeline.ts — orchestrates chapters, offsets word timestamps onto one timeline, reuses subtitle.ts's generateASSSubtitles via a synthetic ShortClip
 ```
 
-`pnpm cli generate:<kind> --demo` (kind: `comic`/`movie`/`series`/`bio`/`news`/`book`) runs the matching built-in smoke-test book from `demo-books.ts` (Flashpoint / Shrek / The Flash 1x01 / Ada Lovelace / example headlines / Dom Casmurro) — plain color chapter cards with an original synopsis, no copyrighted stills/panels/dialogue, since those must be supplied by the user for their own licensed use. `--book <path.json>` narrates a custom `ComicBook`. Requires `pip install edge-tts`; voice via `COMIC_TTS_VOICE` (default `pt-BR-AntonioNeural`), optional watermark via `COMIC_WATERMARK_TEXT` (unset by default).
+`bun run cli generate:<kind> --demo` (kind: `comic`/`movie`/`series`/`bio`/`news`/`book`) runs the matching built-in smoke-test book from `demo-books.ts` (Flashpoint / Shrek / The Flash 1x01 / Ada Lovelace / example headlines / Dom Casmurro) — plain color chapter cards with an original synopsis, no copyrighted stills/panels/dialogue, since those must be supplied by the user for their own licensed use. `--book <path.json>` narrates a custom `ComicBook`. Requires `pip install edge-tts`; voice via `COMIC_TTS_VOICE` (default `pt-BR-AntonioNeural`), optional watermark via `COMIC_WATERMARK_TEXT` (unset by default).
 
 ### Faceless Mode (`src/core/faceless/`)
 
-`pnpm cli generate:faceless --topic "..." [--lang pt-BR]` — topic in, finished short out, no source video. It reuses the narrated-story engine: `faceless-script.ts` (LLM → scenes of narration + English stock-footage keywords) → `stock-footage.ts` (Pexels portrait clips via `PEXELS_API_KEY`; plain color cards when there is no key/match) → `faceless-pipeline.ts` builds a `ComicBook` whose chapters carry `videoPath` and hands it to `runComicPipeline`. Narration is edge-tts; captions are karaoke; `BGM_FILE`/`BGM_DIR` adds ducked background music.
+`bun run cli generate:faceless --topic "..." [--lang pt-BR]` — topic in, finished short out, no source video. It reuses the narrated-story engine: `faceless-script.ts` (LLM → scenes of narration + English stock-footage keywords) → `stock-footage.ts` (Pexels portrait clips via `PEXELS_API_KEY`; plain color cards when there is no key/match) → `faceless-pipeline.ts` builds a `ComicBook` whose chapters carry `videoPath` and hands it to `runComicPipeline`. Narration is edge-tts; captions are karaoke; `BGM_FILE`/`BGM_DIR` adds ducked background music.
 
 ### Captions, Speaker Tracking, Ducking
 
@@ -107,7 +107,7 @@ ComicBook { id, title, chapters: [{ id, title, imagePath, narrationText }] }
 
 ### Quiz Pipeline (`src/core/quiz/`)
 
-`pnpm generate:quiz` (or `runQuizPipeline`) turns a topic into a vertical quiz video:
+`bun run generate:quiz` (or `runQuizPipeline`) turns a topic into a vertical quiz video:
 
 ```
 topic → quiz-content.service  → generate (zod: lengths, option distinctness, no repeated question)
@@ -173,8 +173,8 @@ The pipeline requires these system tools at runtime:
 
 - `.github/dependabot.yml` — weekly grouped minor/patch PRs for npm (root + `web`), GitHub Actions, Docker; daily for `tests/yt-download` (yt-dlp)
 - `dependabot-automerge.yml` — auto-merges non-major Dependabot PRs once required checks pass (requires branch protection with `validate` as a required check); majors stay manual
-- `minimumReleaseAge` (`pnpm-workspace.yaml`, `.npmrc`) — pnpm refuses versions published <24h ago (supply-chain guard)
-- pnpm version is pinned via `packageManager` in `package.json`; keep CI/Dockerfile in sync
+- `minimumReleaseAge` (`bunfig.toml`, seconds) — bun refuses versions published <24h ago (supply-chain guard)
+- Bun version is pinned via `packageManager` in `package.json`; keep CI/Dockerfile in sync
 
 ### State Persistence
 

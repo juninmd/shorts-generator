@@ -30,7 +30,7 @@ const DEMO_BOOKS: Record<StoryKind, (workDir: string) => Promise<ComicBook>> = {
  * they're all the same pipeline (image + narration per chapter, stitched
  * with synced subtitles); only the source book differs.
  *
- * `pnpm cli generate:<kind> --demo` (kind: comic, movie, series, bio, news, book)
+ * `bun run cli generate:<kind> --demo` (kind: comic, movie, series, bio, news, book)
  * narrates the built-in smoke-test book for that kind (Flashpoint / Shrek /
  * The Flash 1x01 / Ada Lovelace / example headlines / Dom Casmurro).
  * `--book <path.json>` narrates a user-supplied ComicBook definition instead.
@@ -48,7 +48,7 @@ export async function runComicCommand(kind: StoryKind, args: string[]): Promise<
     const bookPath = path.resolve(args[bookIndex + 1]!);
     book = JSON.parse(fs.readFileSync(bookPath, "utf-8"));
   } else {
-    console.log(`Usage: pnpm cli generate:${kind} --demo | --book <path.json>`);
+    console.log(`Usage: bun run cli generate:${kind} --demo | --book <path.json>`);
     process.exit(1);
   }
 

@@ -43,7 +43,7 @@ function registerDashboardRoutesWith(app: Hono, config: ControlPlaneConfig): voi
   dashboard.get("/dashboard", requireLinkToken, (c) => {
     const indexPath = path.resolve("web/dist/index.html");
     if (!fs.existsSync(indexPath)) {
-      return c.json({ error: "Web build not found. Run `pnpm web:build` first." }, 404);
+      return c.json({ error: "Web build not found. Run `bun run web:build` first." }, 404);
     }
     return c.html(fs.readFileSync(indexPath, "utf8"));
   });

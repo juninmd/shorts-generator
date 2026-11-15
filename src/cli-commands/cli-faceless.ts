@@ -4,7 +4,7 @@ import { pickBackgroundMusic } from "../core/audio-ducking.js";
 import { runFacelessPipeline } from "../core/faceless/faceless-pipeline.js";
 
 /**
- * `pnpm cli generate:faceless --topic "..." [--lang pt-BR]` — LLM script,
+ * `bun run cli generate:faceless --topic "..." [--lang pt-BR]` — LLM script,
  * stock footage (PEXELS_API_KEY; plain cards without it), edge-tts narration,
  * karaoke captions and optional ducked background music (BGM_FILE / BGM_DIR).
  */
@@ -12,7 +12,7 @@ export async function runFacelessCommand(args: string[]): Promise<void> {
   const topicIndex = args.indexOf("--topic");
   const topic = topicIndex !== -1 ? args[topicIndex + 1] : undefined;
   if (!topic) {
-    console.log('Usage: pnpm cli generate:faceless --topic "assunto do vídeo" [--lang pt-BR]');
+    console.log('Usage: bun run cli generate:faceless --topic "assunto do vídeo" [--lang pt-BR]');
     process.exit(1);
   }
   const langIndex = args.indexOf("--lang");

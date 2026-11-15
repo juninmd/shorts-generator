@@ -11,8 +11,8 @@ O produto agora é orientado por canais gerenciados em PostgreSQL. O fluxo recom
 5. Disparar runs por canal
 
 ### Dependências Instaladas:
-- ✅ Node.js (v20+)
-- ✅ pnpm (v10.32.1)
+- ✅ Bun (v1.4+)
+- ✅ Bun (v1.4.4)
 - ✅ FFmpeg (v7.1.1)
 - ✅ npm packages (projeto)
 - ✅ npm packages (web)
@@ -46,49 +46,49 @@ Cada pasta contém:
 ### CLI - Gerar Shorts do YouTube
 ```bash
 # Gerar a partir de canais (defina em .env ou --channel)
-pnpm generate --channel "channel-id-1,channel-id-2"
+bun run generate --channel "channel-id-1,channel-id-2"
 
 # Gerar a partir de URLs específicas
-pnpm generate --url "https://youtube.com/watch?v=..."
+bun run generate --url "https://youtube.com/watch?v=..."
 
 # Gerar dos últimos N dias
-pnpm generate --days 7
+bun run generate --days 7
 ```
 
 ### Servidor Web
 ```bash
 # Iniciar servidor (localhost:3001)
-pnpm start
+bun run start
 
 # Modo desenvolvimento com hot-reload
-pnpm dev
+bun run dev
 ```
 
 ### Web Interface
 ```bash
 # Desenvolvimento
-pnpm web:dev
+bun run web:dev
 
 # Build
-pnpm web:build
+bun run web:build
 
 # Preview
-pnpm web:preview
+bun run web:preview
 ```
 
 ### Testes
 ```bash
 # Rodar testes
-pnpm test
+bun run test
 
 # Rodar testes web
-pnpm --dir web run test
+bun --cwd web run test
 
 # Type-check
-pnpm typecheck
+bun run typecheck
 
 # Build sem emitir
-pnpm build
+bun run build
 ```
 
 ---
@@ -110,7 +110,7 @@ CONTROL_PLANE_ENCRYPTION_KEY_VERSION=v1
 Para criar um canal inicial sem token em texto puro:
 
 ```bash
-pnpm bootstrap:control-plane
+bun run bootstrap:control-plane
 ```
 
 ---
@@ -152,7 +152,7 @@ O aplicativo segue este fluxo:
 3. Iniciar Ollama localmente (para LLM)
 4. Executar geração:
    ```bash
-   pnpm generate
+   bun run generate
    ```
 5. Monitorar progresso nos logs
 6. Verificar shorts em `output/`
