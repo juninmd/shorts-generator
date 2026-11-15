@@ -17,7 +17,7 @@ spec:
           - name: queue-processor
             image: ghcr.io/juninmd/shorts-generator:latest
             imagePullPolicy: Always
-            command: ["pnpm", "run", "queue:process"]
+            command: ["bun", "run", "queue:process"]
             volumeMounts:
             - name: output-storage
               mountPath: /app/output

@@ -11,7 +11,7 @@ spec:
       - name: shorts-generator
         image: ghcr.io/juninmd/shorts-generator:latest
         imagePullPolicy: Always
-        command: ["pnpm", "run", "generate"]
+        command: ["bun", "run", "generate"]
         args: ["--", "--managed-channel", "akitemquiz", "--channel", "@AchismosTV"]
         volumeMounts:
         - name: output-storage

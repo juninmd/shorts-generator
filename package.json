@@ -4,32 +4,32 @@
   "private": true,
   "description": "Automated YouTube Shorts generator — downloads videos, transcribes with Whisper, identifies viral moments via LLM, generates vertical shorts with captions, and sends to Telegram.",
   "type": "module",
-  "packageManager": "pnpm@12.16.1",
+  "packageManager": "bun@1.4.4",
   "engines": {
-    "node": ">=20.0.0"
+    "bun": ">=1.4.0"
   },
   "scripts": {
-    "dev": "tsx watch src/server/index.ts",
-    "start": "tsx src/server/index.ts",
-    "cli": "tsx src/cli.ts",
-    "queue:process": "tsx src/cli.ts queue:process",
-    "generate": "tsx src/cli.ts generate",
-    "generate:top": "tsx src/cli.ts generate:top",
-    "generate:quiz": "tsx src/cli.ts generate:quiz",
-    "generate:metrics-digest": "tsx src/cli.ts generate:metrics-digest",
-    "generate:url": "tsx src/cli.ts generate --url",
-    "test": "vitest run",
+    "dev": "bun --watch src/server/index.ts",
+    "start": "bun src/server/index.ts",
+    "cli": "bun src/cli.ts",
+    "queue:process": "bun src/cli.ts queue:process",
+    "generate": "bun src/cli.ts generate",
+    "generate:top": "bun src/cli.ts generate:top",
+    "generate:quiz": "bun src/cli.ts generate:quiz",
+    "generate:metrics-digest": "bun src/cli.ts generate:metrics-digest",
+    "generate:url": "bun src/cli.ts generate --url",
+    "test": "bun --bun run vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:youtube-health": "vitest run tests/core/youtube.health.ts",
     "build": "node scripts/typecheck.cjs",
-    "web:dev": "pnpm --dir web run dev",
-    "web:build": "pnpm --dir web run build",
-    "web:preview": "pnpm --dir web run preview",
+    "web:dev": "bun --cwd web run dev",
+    "web:build": "bun --cwd web run build",
+    "web:preview": "bun --cwd web run preview",
     "typecheck": "tsc --noEmit",
-    "smoke-test": "tsx scripts/smoke-test.ts",
-    "bootstrap:control-plane": "tsx scripts/bootstrap-control-plane.ts",
-    "diagnose:cluster": "tsx scripts/diagnose-cluster.ts"
+    "smoke-test": "bun scripts/smoke-test.ts",
+    "bootstrap:control-plane": "bun scripts/bootstrap-control-plane.ts",
+    "diagnose:cluster": "bun scripts/diagnose-cluster.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.92",
@@ -38,7 +38,7 @@
     "better-sqlite3": "^13.1.1",
     "bullmq": "^6.7.6",
     "dotenv": "^18.0.10",
-    "googleapis": "^189.0.0",
+    "googleapis": "190.0.0",
     "grammy": "^1.46.0",
     "hono": "^4.13.18",
     "ioredis": "^6.0.0",
@@ -53,9 +53,16 @@
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^5.1.0",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "workspaces": [
+    "web"
+  ],
+  "trustedDependencies": [
+    "better-sqlite3",
+    "esbuild",
+    "msgpackr-extract"
+  ]
 }

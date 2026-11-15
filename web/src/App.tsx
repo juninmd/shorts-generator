@@ -416,7 +416,7 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
         </div>
         <div className="info-box" style={{ marginBottom: 14 }}>
           <div style={{ fontSize: ".73rem", color: "#a5b4fc", lineHeight: 1.7 }}>
-            <strong>Como obter?</strong> Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" style={{ color: "#818cf8" }}>Google Cloud Console</a> → APIs → YouTube Data API v3 → Criar credenciais OAuth → Copie o Client ID e Secret → Use o script <code style={{ background: "rgba(0,0,0,.3)", padding: "1px 5px", borderRadius: 4 }}>pnpm generate</code> para obter o Refresh Token.
+            <strong>Como obter?</strong> Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" style={{ color: "#818cf8" }}>Google Cloud Console</a> → APIs → YouTube Data API v3 → Criar credenciais OAuth → Copie o Client ID e Secret → Use o script <code style={{ background: "rgba(0,0,0,.3)", padding: "1px 5px", borderRadius: 4 }}>bun run generate</code> para obter o Refresh Token.
           </div>
         </div>
 /* v8 ignore start */

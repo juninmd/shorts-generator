@@ -93,7 +93,7 @@ describe("registerDashboardRoutes", () => {
       const app = await buildApp();
       const res = await app.request("/dashboard?token=secret-token");
       expect(res.status).toBe(404);
-      expect(await res.json()).toEqual({ error: "Web build not found. Run `pnpm web:build` first." });
+      expect(await res.json()).toEqual({ error: "Web build not found. Run `bun run web:build` first." });
     });
   });
 });

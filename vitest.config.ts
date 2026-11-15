@@ -3,7 +3,7 @@ export default defineConfig({
   test: {
     pool: 'forks',
     env: { ANALYSIS_CACHE: 'false' },
-    fileParallelism: false,
+    fileParallelism: true,
     testTimeout: 20000,
     include: ['tests/**/*.test.ts', 'tests/**/*.health.ts'],
     exclude: ['web/**', 'node_modules/**', 'dist/**'],
