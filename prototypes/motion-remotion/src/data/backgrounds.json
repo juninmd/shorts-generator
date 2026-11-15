@@ -1,0 +1,128 @@
+[
+  {
+    "sceneId": "ch1",
+    "query": {
+      "sceneId": "ch1",
+      "queries": [
+        "victorian london street",
+        "nasce london ada",
+        "nasce"
+      ],
+      "keywords": [
+        "nasce",
+        "london",
+        "ada",
+        "byron",
+        "nasceu",
+        "filha",
+        "victorian",
+        "street"
+      ],
+      "mood": "history",
+      "durationSec": 4
+    },
+    "choice": {
+      "source": "procedural",
+      "mood": "history",
+      "reasons": [
+        "nenhum candidato relevante",
+        "clima: history"
+      ]
+    },
+    "alternatives": []
+  },
+  {
+    "sceneId": "ch2",
+    "query": {
+      "sceneId": "ch2",
+      "queries": [
+        "mathematics machines numbers",
+        "mente mathematics ada",
+        "mente"
+      ],
+      "keywords": [
+        "mente",
+        "mathematics",
+        "ada",
+        "mostrou",
+        "talento",
+        "numbers",
+        "machines"
+      ],
+      "mood": "tech",
+      "durationSec": 4
+    },
+    "choice": {
+      "provider": "local",
+      "id": "local-machines-numbers-circuit-wide.jpg",
+      "kind": "photo",
+      "url": "library/machines-numbers-circuit-wide.jpg",
+      "width": 1920,
+      "height": 1080,
+      "tags": [
+        "machines",
+        "numbers",
+        "circuit",
+        "wide"
+      ],
+      "license": "own library",
+      "score": 40,
+      "reasons": [
+        "relevância 2 (numbers, machines)",
+        "horizontal (blur-fill)",
+        "≥1080p",
+        "biblioteca própria"
+      ],
+      "source": "stock",
+      "localPath": "/home/user/shorts-generator/prototypes/motion-remotion/public/bg/local-machines-numbers-circuit-wide_jpg.jpg",
+      "src": "bg/local-machines-numbers-circuit-wide_jpg.jpg"
+    },
+    "alternatives": []
+  },
+  {
+    "sceneId": "ch3",
+    "query": {
+      "sceneId": "ch3",
+      "queries": [
+        "computer code",
+        "primeiro code escreveu",
+        "primeiro"
+      ],
+      "keywords": [
+        "primeiro",
+        "code",
+        "escreveu",
+        "considerado",
+        "computer"
+      ],
+      "mood": "tech",
+      "durationSec": 5
+    },
+    "choice": {
+      "provider": "local",
+      "id": "local-code-computer-circuit-lightbulb.jpg",
+      "kind": "photo",
+      "url": "library/code-computer-circuit-lightbulb.jpg",
+      "width": 1080,
+      "height": 1920,
+      "tags": [
+        "code",
+        "computer",
+        "circuit",
+        "lightbulb"
+      ],
+      "license": "own library",
+      "score": 60,
+      "reasons": [
+        "relevância 2 (code, computer)",
+        "vertical",
+        "≥1080p",
+        "biblioteca própria"
+      ],
+      "source": "stock",
+      "localPath": "/home/user/shorts-generator/prototypes/motion-remotion/public/bg/local-code-computer-circuit-lightbulb_jpg.jpg",
+      "src": "bg/local-code-computer-circuit-lightbulb_jpg.jpg"
+    },
+    "alternatives": []
+  }
+]

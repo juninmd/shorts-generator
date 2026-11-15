@@ -6,14 +6,21 @@
   "description": "Prototype: programmatic motion graphics with Remotion for shorts-generator",
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "render": "node scripts/render.mjs"
+    "backgrounds": "tsx scripts/find-backgrounds.ts",
+    "render": "node scripts/render.mjs",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.543",
     "@remotion/cli": "^4.0.543",
+    "@remotion/media-utils": "^4.0.543",
     "@remotion/renderer": "^4.0.543",
+    "@remotion/transitions": "^4.0.543",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "remotion": "^4.0.543"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
   }
 }
