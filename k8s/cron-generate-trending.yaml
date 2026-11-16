@@ -1,0 +1,48 @@
+# Weekly narrated short about the GitHub repository trending this week. The used
+# list lives on the output PVC (trending/used-repos.json), so a repository is never
+# narrated twice. Monday 12:00 in Brasília (15:00 UTC).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: generate-trending-job
+  namespace: shorts-generator
+spec:
+  schedule: "0 15 * * 1"
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          containers:
+          - name: generate-trending
+            image: ghcr.io/juninmd/shorts-generator:latest
+            imagePullPolicy: Always
+            command: ["bun", "run", "cli"]
+            args: ["--", "generate:trending"]
+            volumeMounts:
+            - name: output-storage
+              mountPath: /app/output
+            env:
+            - name: OUTPUT_DIR
+              value: "/app/output"
+            - name: TRENDING_WINDOW_DAYS
+              value: "7"
+            - name: TRENDING_MIN_STARS
+              value: "100"
+            - name: COMIC_TTS_VOICE
+              value: "pt-BR-AntonioNeural"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: GITHUB_TOKEN
+                  name: shorts-generator-secret
+                  optional: true
+          restartPolicy: Never
+          volumes:
+          - name: output-storage
+            persistentVolumeClaim:
+              claimName: shorts-output-pvc
