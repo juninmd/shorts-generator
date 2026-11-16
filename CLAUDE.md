@@ -17,6 +17,7 @@ bun run cli generate:news --demo          # Narrate the built-in news-digest smo
 bun run cli generate:book --demo          # Narrate the built-in book-recap smoke-test book (Dom Casmurro)
 bun run cli generate:<kind> --book <path.json>  # Any kind: narrate a custom ComicBook definition
 bun run cli generate:faceless --topic "assunto"  # Faceless short: LLM script + Pexels stock footage + edge-tts narration
+bun run cli generate:trending              # Weekly short from the GitHub repo trending this week (never repeats; see docs/TRENDING_SHORTS.md)
 
 # Testing
 bun run test                   # Run all tests once
