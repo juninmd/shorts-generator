@@ -10,6 +10,7 @@ import * as queue from "../src/core/queue.js";
 import * as comic from "../src/cli-commands/cli-comic.js";
 import * as socialQueue from "../src/core/social-queue.js";
 import * as faceless from "../src/cli-commands/cli-faceless.js";
+import * as trending from "../src/cli-commands/cli-trending.js";
 
 vi.mock("../src/cli-interactive.js");
 vi.mock("../src/cli-commands/cli-generate.js");
@@ -23,6 +24,7 @@ vi.mock("../src/cli-commands/cli-comic.js", () => ({ runComicCommand: vi.fn().mo
 vi.mock("../src/core/social-queue.js", () => ({ processSocialQueue: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../src/core/config.js", () => ({ loadConfig: vi.fn(() => ({ outputDir: "out" })) }));
 vi.mock("../src/cli-commands/cli-faceless.js", () => ({ runFacelessCommand: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("../src/cli-commands/cli-trending.js", () => ({ runTrendingCommand: vi.fn().mockResolvedValue(undefined) }));
 
 const originalArgv = process.argv;
 const originalEnv = process.env;
@@ -50,6 +52,7 @@ describe("cli", () => {
     await new Promise(process.nextTick);
   };
 
+
   it("should run generate command", async () => {
     await runCli(["generate"]);
     expect(runGenerateCommand).toHaveBeenCalledWith("generate", ["generate"]);
@@ -73,6 +76,11 @@ describe("cli", () => {
   it("should run generate:faceless command", async () => {
     await runCli(["generate:faceless", "--topic", "x"]);
     expect(faceless.runFacelessCommand).toHaveBeenCalledWith(["generate:faceless", "--topic", "x"]);
+  });
+
+  it("should run generate:trending command", async () => {
+    await runCli(["generate:trending"]);
+    expect(trending.runTrendingCommand).toHaveBeenCalled();
   });
 
   it("should run generate:comic command", async () => {

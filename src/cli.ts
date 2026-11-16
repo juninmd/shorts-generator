@@ -43,6 +43,12 @@ async function main() {
       break;
     }
 
+    case "generate:trending": {
+      const { runTrendingCommand } = await import("./cli-commands/cli-trending.js");
+      await runTrendingCommand();
+      break;
+    }
+
     case "generate:faceless": {
       const { runFacelessCommand } = await import("./cli-commands/cli-faceless.js");
       await runFacelessCommand(args);
@@ -83,6 +89,7 @@ Usage:
   bun run generate:quiz [options]
   bun run generate:metrics-digest
   bun run generate:faceless --topic "assunto"
+  bun run generate:trending                  # repositório trending da semana (sem repetir)
   bun run queue:process
   bun run queue:retry
   bun run server
