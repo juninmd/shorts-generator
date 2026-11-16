@@ -1,0 +1,40 @@
+/* state map */
+.map { display: block; overflow: hidden; width: 100%; height: 100%; }
+.map .others { fill: var(--panel); stroke: var(--dim); stroke-width: 1; stroke-opacity: 0.55; vector-effect: non-scaling-stroke; }
+.map .city { fill: var(--acc); stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.map .ring { fill: none; stroke: var(--acc); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.cityname { position: absolute; left: 64px; right: 64px; font-family: var(--display); line-height: 1; text-transform: uppercase; white-space: pre; }
+
+/* timeline */
+.rail { position: absolute; left: 22px; width: 4px; background: var(--dim); transform-origin: top; }
+.stop { position: absolute; left: 0; right: 0; }
+.stop .dot { position: absolute; left: 8px; top: 50%; width: 32px; height: 32px; margin-top: -16px; border-radius: 50%; background: var(--acc); }
+.stop .year { position: absolute; left: 84px; font-family: var(--display); color: var(--acc); line-height: 1; }
+.stop .what { position: absolute; left: 430px; right: 0; top: 50%; font-size: 46px; font-weight: 600; line-height: 1.15; }
+
+/* counter */
+.bignum { font-family: var(--display); line-height: 1; color: var(--acc); white-space: nowrap; }
+.bignum .d { display: inline-block; width: 0.66em; text-align: center; }
+.bignum .pre { font-size: 0.45em; margin-right: 0.2em; color: var(--ink); }
+.cells { display: grid; grid-template-columns: repeat(40, 1fr); gap: 6px; }
+.cells i { height: 64px; border-radius: 3px; background: rgba(245, 240, 230, 0.09); }
+.cells i.on { background: var(--acc); }
+
+/* ranking */
+.rrow { position: absolute; left: 0; right: 0; height: 116px; }
+.rrow .pos { position: absolute; left: 0; top: 0; width: 70px; font-family: var(--display); font-size: 44px; color: var(--dim); }
+.rrow .name { position: absolute; left: 84px; top: 4px; font-size: 40px; font-weight: 700; white-space: nowrap; }
+.rrow .val { position: absolute; right: 0; top: 8px; font-size: 34px; font-weight: 600; color: var(--dim); font-variant-numeric: tabular-nums; }
+.rrow .track { position: absolute; left: 84px; right: 0; top: 66px; height: 22px; border-radius: 4px; background: rgba(245, 240, 230, 0.07); }
+.rrow .track i { display: block; height: 100%; border-radius: 4px; background: var(--dim); transform-origin: left; }
+.rrow.self .pos, .rrow.self .name, .rrow.self .val { color: var(--acc); }
+.rrow.self .track i { background: var(--acc); }
+
+/* density */
+.km { position: absolute; top: 0; width: 440px; height: 440px; border: 3px solid var(--dim); border-radius: 10px; background: rgba(24, 33, 61, 0.7); box-sizing: border-box; }
+.km.self { border-color: var(--acc); }
+.km i { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--ink); }
+.km.self i { background: var(--acc); }
+.kmnum { position: absolute; top: 462px; width: 440px; font-family: var(--display); font-size: 76px; line-height: 1; }
+.kmnum.self { color: var(--acc); }
+.kmlab { position: absolute; top: 548px; width: 440px; }
