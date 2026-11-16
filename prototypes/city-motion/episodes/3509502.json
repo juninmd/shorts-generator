@@ -1,0 +1,138 @@
+{
+  "code": "3509502",
+  "series": "Raio-X das Cidades",
+  "episode": 1,
+  "voice": "pt-BR-AntonioNeural",
+  "scenes": [
+    {
+      "type": "map-intro",
+      "narration": "Campinas, interior de São Paulo. Começou como um pouso de tropeiros e hoje tem mais de um milhão de moradores.",
+      "source": "IBGE Cidades, histórico do município de Campinas"
+    },
+    {
+      "type": "timeline",
+      "kicker": "Como tudo começou",
+      "title": [
+        "De pouso",
+        "a cidade"
+      ],
+      "narration": "Em 1774 virou freguesia. Em 1797, Vila de São Carlos. E só em 1842 ganhou o nome de cidade de Campinas.",
+      "source": "IBGE Cidades, histórico do município de Campinas",
+      "props": {
+        "stops": [
+          {
+            "year": 1774,
+            "label": "Freguesia"
+          },
+          {
+            "year": 1797,
+            "label": "Vila de São Carlos"
+          },
+          {
+            "year": 1842,
+            "label": "Cidade de Campinas"
+          }
+        ]
+      }
+    },
+    {
+      "type": "counter",
+      "kicker": "Censo 2022",
+      "title": [
+        "De 185 a",
+        "um milhão"
+      ],
+      "narration": "Em 1767, o bairro reunia 185 pessoas. No Censo de 2022, eram 1.139.047 habitantes.",
+      "source": "IBGE: histórico do município (1767) e Censo Demográfico 2022",
+      "props": {
+        "to": 1139047,
+        "unit": "habitantes",
+        "chip": "Censo 2022",
+        "from": 185,
+        "fromLabel": "1767: 185 pessoas",
+        "cue": "1.139.047"
+      }
+    },
+    {
+      "type": "rank-bars",
+      "kicker": "3º de 645",
+      "title": [
+        "As maiores",
+        "de SP"
+      ],
+      "narration": "É a terceira cidade mais populosa do estado, atrás só de São Paulo e Guarulhos.",
+      "source": "IBGE, Censo Demográfico 2022 (SIDRA tabela 4714)",
+      "props": {
+        "rows": [
+          {
+            "name": "São Paulo",
+            "value": 11451999,
+            "self": false
+          },
+          {
+            "name": "Guarulhos",
+            "value": 1291771,
+            "self": false
+          },
+          {
+            "name": "Campinas",
+            "value": 1139047,
+            "self": true
+          },
+          {
+            "name": "São Bernardo do Campo",
+            "value": 810729,
+            "self": false
+          },
+          {
+            "name": "Santo André",
+            "value": 748919,
+            "self": false
+          }
+        ],
+        "rank": 3,
+        "of": 645,
+        "selfValue": 1139047
+      }
+    },
+    {
+      "type": "density",
+      "kicker": "Densidade",
+      "title": [
+        "Gente por",
+        "quilômetro"
+      ],
+      "narration": "São cerca de 1.434 habitantes por quilômetro quadrado. 8 vezes a média do estado.",
+      "source": "IBGE, Censo Demográfico 2022 (SIDRA tabela 4714)",
+      "props": {
+        "city": 1433.54,
+        "state": 178.9192254588716,
+        "cityLabel": "Campinas",
+        "stateLabel": "Média de SP"
+      }
+    },
+    {
+      "type": "counter",
+      "kicker": "PIB 2023",
+      "title": [
+        "Quanto a",
+        "cidade produz"
+      ],
+      "narration": "E a economia? O PIB passou de 91 bilhões de reais em 2023, o quarto maior do estado.",
+      "source": "IBGE, PIB dos Municípios 2023 (SIDRA tabela 5938)",
+      "props": {
+        "to": 91.968328,
+        "decimals": 2,
+        "prefix": "R$",
+        "unit": "bilhões",
+        "chip": "4º PIB de SP",
+        "cue": "91"
+      }
+    },
+    {
+      "type": "outro",
+      "narration": "Qual cidade você quer ver no próximo raio-x? Comenta aí.",
+      "source": "Fonte de todos os números: IBGE"
+    }
+  ]
+}

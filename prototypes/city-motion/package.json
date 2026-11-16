@@ -1,0 +1,20 @@
+{
+  "name": "city-motion",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "episode": "node scripts/episode.mjs",
+    "fetch": "node scripts/fetch-city.mjs",
+    "draft": "node scripts/draft-episode.mjs",
+    "narrate": "node scripts/narrate.mjs",
+    "still": "node scripts/render.mjs --still",
+    "meta": "node scripts/render.mjs --meta",
+    "music": "uv run scripts/music.py --meta out/meta.json --out out/music.wav --mode major --arp-db -4",
+    "mix": "node scripts/mix.mjs",
+    "render": "node scripts/render.mjs",
+    "build": "npm run meta && npm run music && npm run mix && node scripts/render.mjs --audio out/audio.wav"
+  },
+  "devDependencies": {
+    "playwright-core": "1.64.0"
+  }
+}

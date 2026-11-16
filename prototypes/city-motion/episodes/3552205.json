@@ -1,0 +1,110 @@
+{
+  "code": "3552205",
+  "series": "Raio-X das Cidades",
+  "episode": 2,
+  "voice": "pt-BR-AntonioNeural",
+  "scenes": [
+    {
+      "type": "map-intro",
+      "narration": "Sorocaba, São Paulo. Um raio-x da cidade em números oficiais.",
+      "source": "IBGE, malha municipal"
+    },
+    {
+      "type": "counter",
+      "kicker": "Censo 2022",
+      "title": [
+        "Quanta gente",
+        "mora aqui"
+      ],
+      "narration": "No Censo de 2022, Sorocaba tinha 723.682 habitantes.",
+      "source": "IBGE, Censo Demográfico 2022 (SIDRA tabela 4714)",
+      "props": {
+        "to": 723682,
+        "unit": "habitantes",
+        "chip": "Censo 2022",
+        "cue": "723.682"
+      }
+    },
+    {
+      "type": "rank-bars",
+      "kicker": "7º de 645",
+      "title": [
+        "As maiores",
+        "de SP"
+      ],
+      "narration": "É a sétima mais populosa entre os 645 municípios do estado.",
+      "source": "IBGE, Censo Demográfico 2022 (SIDRA tabela 4714)",
+      "props": {
+        "rows": [
+          {
+            "name": "São Paulo",
+            "value": 11451999,
+            "self": false
+          },
+          {
+            "name": "Guarulhos",
+            "value": 1291771,
+            "self": false
+          },
+          {
+            "name": "Campinas",
+            "value": 1139047,
+            "self": false
+          },
+          {
+            "name": "São Bernardo do Campo",
+            "value": 810729,
+            "self": false
+          },
+          {
+            "name": "Santo André",
+            "value": 748919,
+            "self": false
+          }
+        ],
+        "rank": 7,
+        "of": 645,
+        "selfValue": 723682
+      }
+    },
+    {
+      "type": "density",
+      "kicker": "Densidade",
+      "title": [
+        "Gente por",
+        "quilômetro"
+      ],
+      "narration": "São cerca de 1.609 habitantes por quilômetro quadrado. 9 vezes a média do estado.",
+      "source": "IBGE, Censo Demográfico 2022 (SIDRA tabela 4714)",
+      "props": {
+        "city": 1608.64,
+        "state": 178.9192254588716,
+        "cityLabel": "Sorocaba",
+        "stateLabel": "Média de SP"
+      }
+    },
+    {
+      "type": "counter",
+      "kicker": "PIB 2023",
+      "title": [
+        "Quanto a",
+        "cidade produz"
+      ],
+      "narration": "E a economia? O PIB passou de 58 bilhões de reais em 2023, o décimo maior do estado.",
+      "source": "IBGE, PIB dos Municípios 2023 (SIDRA tabela 5938)",
+      "props": {
+        "to": 58.816286,
+        "decimals": 2,
+        "prefix": "R$",
+        "unit": "bilhões",
+        "chip": "10º PIB de SP",
+        "cue": "58"
+      }
+    },
+    {
+      "type": "outro",
+      "narration": "Qual cidade você quer ver no próximo raio-x? Comenta aí.",
+      "source": "Fonte de todos os números: IBGE"
+    }
+  ]
+}
