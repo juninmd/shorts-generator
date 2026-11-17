@@ -87,7 +87,7 @@ export async function processVideo(
         if (youtubeEnabled) {
           sendStage = "youtube_upload_or_queue";
           const channelId = config.managedRun?.channelId || "global";
-          const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels, youtubeMeta.pinnedComment);
+          const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels, youtubeMeta.pinnedComment, { links: config.managedRun?.affiliateLinks, seed: video.url });
           let uploaded = false;
           if (deferUploads) {
             logger.info({ clipId: short.id, channelId }, "🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora");

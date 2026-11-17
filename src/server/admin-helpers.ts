@@ -6,6 +6,7 @@ import type { ChannelBundleRepository } from "../core/channel-bundle-repository.
 import type { ChannelConfigResolver } from "../core/channel-config-resolver.js";
 import type { ManagedRunRepository } from "../core/managed-run-repository.js";
 import type { ChannelCutsRepository } from "../core/channel-cuts-repository.js";
+import type { ChannelAffiliateRepository } from "../core/channel-affiliate-repository.js";
 import type { ChannelScheduleRepository } from "../core/channel-schedule-repository.js";
 import type { ChannelAnalysisRepository } from "../core/channel-analysis-repository.js";
 import type { createSecretStore } from "../core/secret-store.js";
@@ -19,6 +20,7 @@ export interface AdminDeps {
   secretStore: ReturnType<typeof createSecretStore>;
   resolver: ChannelConfigResolver;
   cutsRepository: ChannelCutsRepository;
+  affiliateRepository: ChannelAffiliateRepository;
   scheduleRepository: ChannelScheduleRepository;
   analysisRepository: ChannelAnalysisRepository;
 }

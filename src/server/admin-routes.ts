@@ -16,6 +16,8 @@ import { registerYouTubeOAuthCallbackRoute } from "./admin-oauth-callback-routes
 import { registerRunRoutes } from "./admin-run-routes.js";
 import { registerCutRoutes } from "./admin-cut-routes.js";
 import { registerScheduleRoutes } from "./admin-schedule-routes.js";
+import { ChannelAffiliateRepository } from "../core/channel-affiliate-repository.js";
+import { registerAffiliateRoutes } from "./admin-affiliate-routes.js";
 import { ChannelCutsRepository } from "../core/channel-cuts-repository.js";
 import { ChannelScheduleRepository } from "../core/channel-schedule-repository.js";
 import { ChannelAnalysisRepository } from "../core/channel-analysis-repository.js";
@@ -30,13 +32,14 @@ export function registerAdminRoutes(app: Hono): void {
   const repository = new ChannelBundleRepository(db);
   const runRepository = new ManagedRunRepository(db);
   const secretStore = createSecretStore(config);
-  const resolver = new ChannelConfigResolver(repository, secretStore);
+  const resolver = new ChannelConfigResolver(repository, secretStore, new ChannelAffiliateRepository(db));
 
   const cutsRepository = new ChannelCutsRepository(db);
+  const affiliateRepository = new ChannelAffiliateRepository(db);
   const scheduleRepository = new ChannelScheduleRepository(db);
   const analysisRepository = new ChannelAnalysisRepository(db);
 
-  const deps: AdminDeps = { repository, runRepository, secretStore, resolver, cutsRepository, scheduleRepository, analysisRepository };
+  const deps: AdminDeps = { repository, runRepository, secretStore, resolver, cutsRepository, affiliateRepository, scheduleRepository, analysisRepository };
 
   // Public: Google redirects the browser here with no Authorization header and
   // no Origin, so it must be mounted without the admin auth middleware.
@@ -51,6 +54,7 @@ export function registerAdminRoutes(app: Hono): void {
   registerYouTubeAuthUrlRoute(admin, deps);
   registerRunRoutes(admin, deps);
   registerCutRoutes(admin, deps);
+  registerAffiliateRoutes(admin, deps);
   registerScheduleRoutes(admin, deps);
 
   app.route("/api/admin", admin);

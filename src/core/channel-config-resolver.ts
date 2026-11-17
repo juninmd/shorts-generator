@@ -4,11 +4,13 @@ import { loadConfig } from "./config.js";
 import { logger } from "./logger.js";
 import type { ChannelBundleRepository } from "./channel-bundle-repository.js";
 import type { SecretStore } from "./secret-store.js";
+import type { ChannelAffiliateRepository } from "./channel-affiliate-repository.js";
 
 export class ChannelConfigResolver {
   constructor(
     private readonly repository: ChannelBundleRepository,
     private readonly secretStore: SecretStore,
+    private readonly affiliateRepository?: ChannelAffiliateRepository,
   ) {}
 
   async resolveRunConfig(runId: string, channelId: string): Promise<ResolvedChannelRun> {
@@ -55,6 +57,7 @@ export class ChannelConfigResolver {
       publishingAccount: resolveCredentials(youtubeAccount),
       telegramAccount: telegramAccount ? resolveCredentials(telegramAccount) : undefined,
       openrouterAccount: openrouterAccount ? resolveCredentials(openrouterAccount) : undefined,
+      affiliateLinks: await this.affiliateRepository?.listActive(channelId),
       snapshotCreatedAt: new Date().toISOString(),
     };
   }
@@ -92,6 +95,7 @@ export function buildManagedPipelineConfig(
       channelName: resolvedRun.channel.name,
       accountId: resolvedRun.publishingAccount.accountId,
       focusLabels: resolvedRun.focuses.map((focus) => focus.label),
+      affiliateLinks: resolvedRun.affiliateLinks?.map(({ name, url }) => ({ name, url })),
       logoPath: resolvedRun.channel.logoPath,
     },
   });
