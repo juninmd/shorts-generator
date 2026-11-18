@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { BIBLE_ACTS, BibleScriptSchema, generateBibleScript } from "../../../src/core/faceless/bible-script.js";
+import { BIBLE_ACTS, BibleScriptSchema, PROMPT_ACTS, generateBibleScript } from "../../../src/core/faceless/bible-script.js";
 import { buildBibleMeta } from "../../../src/core/faceless/bible-meta.js";
 import { generateJsonObject } from "../../../src/core/generate-json.js";
 
@@ -43,7 +43,10 @@ describe("generateBibleScript", () => {
     expect(options.prompt).toContain('"Lucas 15,11-24"');
     expect(options.prompt).toContain("Idioma: pt-BR");
     expect(options.prompt).toContain("não invente");
-    expect(options.prompt).toContain(BIBLE_ACTS.join(", "));
+    expect(options.prompt).toContain("EXATAMENTE 6 cenas");
+    expect(options.prompt).toContain("gancho, contexto, acontecimento, acontecimento, virada, aplicacao");
+    expect(options.prompt).toContain("a cena de virada é obrigatória");
+    expect(BibleScriptSchema.safeParse({ ...script, scenes: PROMPT_ACTS.map((act) => scene(act)) }).success).toBe(true);
     await generateBibleScript("x", cfg, "en-US");
     expect(vi.mocked(generateJsonObject).mock.calls[1]![0].prompt).toContain("Idioma: en-US");
   });
