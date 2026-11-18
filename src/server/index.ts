@@ -11,6 +11,8 @@ import { app } from "./routes.js";
 import { cleanupOldJobs } from "./job-store.js";
 import { runControlPlaneMigrations } from "../core/control-plane-migrations.js";
 import { logger } from "../core/logger.js";
+import { loadConfig } from "../core/config.js";
+import { startBibleApproval } from "../core/faceless/bible-approval.js";
 
 dotenvConfig();
 
@@ -49,6 +51,8 @@ function startListening(port: number): void {
     logger.error({ error, port }, "Failed to start API server");
     throw error;
   }
+
+  startBibleApproval(loadConfig());
 
   const shutdown = (signal: NodeJS.Signals) => {
     logger.info({ signal }, "Shutting down server...");

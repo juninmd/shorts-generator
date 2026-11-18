@@ -7,7 +7,7 @@ vi.mock("../../../src/core/generate-json.js", () => ({ generateJsonObject: vi.fn
 vi.mock("../../../src/core/ai-provider.js", () => ({ createModel: vi.fn(() => "model") }));
 
 const scene = (act: (typeof BIBLE_ACTS)[number], n = 1) => ({
-  act, narration: `Narração ${act} ${n}`, verse: `Versículo ${act}`, keywords: "desert road",
+  act, narration: `Narração ${act} ${n} ${"palavra ".repeat(18)}`, verse: `Versículo ${act}`, keywords: "desert road",
 });
 const validScenes = BIBLE_ACTS.map((act) => scene(act));
 const script = { title: "O Filho Pródigo", reference: "Lucas 15,11-24", scenes: validScenes };
@@ -25,6 +25,11 @@ describe("BibleScriptSchema", () => {
     const missing = [validScenes[0]!, validScenes[1]!, validScenes[2]!, validScenes[4]!, scene("aplicacao", 2)];
     expect(BibleScriptSchema.safeParse({ ...script, scenes: missing }).success).toBe(false);
     expect(BibleScriptSchema.safeParse({ ...script, scenes: validScenes.slice(0, 4) }).success).toBe(false);
+  });
+
+  it("rejects a narration too short to fill a Short", () => {
+    const short = validScenes.map((s) => ({ ...s, narration: "curta" }));
+    expect(BibleScriptSchema.safeParse({ ...script, scenes: short }).success).toBe(false);
   });
 
   it("rejects an overlong on-screen verse", () => {

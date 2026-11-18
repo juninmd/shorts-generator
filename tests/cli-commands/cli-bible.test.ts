@@ -9,17 +9,8 @@ const { resolveMock, runPipelineMock, sendMock, publishMock, musicMock, runComic
   runComicMock: vi.fn(),
 }));
 
-vi.mock("../../src/core/channel-affiliate-repository.js", () => ({ ChannelAffiliateRepository: class {} }));
-vi.mock("../../src/core/channel-bundle-repository.js", () => ({ ChannelBundleRepository: class {} }));
-vi.mock("../../src/core/channel-config-resolver.js", () => ({
-  ChannelConfigResolver: class { resolveRunConfig = resolveMock; },
-  buildManagedPipelineConfig: vi.fn(() => ({ watermarkText: "wm", managed: true })),
-}));
-vi.mock("../../src/core/config.js", () => ({ loadConfig: vi.fn(() => ({})) }));
-vi.mock("../../src/core/control-plane-config.js", () => ({ loadControlPlaneConfig: vi.fn(() => ({})) }));
-vi.mock("../../src/core/control-plane-db.js", () => ({ getControlPlanePool: vi.fn(() => ({})) }));
-vi.mock("../../src/core/secret-store.js", () => ({ createSecretStore: vi.fn(() => ({})) }));
-vi.mock("../../src/core/audio-ducking.js", () => ({ pickBackgroundMusic: musicMock }));
+vi.mock("../../src/core/managed-config.js", () => ({ loadManagedConfig: resolveMock }));
+vi.mock("../../src/core/faceless/bible-music.js", () => ({ pickBibleMusic: musicMock }));
 vi.mock("../../src/core/logger.js", () => ({ logger: { info: vi.fn() } }));
 vi.mock("../../src/core/faceless/bible-pipeline.js", () => ({ runBiblePipeline: runPipelineMock }));
 vi.mock("../../src/core/faceless/bible-preview.js", () => ({ sendBiblePreview: sendMock, publishBiblePreview: publishMock }));
@@ -36,7 +27,8 @@ describe("cli-bible", () => {
     process.env = { ...env };
     delete process.env.COMIC_TTS_VOICE;
     delete process.env.PEXELS_API_KEY;
-    musicMock.mockReturnValue(null);
+    resolveMock.mockResolvedValue({ watermarkText: "wm", managed: true });
+    musicMock.mockReturnValue(undefined);
     runPipelineMock.mockResolvedValue({ videoPath: "/out/v.mp4" });
     sendMock.mockResolvedValue("/out/v.publish.json");
     publishMock.mockResolvedValue("https://youtube.com/shorts/x");

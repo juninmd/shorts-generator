@@ -24,6 +24,7 @@ vi.mock("node:fs", () => {
 vi.mock("../../../src/core/faceless/stock-footage.js", () => ({ fetchSceneFootage: fetchMock }));
 vi.mock("nanoid", () => ({ nanoid: () => "abc123" }));
 vi.mock("grammy", () => ({ InputFile: class { constructor(public path: string) {} } }));
+vi.mock("../../../src/core/faceless/bible-approval.js", () => ({ buildApprovalKeyboard: (id: string) => `kb:${id}`, previewId: () => "v" }));
 vi.mock("../../../src/core/ffmpeg-bin.js", () => ({ ffmpegBin: () => "ffmpeg" }));
 vi.mock("../../../src/core/ffmpeg-env.js", () => ({ buildFontEnv: () => ({}) }));
 vi.mock("../../../src/core/quiz/quiz-fonts.js", () => ({ resolveQuizFont: () => "assets/fonts/P.ttf" }));
@@ -37,7 +38,7 @@ vi.mock("../../../src/core/youtube-comment.service.js", () => ({
 }));
 vi.mock("../../../src/core/logger.js", () => ({ logger: { info: vi.fn(), warn: vi.fn() } }));
 
-import { ACT_BACKGROUND, buildVerseCardBook, buildVerseFilters, scrimFilter } from "../../../src/core/faceless/verse-cards.js";
+import { ACT_BACKGROUND, ACT_FOOTAGE, buildVerseCardBook, buildVerseFilters, findFootage, scrimFilter, verseFontSize } from "../../../src/core/faceless/verse-cards.js";
 import { publishBiblePreview, sendBiblePreview } from "../../../src/core/faceless/bible-preview.js";
 
 const script = {
@@ -82,13 +83,25 @@ describe("verse cards", () => {
     expect(overlayArgs[overlayArgs.indexOf("-vf") + 1]).toContain("drawbox=");
   });
 
-  it("shrinks the type for long verses and sizes the scrim to the text", () => {
-    const short = buildVerseFilters(["a"], ["/a.txt"], "/r.txt", "f.ttf").join(",");
-    const long = buildVerseFilters(Array(6).fill("a"), Array(6).fill("/a.txt"), "/r.txt", "f.ttf").join(",");
-    expect(short).toContain("fontsize=76");
-    expect(long).toContain("fontsize=64");
-    expect(scrimFilter(2)).toContain("replace=1");
-    expect(scrimFilter(6)).not.toBe(scrimFilter(2));
+  it("fits the widest line inside the margins and sizes the scrim to the text", () => {
+    expect(verseFontSize(["abcd"])).toBe(76);
+    expect(verseFontSize(["x".repeat(20)])).toBe(69);
+    expect(verseFontSize(["x".repeat(60)])).toBe(48);
+    const filters = buildVerseFilters(["x".repeat(20)], ["/a.txt"], "/r.txt", "f.ttf").join(",");
+    expect(filters).toContain("fontsize=69");
+    expect(scrimFilter(["a"])).toContain("replace=1");
+    expect(scrimFilter(Array(6).fill("a"))).not.toBe(scrimFilter(["a", "b"]));
+  });
+
+  it("falls back from the model's keywords to a broader query, then the act's generic one", async () => {
+    fetchMock.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce("/w/s.mp4");
+    expect(await findFootage("virada", "prodigal son embrace", "/w/s.mp4", "KEY", new Set())).toBe("/w/s.mp4");
+    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual(["prodigal son embrace", "prodigal son", ACT_FOOTAGE.virada]);
+    fetchMock.mockClear();
+    fetchMock.mockResolvedValue(null);
+    expect(await findFootage("gancho", "single", "/w/s.mp4", "KEY", new Set())).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(await findFootage("gancho", "x", "/w/s.mp4", undefined, new Set())).toBeNull();
   });
 });
 
@@ -111,6 +124,7 @@ describe("bible preview", () => {
     expect(options.caption).toContain("PRÉVIA");
     expect(options.caption).toContain("Pergunta &lt;b&gt;");
     expect(options.caption.length).toBeLessThanOrEqual(1000);
+    expect(options.reply_markup).toBe("kb:v");
   });
 
   it("still writes the sidecar when Telegram is not configured", async () => {

@@ -24,11 +24,12 @@ export async function renderChapterClip(
 ): Promise<void> {
   if (chapter.videoPath) return renderFootageClip(chapter, chapter.videoPath, outputPath, width, height);
   const frames = Math.max(1, Math.round(chapter.durationSec * 30));
-  // Ease-out cubic: the push-in decelerates and settles instead of drifting linearly (motion-design: entrance = ease-out).
+  // Ease-out cubic push-in anchored at the centre (zoompan defaults to the top-left corner, which
+  // slides text off the right edge); 6% keeps on-screen text inside the safe margins.
   const zoomFilter =
     `scale=${width * 2}:${height * 2}:force_original_aspect_ratio=increase,` +
     `crop=${width * 2}:${height * 2},` +
-    `zoompan=z='1+0.15*(1-pow(1-on/${frames},3))':d=${frames}:s=${width}x${height}:fps=30`;
+    `zoompan=z='1+0.06*(1-pow(1-on/${frames},3))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${width}x${height}:fps=30`;
   const args = [
     "-y",
     "-loop", "1",
