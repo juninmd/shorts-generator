@@ -40,4 +40,12 @@ describe("sanitizeYoutubeTags", () => {
     expect(clean.length).toBeGreaterThan(0);
     expect(clean.length).toBeLessThan(tags.length);
   });
+
+  it("charges YouTube's quotes on multi-word tags (regression: 31 tags at 487 raw bytes were rejected at 527)", () => {
+    const tags = Array.from({ length: 31 }, (_, i) => `tag com varias palavras ${String(i).padStart(2, "0")}`.slice(0, 18) + i);
+    const clean = sanitizeYoutubeTags(tags);
+    const counted = clean.reduce((sum, t) => sum + t.length + (t.includes(" ") ? 2 : 0), 0) + clean.length - 1;
+    expect(clean.length).toBeLessThan(tags.length);
+    expect(counted).toBeLessThanOrEqual(500);
+  });
 });
