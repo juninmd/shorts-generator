@@ -16,6 +16,7 @@ import {
   buildQuizEngagementComment,
 } from "./quiz-pipeline-helpers.js";
 import { assembleVideo } from "./quiz-video.service.js";
+import { appendAffiliateBlock } from "../affiliate-links.js";
 import { uploadToYouTube, addCommentToVideo, extractYouTubeVideoId } from "../youtube.service.js";
 import { enqueueYoutubeUpload } from "../queue.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "../state.js";
@@ -92,20 +93,21 @@ export const runQuizPipeline = async (
     if (enableYouTube) {
       await onProgress?.({ stage: "publishing_youtube", progress: 90, message: "Fazendo upload para o YouTube Shorts..." });
       const meta = buildYoutubeMetadata(quiz, watermarkText);
+      const description = appendAffiliateBlock(meta.description, config.managedRun?.affiliateLinks, jobId);
       const commentText = buildQuizEngagementComment(quiz, { links: config.managedRun?.affiliateLinks, seed: jobId });
       const channelId = config.managedRun?.channelId || "global";
       if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
         logger.warn({ channelId }, "⚠️ Limite diário atingido — enfileirando quiz para o PVC");
-        await enqueueYoutubeUpload({ id: jobId, outputPath }, meta.title, meta.description, config, meta.tags, commentText);
+        await enqueueYoutubeUpload({ id: jobId, outputPath }, meta.title, description, config, meta.tags, commentText);
       } else {
-        youtubeUrl = await uploadToYouTube(outputPath, meta.title, meta.description, config, meta.tags);
+        youtubeUrl = await uploadToYouTube(outputPath, meta.title, description, config, meta.tags);
         if (youtubeUrl) {
           await incrementDailyUploadCountAsync(channelId);
           const videoId = extractYouTubeVideoId(youtubeUrl);
           if (videoId) await addCommentToVideo(videoId, commentText, config);
         } else {
           logger.warn({ jobId }, "Upload do quiz falhou — enfileirando para retry (acumulado no PVC)");
-          await enqueueYoutubeUpload({ id: jobId, outputPath }, meta.title, meta.description, config, meta.tags, commentText);
+          await enqueueYoutubeUpload({ id: jobId, outputPath }, meta.title, description, config, meta.tags, commentText);
         }
       }
       if (youtubeUrl && config.telegramBotToken && config.telegramChatId) {

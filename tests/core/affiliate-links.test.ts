@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   AMAZON_DISCLOSURE,
+  appendAffiliateBlock,
   buildAffiliateBlock,
   pickAffiliateLinks,
 } from "../../src/core/affiliate-links.js";
@@ -65,6 +66,26 @@ describe("comment builders with affiliate links", () => {
     expect(text.indexOf("🎥")).toBeLessThan(text.indexOf("🛒"));
     expect(text).toContain("Para sua caminhada de fé:");
     expect(buildEngagementComment(undefined, ["Humor"], undefined, { links, seed: "s" })).toContain("Achados que a gente curte:");
+  });
+});
+
+describe("appendAffiliateBlock", () => {
+  it("appends the block to the end of the description, same links as the comment", () => {
+    const out = appendAffiliateBlock("Descrição\n\n#shorts", links, "v1", ["Católicos"]);
+    expect(out.startsWith("Descrição\n\n#shorts\n\n🛒 Para sua caminhada de fé:")).toBe(true);
+    expect(out.endsWith(AMAZON_DISCLOSURE)).toBe(true);
+    expect(appendAffiliateBlock("d", links, "v1")).toContain("Achados que a gente curte:");
+  });
+
+  it("leaves the description untouched without links", () => {
+    expect(appendAffiliateBlock("d", undefined, "v1")).toBe("d");
+  });
+
+  it("trims the body, not the block, when the description is at the 5000-byte cap", () => {
+    const out = appendAffiliateBlock("á".repeat(4000), links, "v1");
+    expect(Buffer.byteLength(out, "utf8")).toBeLessThanOrEqual(5000);
+    expect(out.endsWith(AMAZON_DISCLOSURE)).toBe(true);
+    expect(out).toContain("https://link.amazon/");
   });
 });
 

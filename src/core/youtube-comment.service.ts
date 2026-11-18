@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import type { PipelineConfig } from "../types.js";
-import { buildAffiliateBlock, type AffiliateLink } from "./affiliate-links.js";
+import { affiliateHeading, buildAffiliateBlock, isReligiousFocus, type AffiliateLink } from "./affiliate-links.js";
 import { logger } from "./logger.js";
 import { withRetry } from "./retry-backoff.js";
 import { getYouTubeAuth, validateYouTubeToken } from "./youtube-auth.service.js";
@@ -26,7 +26,7 @@ export const buildEngagementComment = (
   customQuestion?: string,
   affiliate?: AffiliateSource
 ): string => {
-  const religious = (focusLabels ?? []).some((l) => /cat[óo]lic|gospel|crist[ãa]?o|f[ée]|igreja|ora[çc][ãa]o|b[íi]blia/i.test(l));
+  const religious = isReligiousFocus(focusLabels);
   const fallback = religious
     ? "O que essa mensagem tocou em você? Conta aqui nos comentários 🙏"
     : "Concorda? Deixa sua opinião aqui nos comentários 👇";
@@ -35,7 +35,7 @@ export const buildEngagementComment = (
     : "";
   const question = cleanCustom || fallback;
   const base = originalVideoUrl ? `${question}\n\n🎥 Vídeo original completo: ${originalVideoUrl}` : question;
-  return withAffiliates(base, affiliate, religious ? "Para sua caminhada de fé:" : "Achados que a gente curte:");
+  return withAffiliates(base, affiliate, affiliateHeading(focusLabels));
 };
 
 export const buildQuizEngagementComment = (quiz: { perguntas?: unknown[] }, affiliate?: AffiliateSource): string => {

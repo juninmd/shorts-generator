@@ -5,6 +5,7 @@ import { analyzeVideo, withTranscriptCache } from "./video-analysis.js";
 import { applyBrandVocabulary, loadBrandVocabulary } from "./brand-vocabulary.js";
 import { processClip, getFileStartTime } from "./video-processor.js";
 import { sendToTelegram, sendSummary } from "./telegram.js";
+import { appendAffiliateBlock } from "./affiliate-links.js";
 import { generateYoutubeMetadata, uploadToYouTube, addCommentToVideo, buildEngagementComment, extractYouTubeVideoId } from "./youtube.service.js";
 import { isDailyLimitReachedAsync, incrementDailyUploadCountAsync } from "./state.js";
 import { logger } from "./logger.js";
@@ -88,13 +89,14 @@ export async function processVideo(
           sendStage = "youtube_upload_or_queue";
           const channelId = config.managedRun?.channelId || "global";
           const commentText = buildEngagementComment(video.url, config.managedRun?.focusLabels, youtubeMeta.pinnedComment, { links: config.managedRun?.affiliateLinks, seed: video.url });
+          const description = appendAffiliateBlock(youtubeMeta.description, config.managedRun?.affiliateLinks, video.url, config.managedRun?.focusLabels);
           let uploaded = false;
           if (deferUploads) {
             logger.info({ clipId: short.id, channelId }, "🌙 DEFER_UPLOADS ativo — enfileirando no PVC para publicação diurna em vez de subir agora");
           } else if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
             logger.warn({ limit: config.dailyUploadLimit, channelId }, "⚠️ Limite diário de uploads do YouTube atingido — enviando para a fila");
           } else {
-            youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags) ?? undefined;
+            youtubeUrl = await uploadToYouTube(short.outputPath, youtubeMeta.title, description, config, youtubeMeta.tags) ?? undefined;
             if (!youtubeUrl) {
               logger.warn({ clipId: short.id }, "YouTube upload failed, queueing for retry");
             } else {
@@ -105,7 +107,7 @@ export async function processVideo(
             }
           }
           if (!uploaded) {
-            await enqueueYoutubeUpload(short, youtubeMeta.title, youtubeMeta.description, config, youtubeMeta.tags, commentText);
+            await enqueueYoutubeUpload(short, youtubeMeta.title, description, config, youtubeMeta.tags, commentText);
           }
         }
         await enqueueSocialPosts(short, youtubeMeta, config).catch((err) => logger.warn({ clipId: short.id, error: err instanceof Error ? err.message : String(err) }, "Falha ao enfileirar posts sociais"));
