@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import type { PipelineConfig } from "../types.js";
+import { buildAffiliateBlock, type AffiliateLink } from "./affiliate-links.js";
 import { logger } from "./logger.js";
 import { withRetry } from "./retry-backoff.js";
 import { getYouTubeAuth, validateYouTubeToken } from "./youtube-auth.service.js";
@@ -9,10 +10,21 @@ export function extractYouTubeVideoId(url: string): string | null {
   return match ? match[1]! : null;
 }
 
+export interface AffiliateSource {
+  links?: readonly AffiliateLink[];
+  seed: string;
+}
+
+const withAffiliates = (base: string, affiliate: AffiliateSource | undefined, heading: string): string => {
+  const block = affiliate ? buildAffiliateBlock(affiliate.links, affiliate.seed, heading) : "";
+  return block ? `${base}\n\n${block}` : base;
+};
+
 export const buildEngagementComment = (
   originalVideoUrl?: string,
   focusLabels?: string[],
-  customQuestion?: string
+  customQuestion?: string,
+  affiliate?: AffiliateSource
 ): string => {
   const religious = (focusLabels ?? []).some((l) => /cat[óo]lic|gospel|crist[ãa]?o|f[ée]|igreja|ora[çc][ãa]o|b[íi]blia/i.test(l));
   const fallback = religious
@@ -22,12 +34,14 @@ export const buildEngagementComment = (
     ? customQuestion.trim().slice(0, 150)
     : "";
   const question = cleanCustom || fallback;
-  return originalVideoUrl ? `${question}\n\n🎥 Vídeo original completo: ${originalVideoUrl}` : question;
+  const base = originalVideoUrl ? `${question}\n\n🎥 Vídeo original completo: ${originalVideoUrl}` : question;
+  return withAffiliates(base, affiliate, religious ? "Para sua caminhada de fé:" : "Achados que a gente curte:");
 };
 
-export const buildQuizEngagementComment = (quiz: { perguntas?: unknown[] }): string => {
+export const buildQuizEngagementComment = (quiz: { perguntas?: unknown[] }, affiliate?: AffiliateSource): string => {
   const count = quiz.perguntas?.length ?? 3;
-  return `Quantas você acertou? 🧠\n\nConta aqui nos comentários seu resultado (de 0 a ${count})! 👇`;
+  const base = `Quantas você acertou? 🧠\n\nConta aqui nos comentários seu resultado (de 0 a ${count})! 👇`;
+  return withAffiliates(base, affiliate, "Achados que a gente curte:");
 };
 
 export const addCommentToVideo = async (

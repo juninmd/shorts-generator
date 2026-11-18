@@ -98,6 +98,7 @@ export interface ResolvedChannelRun {
   readonly publishingAccount: ResolvedPublishingCredentials;
   readonly telegramAccount?: ResolvedPublishingCredentials;
   readonly openrouterAccount?: ResolvedPublishingCredentials;
+  readonly affiliateLinks?: readonly { name: string; url: string }[];
   readonly snapshotCreatedAt: string;
 }
 
