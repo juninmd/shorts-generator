@@ -5,7 +5,7 @@ import { logger } from "../logger.js";
 const PEXELS_SEARCH_URL = "https://api.pexels.com/videos/search";
 
 interface PexelsFile { file_type: string; width: number; height: number; link: string }
-interface PexelsVideo { id: number; video_files: PexelsFile[] }
+interface PexelsVideo { id: number; url?: string; video_files: PexelsFile[] }
 
 export interface FootageClip { id: number; url: string }
 
@@ -40,6 +40,40 @@ export async function searchStockFootage(
     logger.warn({ query, err: err instanceof Error ? err.message : String(err) }, "Stock footage search failed");
   }
   return null;
+}
+
+export interface FootageCandidate { id: number; url: string; description: string }
+
+/** "…/video/man-hugging-his-son-3209828/" → "man hugging his son" (o título do Pexels descreve o que se vê). */
+export const describeSlug = (pageUrl: string | undefined): string => {
+  const slug = (pageUrl ?? "").split("/").filter(Boolean).pop() ?? "";
+  return slug.replace(/-\d+$/, "").replace(/-/g, " ").trim();
+};
+
+/** Até `limit` clipes retrato não usados para a busca, cada um com a descrição do título; vazio sem chave ou se a API falhar. */
+export async function searchFootageCandidates(
+  query: string,
+  apiKey: string | undefined,
+  usedIds: Set<number>,
+  limit = 8,
+): Promise<FootageCandidate[]> {
+  if (!apiKey) return [];
+  try {
+    const url = `${PEXELS_SEARCH_URL}?${new URLSearchParams({ query, orientation: "portrait", per_page: "15" })}`;
+    const response = await fetch(url, { headers: { Authorization: apiKey } });
+    if (!response.ok) throw new Error(`Pexels responded ${response.status}`);
+    const { videos } = await response.json() as { videos: PexelsVideo[] };
+    return videos
+      .filter((video) => !usedIds.has(video.id))
+      .flatMap((video) => {
+        const file = bestFile(video.video_files);
+        return file ? [{ id: video.id, url: file.link, description: describeSlug(video.url) }] : [];
+      })
+      .slice(0, limit);
+  } catch (err) {
+    logger.warn({ query, err: err instanceof Error ? err.message : String(err) }, "Stock footage search failed");
+    return [];
+  }
 }
 
 export async function downloadFootage(url: string, destination: string): Promise<string> {

@@ -48,6 +48,7 @@ describe("generateBibleScript", () => {
     expect(options.prompt).toContain('"Lucas 15,11-24"');
     expect(options.attemptTimeoutMs).toBe(180_000);
     expect(options.maxRetries).toBe(3);
+    expect(options.prompt).toContain("LITERALMENTE o que se vê");
     expect(options.prompt).toContain("Idioma: pt-BR");
     expect(options.prompt).toContain("não invente");
     expect(options.prompt).toContain("EXATAMENTE 6 cenas");

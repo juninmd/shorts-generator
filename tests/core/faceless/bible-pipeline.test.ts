@@ -8,6 +8,7 @@ vi.mock("../../../src/core/faceless/bible-script.js");
 vi.mock("../../../src/core/faceless/verse-cards.js");
 vi.mock("../../../src/core/comic/comic-pipeline.js");
 vi.mock("../../../src/core/faceless/bible-music.js", () => ({ bibleMusicCredit: vi.fn(() => "CREDIT") }));
+vi.mock("../../../src/core/faceless/footage-judge.js", () => ({ createFootageJudge: vi.fn(() => "JUDGE") }));
 vi.mock("../../../src/core/logger.js", () => ({ logger: { info: vi.fn() } }));
 
 describe("bible pipeline", () => {
@@ -23,6 +24,7 @@ describe("bible pipeline", () => {
     expect(generateBibleScript).toHaveBeenCalledWith("Jo 4,1-26", config, "pt-BR");
     expect(vi.mocked(buildVerseCardBook).mock.calls[0]![1]).toMatch(/bible$/);
     expect(vi.mocked(buildVerseCardBook).mock.calls[0]![2]).toBe("PK");
+    expect(vi.mocked(buildVerseCardBook).mock.calls[0]![3]).toBe("JUDGE");
     expect(vi.mocked(runComicPipeline).mock.calls[0]![1]).toMatchObject({ ttsVoice: "v", watermarkText: "wm", outputDir: "/out" });
     expect(meta.description).toContain("CREDIT");
     expect(meta).toMatchObject({ channelId: "c", videoPath: "/out/v.mp4", durationSec: 50, reference: "Jo 4,1-26" });

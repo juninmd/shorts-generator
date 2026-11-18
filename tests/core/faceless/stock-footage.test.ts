@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
-import { downloadFootage, fetchSceneFootage, searchStockFootage } from "../../../src/core/faceless/stock-footage.js";
+import { describeSlug, downloadFootage, fetchSceneFootage, searchFootageCandidates, searchStockFootage } from "../../../src/core/faceless/stock-footage.js";
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
@@ -84,5 +84,38 @@ describe("stock footage (Pexels)", () => {
       .mockResolvedValueOnce(json({ videos: [{ id: 9, video_files: [file(1080, 1920, "http://x/9.mp4")] }] }))
       .mockRejectedValueOnce("string failure");
     expect(await fetchSceneFootage("q", "/tmp/s.mp4", "KEY", new Set())).toBeNull();
+  });
+
+  it("describes a video from the Pexels page slug", () => {
+    expect(describeSlug("https://www.pexels.com/video/father-and-son-together-9096885/")).toBe("father and son together");
+    expect(describeSlug("https://www.pexels.com/video/woman-back-hugging-a-man-9485519")).toBe("woman back hugging a man");
+    expect(describeSlug(undefined)).toBe("");
+  });
+
+  it("lists unused portrait candidates with their descriptions, capped by the limit", async () => {
+    fetchMock.mockResolvedValue(json({
+      videos: [
+        { id: 1, url: "https://www.pexels.com/video/used-clip-1/", video_files: [file(1080, 1920, "used")] },
+        { id: 2, url: "https://www.pexels.com/video/father-hugging-son-2/", video_files: [file(1080, 1920, "good")] },
+        { id: 3, video_files: [file(1080, 1920, "x", "video/webm")] },
+        { id: 4, url: "https://www.pexels.com/video/sunset-field-4/", video_files: [file(1080, 1920, "field")] },
+        { id: 5, url: "https://www.pexels.com/video/more-5/", video_files: [file(1080, 1920, "more")] },
+      ],
+    }));
+    const list = await searchFootageCandidates("father hugging son", "KEY", new Set([1]), 2);
+    expect(list).toEqual([
+      { id: 2, url: "good", description: "father hugging son" },
+      { id: 4, url: "field", description: "sunset field" },
+    ]);
+    expect(String(fetchMock.mock.calls[0]![0])).toContain("per_page=15");
+  });
+
+  it("has no candidates without a key or when the API fails", async () => {
+    expect(await searchFootageCandidates("q", undefined, new Set())).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockResolvedValue(json({}, false, 500));
+    expect(await searchFootageCandidates("q", "KEY", new Set())).toEqual([]);
+    fetchMock.mockRejectedValue("offline");
+    expect(await searchFootageCandidates("q", "KEY", new Set())).toEqual([]);
   });
 });

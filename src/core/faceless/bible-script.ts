@@ -59,7 +59,7 @@ export async function generateBibleScript(
       "gancho = pergunta ou tensão tirada do próprio texto (3 primeiros segundos); contexto = quem, onde, por quê;",
       "acontecimento = o que acontece; virada = o momento central da passagem; aplicacao = o que isso diz ao ouvinte, fechando a história e citando a referência.",
       'Cada cena tem "verse": trecho curto (até 140 caracteres) da passagem, fiel ao texto, para aparecer em tela.',
-      'Cada cena tem "keywords": 2 a 4 palavras em inglês que ilustram a cena.',
+      'Cada cena tem "keywords": 3 a 5 palavras em inglês descrevendo LITERALMENTE o que se vê (ex.: "old father hugging young son", "wheat field sunset"); nunca use palavras de amor ou romance.',
       'Tom reverente e simples. Sem emojis, hashtags nem marcações de palco. "reference" no formato "Livro capítulo,versículos".',
       'Formato: {"title": string, "reference": string, "scenes": [{"act": string, "narration": string, "verse": string, "keywords": string}]}',
     ].join("\n"),

@@ -5,6 +5,7 @@ import { logger } from "../logger.js";
 import { generateBibleScript } from "./bible-script.js";
 import { buildBibleMeta, type BibleShortMeta } from "./bible-meta.js";
 import { bibleMusicCredit } from "./bible-music.js";
+import { createFootageJudge } from "./footage-judge.js";
 import { buildVerseCardBook } from "./verse-cards.js";
 
 export interface BibleOptions {
@@ -23,7 +24,7 @@ export async function runBiblePipeline(
 ): Promise<BibleShortMeta> {
   const script = await generateBibleScript(passage, config, options.language);
   logger.info({ passage, title: script.title, scenes: script.scenes.length }, "Bible script ready");
-  const book = await buildVerseCardBook(script, path.join(config.tempDir, "bible"), options.pexelsApiKey);
+  const book = await buildVerseCardBook(script, path.join(config.tempDir, "bible"), options.pexelsApiKey, createFootageJudge(config));
   const result = await runComicPipeline(book, {
     outputDir: config.outputDir,
     verticalWidth: config.verticalWidth,
