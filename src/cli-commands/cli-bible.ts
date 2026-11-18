@@ -24,9 +24,8 @@ export async function runBibleCommand(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  // Tom solene e trilha discreta por padrão (sobrescreva com COMIC_TTS_RATE / COMIC_TTS_PITCH / BGM_VOLUME).
-  process.env.COMIC_TTS_RATE ??= "-12%";
-  process.env.COMIC_TTS_PITCH ??= "-6Hz";
+  // Voz calma e trilha discreta por padrão (sobrescreva com COMIC_TTS_VOICE / COMIC_TTS_RATE / BGM_VOLUME).
+  process.env.COMIC_TTS_RATE ??= "-8%";
   process.env.BGM_VOLUME ??= "0.25";
   const config = await loadManagedConfig(channelId);
 
@@ -39,7 +38,7 @@ export async function runBibleCommand(args: string[]): Promise<void> {
 
   const meta = await runBiblePipeline(passage!, config, {
     language: arg(args, "--lang"),
-    ttsVoice: process.env.COMIC_TTS_VOICE || "pt-BR-AntonioNeural",
+    ttsVoice: process.env.COMIC_TTS_VOICE || "pt-BR-ThalitaMultilingualNeural",
     pexelsApiKey: process.env.PEXELS_API_KEY || undefined,
     musicPath: pickBibleMusic(),
     watermarkText: config.watermarkText,

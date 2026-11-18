@@ -47,6 +47,9 @@ export async function generateBibleScript(
     model: createModel(config as PipelineConfig),
     schema: BibleScriptSchema,
     temperature: 0.4,
+    // O gateway às vezes passa de 90s num roteiro longo: mais tempo e uma tentativa a mais antes de falhar.
+    attemptTimeoutMs: 180_000,
+    maxRetries: 3,
     prompt: [
       `Escreva o roteiro de um YouTube Short católico narrado sobre a passagem bíblica: "${passage}".`,
       `Idioma: ${language}. Duração falada: 45 a 58 segundos: a narração somada DEVE ter entre 120 e 150 palavras (cada cena com 2 a 3 frases).`,
