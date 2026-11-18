@@ -4,6 +4,7 @@ import { runComicPipeline } from "../comic/comic-pipeline.js";
 import { logger } from "../logger.js";
 import { generateBibleScript } from "./bible-script.js";
 import { buildBibleMeta, type BibleShortMeta } from "./bible-meta.js";
+import { bibleMusicCredit } from "./bible-music.js";
 import { buildVerseCardBook } from "./verse-cards.js";
 
 export interface BibleOptions {
@@ -31,5 +32,5 @@ export async function runBiblePipeline(
     watermarkText: options.watermarkText,
     musicPath: options.musicPath,
   });
-  return buildBibleMeta(script, result.outputPath, result.durationSec, config);
+  return buildBibleMeta(script, result.outputPath, result.durationSec, config, bibleMusicCredit(options.musicPath));
 }

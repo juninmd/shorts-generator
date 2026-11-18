@@ -53,15 +53,15 @@ describe("cli-bible", () => {
   it("generates the short and sends the approval card", async () => {
     await runBibleCommand(["--managed-channel", "santidade-catolica", "--passage", "Lucas 15,11-24"]);
     expect(runPipelineMock).toHaveBeenCalledWith("Lucas 15,11-24", expect.objectContaining({ managed: true }), {
-      language: undefined, ttsVoice: "pt-BR-AntonioNeural", pexelsApiKey: undefined, musicPath: undefined, watermarkText: "wm",
+      language: undefined, ttsVoice: "pt-BR-ThalitaMultilingualNeural", pexelsApiKey: undefined, musicPath: undefined, watermarkText: "wm",
     });
     expect(sendMock).toHaveBeenCalled();
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("--publish /out/v.publish.json"));
   });
 
-  it("defaults to a solemn voice and a softer track, but respects overrides", async () => {
+  it("defaults to a calm voice and a softer track, but respects overrides", async () => {
     await runBibleCommand(["--managed-channel", "c", "--passage", "p"]);
-    expect([process.env.COMIC_TTS_RATE, process.env.COMIC_TTS_PITCH, process.env.BGM_VOLUME]).toEqual(["-12%", "-6Hz", "0.25"]);
+    expect([process.env.COMIC_TTS_RATE, process.env.COMIC_TTS_PITCH, process.env.BGM_VOLUME]).toEqual(["-8%", undefined, "0.25"]);
     process.env.BGM_VOLUME = "0.1";
     await runBibleCommand(["--managed-channel", "c", "--passage", "p"]);
     expect(process.env.BGM_VOLUME).toBe("0.1");

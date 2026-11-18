@@ -46,6 +46,8 @@ describe("generateBibleScript", () => {
     expect(await generateBibleScript("Lucas 15,11-24", cfg)).toBe(script);
     const options = vi.mocked(generateJsonObject).mock.calls[0]![0];
     expect(options.prompt).toContain('"Lucas 15,11-24"');
+    expect(options.attemptTimeoutMs).toBe(180_000);
+    expect(options.maxRetries).toBe(3);
     expect(options.prompt).toContain("Idioma: pt-BR");
     expect(options.prompt).toContain("não invente");
     expect(options.prompt).toContain("EXATAMENTE 6 cenas");
@@ -76,6 +78,12 @@ describe("buildBibleMeta", () => {
     expect(meta.commentText).toContain("https://link.amazon/");
     expect(meta.tags).toContain("bíblia");
     expect(meta.tags).toContain("Lucas 15 11-24");
+  });
+
+  it("credits the background music in the description (CC BY)", () => {
+    const meta = buildBibleMeta(script, "/out/v.mp4", 52, {} as any, "🎵 Música: \"X\" — Kevin MacLeod");
+    expect(meta.description).toContain("🎵 Música: \"X\" — Kevin MacLeod");
+    expect(buildBibleMeta(script, "/out/v.mp4", 52, {} as any).description).not.toContain("🎵");
   });
 
   it("works without a managed channel or links", () => {

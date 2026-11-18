@@ -24,11 +24,13 @@ export function buildBibleMeta(
   videoPath: string,
   durationSec: number,
   config: Pick<PipelineConfig, "managedRun">,
+  musicCredit?: string,
 ): BibleShortMeta {
   const run = config.managedRun;
   const links = run?.affiliateLinks;
   const summary = script.scenes.map((s) => s.narration).join(" ");
-  const body = `${summary}\n\n📖 Passagem: ${script.reference}\n\n${HASHTAGS}`;
+  const credit = musicCredit ? `\n\n${musicCredit}` : "";
+  const body = `${summary}\n\n📖 Passagem: ${script.reference}\n\n${HASHTAGS}${credit}`;
   return {
     channelId: run?.channelId ?? "global",
     videoPath,
