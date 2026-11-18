@@ -5,6 +5,9 @@ import { generateJsonObject } from "../generate-json.js";
 
 /** Arco narrativo obrigatório: setup → ação → virada → resolução (LottieFiles/motion-design: narrative structure). */
 export const BIBLE_ACTS = ["gancho", "contexto", "acontecimento", "virada", "aplicacao"] as const;
+/** Sequência pedida ao modelo (o schema aceita 5 a 8 cenas, mas pedir ordem fixa evita arcos quebrados). */
+export const PROMPT_ACTS: readonly BibleAct[] = ["gancho", "contexto", "acontecimento", "acontecimento", "virada", "aplicacao"];
+
 export type BibleAct = (typeof BIBLE_ACTS)[number];
 
 export const BibleScriptSchema = z.object({
@@ -46,7 +49,8 @@ export async function generateBibleScript(
       `Escreva o roteiro de um YouTube Short católico narrado sobre a passagem bíblica: "${passage}".`,
       `Idioma: ${language}. Duração falada: 45 a 58 segundos (~120 a 150 palavras).`,
       "Conte SOMENTE o que a passagem diz, com começo, meio e fim completos; não invente fatos, falas nem personagens.",
-      `Divida em 5 a 8 cenas e marque cada uma com "act", na ordem: ${BIBLE_ACTS.join(", ")} (cada ato ao menos uma vez).`,
+      `Use EXATAMENTE ${PROMPT_ACTS.length} cenas, e o campo "act" de cada uma, nesta ordem fixa: ${PROMPT_ACTS.join(", ")}.`,
+      "Não pule nenhum ato (a cena de virada é obrigatória) e não repita atos fora dessa sequência.",
       "gancho = pergunta ou tensão tirada do próprio texto (3 primeiros segundos); contexto = quem, onde, por quê;",
       "acontecimento = o que acontece; virada = o momento central da passagem; aplicacao = o que isso diz ao ouvinte, fechando a história e citando a referência.",
       'Cada cena tem "verse": trecho curto (até 140 caracteres) da passagem, fiel ao texto, para aparecer em tela.',
