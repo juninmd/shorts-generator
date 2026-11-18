@@ -84,8 +84,9 @@ async function performUpload(
   }
 }
 
-export const uploadToYouTube = async (videoPath: string, title: string, description: string, config: PipelineConfig, tags?: string[]): Promise<string | null> => {
-  if (process.env.ENABLE_YOUTUBE !== "true") return null;
+/** `ignoreEnableFlag`: aprovação humana explícita (ex.: botão do Telegram) publica mesmo em processo sem ENABLE_YOUTUBE, como o servidor. */
+export const uploadToYouTube = async (videoPath: string, title: string, description: string, config: PipelineConfig, tags?: string[], options?: { ignoreEnableFlag?: boolean }): Promise<string | null> => {
+  if (process.env.ENABLE_YOUTUBE !== "true" && !options?.ignoreEnableFlag) return null;
 
   const auth = await getYouTubeAuth(config);
   if (!auth) { logger.warn("⚠️ Credenciais do YouTube ausentes no .env. Pulando upload."); return null; }
