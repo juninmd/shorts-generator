@@ -23,15 +23,16 @@ describe("pickBibleMusic", () => {
     expect(readdirMock).not.toHaveBeenCalled();
   });
 
-  it("falls back to a bundled background track, never beep/silence", () => {
-    readdirMock.mockReturnValue(["beep.mp3", "silence.mp3", "background2.mp3"]);
-    expect(pickBibleMusic("assets/music").replace(/\\/g, "/")).toBe("assets/music/background2.mp3");
+  it("falls back to the bundled original ambient track in assets/music/bible", () => {
+    readdirMock.mockReturnValue(["README.txt", "contemplativa.mp3"]);
+    expect(pickBibleMusic()?.replace(/\\/g, "/")).toBe("assets/music/bible/contemplativa.mp3");
+    expect(existsMock).toHaveBeenCalledWith("assets/music/bible");
   });
 
-  it("returns nothing when there is no folder or no background track", () => {
+  it("returns nothing when there is no folder or no track in it", () => {
     existsMock.mockReturnValueOnce(false);
     expect(pickBibleMusic()).toBeUndefined();
-    readdirMock.mockReturnValue(["beep.mp3"]);
+    readdirMock.mockReturnValue(["README.txt"]);
     expect(pickBibleMusic()).toBeUndefined();
   });
 });

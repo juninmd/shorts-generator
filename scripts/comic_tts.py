@@ -6,13 +6,21 @@ Prints nothing on success; non-zero exit + stderr message on failure.
 """
 import asyncio
 import json
+import os
 import sys
 
 import edge_tts
 
 
 async def synth(text: str, out_audio: str, out_words: str, voice: str) -> None:
-    communicate = edge_tts.Communicate(text, voice, boundary="WordBoundary")
+    # Optional delivery tweaks, e.g. COMIC_TTS_RATE="-12%" COMIC_TTS_PITCH="-6Hz" for a solemn tone.
+    communicate = edge_tts.Communicate(
+        text,
+        voice,
+        rate=os.environ.get("COMIC_TTS_RATE") or "+0%",
+        pitch=os.environ.get("COMIC_TTS_PITCH") or "+0Hz",
+        boundary="WordBoundary",
+    )
     words = []
     with open(out_audio, "wb") as audio_file:
         async for chunk in communicate.stream():

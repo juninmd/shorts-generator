@@ -24,6 +24,10 @@ export async function runBibleCommand(args: string[]): Promise<void> {
     process.exit(1);
   }
 
+  // Tom solene e trilha discreta por padrão (sobrescreva com COMIC_TTS_RATE / COMIC_TTS_PITCH / BGM_VOLUME).
+  process.env.COMIC_TTS_RATE ??= "-12%";
+  process.env.COMIC_TTS_PITCH ??= "-6Hz";
+  process.env.BGM_VOLUME ??= "0.25";
   const config = await loadManagedConfig(channelId);
 
   if (publish) {
