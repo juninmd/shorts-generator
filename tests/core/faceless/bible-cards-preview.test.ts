@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { fetchMock, execMock, writeMock, readMock, sendVideo, getBotMock, uploadMock, commentMock } = vi.hoisted(() => ({
-  fetchMock: vi.fn(),
+const { searchMock, downloadMock, execMock, writeMock, readMock, sendVideo, getBotMock, uploadMock, commentMock } = vi.hoisted(() => ({
+  searchMock: vi.fn(),
+  downloadMock: vi.fn(),
   execMock: vi.fn(),
   writeMock: vi.fn(),
   readMock: vi.fn(),
@@ -21,7 +22,7 @@ vi.mock("node:fs", () => {
   const api = { mkdirSync: vi.fn(), writeFileSync: writeMock, readFileSync: readMock };
   return { ...api, default: api };
 });
-vi.mock("../../../src/core/faceless/stock-footage.js", () => ({ fetchSceneFootage: fetchMock }));
+vi.mock("../../../src/core/faceless/stock-footage.js", () => ({ searchFootageCandidates: searchMock, downloadFootage: downloadMock }));
 vi.mock("nanoid", () => ({ nanoid: () => "abc123" }));
 vi.mock("grammy", () => ({ InputFile: class { constructor(public path: string) {} } }));
 vi.mock("../../../src/core/faceless/bible-approval.js", () => ({ buildApprovalKeyboard: (id: string) => `kb:${id}`, previewId: () => "v" }));
@@ -52,7 +53,8 @@ const script = {
 describe("verse cards", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    fetchMock.mockResolvedValue(null);
+    searchMock.mockResolvedValue([]);
+    downloadMock.mockImplementation(async (_url: string, dest: string) => dest);
   });
 
   it("renders one PNG per scene with the act colour, reference and verse inside the safe area", async () => {
@@ -71,13 +73,14 @@ describe("verse cards", () => {
     expect(writeMock).toHaveBeenCalledWith(expect.stringMatching(/scene1_ref\.txt$/), "Lucas 15,11-24");
   });
 
-  it("uses stock footage with a translucent text overlay when a clip matches", async () => {
-    fetchMock.mockResolvedValueOnce("/work/scene1.mp4");
-    const book = await buildVerseCardBook(script, "/work", "KEY");
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "k", expect.stringMatching(/scene1\.mp4$/), "KEY", expect.any(Set));
-    expect(book.chapters[0]).toMatchObject({ videoPath: "/work/scene1.mp4" });
+  it("uses stock footage with a translucent text overlay when the judge approves a clip", async () => {
+    searchMock.mockResolvedValueOnce([{ id: 7, url: "http://x/7.mp4", description: "father and son together" }]);
+    const judge = vi.fn().mockResolvedValue(7);
+    const book = await buildVerseCardBook(script, "/work", "KEY", judge);
+    expect(book.chapters[0]).toMatchObject({ videoPath: expect.stringMatching(/scene1\.mp4$/) });
     expect(book.chapters[0]!.overlayPath).toMatch(/scene1_overlay\.png$/);
     expect(book.chapters[1]).not.toHaveProperty("overlayPath");
+    expect(judge).toHaveBeenCalledWith(expect.objectContaining({ act: "gancho", narration: "n1" }), [expect.objectContaining({ id: 7 })]);
     const overlayArgs = execMock.mock.calls[1]![1] as string[];
     expect(overlayArgs).toContain("color=c=black@0:s=1080x1920,format=rgba");
     expect(overlayArgs[overlayArgs.indexOf("-vf") + 1]).toContain("drawbox=");
@@ -93,16 +96,48 @@ describe("verse cards", () => {
     expect(scrimFilter(Array(6).fill("a"))).not.toBe(scrimFilter(["a", "b"]));
   });
 
+  const scene = (act: string, keywords: string) => ({ act, keywords, narration: "n", verse: "v" }) as any;
+
   it("falls back from the model's keywords to a broader query, then the act's generic one", async () => {
-    fetchMock.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce("/w/s.mp4");
-    expect(await findFootage("virada", "prodigal son embrace", "/w/s.mp4", "KEY", new Set())).toBe("/w/s.mp4");
-    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual(["prodigal son embrace", "prodigal son", ACT_FOOTAGE.virada]);
-    fetchMock.mockClear();
-    fetchMock.mockResolvedValue(null);
-    expect(await findFootage("gancho", "single", "/w/s.mp4", "KEY", new Set())).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(await findFootage("gancho", "x", "/w/s.mp4", undefined, new Set())).toBeNull();
+    const judge = vi.fn().mockResolvedValue(3);
+    searchMock.mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 3, url: "u", description: "sunlight" }]);
+    expect(await findFootage(scene("virada", "prodigal son embrace"), "/w/s.mp4", "KEY", new Set(), judge)).toBe("/w/s.mp4");
+    expect(searchMock.mock.calls.map((c) => c[0])).toEqual(["prodigal son embrace", "prodigal son", ACT_FOOTAGE.virada]);
+    searchMock.mockClear();
+    searchMock.mockResolvedValue([]);
+    expect(await findFootage(scene("gancho", "single"), "/w/s.mp4", "KEY", new Set(), judge)).toBeNull();
+    expect(searchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("never uses footage without a key or a context judge", async () => {
+    searchMock.mockResolvedValue([{ id: 1, url: "u", description: "x" }]);
+    expect(await findFootage(scene("gancho", "x"), "/w/s.mp4", undefined, new Set(), vi.fn())).toBeNull();
+    expect(await findFootage(scene("gancho", "x"), "/w/s.mp4", "KEY", new Set(), undefined)).toBeNull();
+    expect(searchMock).not.toHaveBeenCalled();
+  });
+
+  it("drops blocked themes before the judge and skips clips the judge rejects (couple instead of father and son)", async () => {
+    const judge = vi.fn().mockResolvedValue(null);
+    searchMock.mockResolvedValue([
+      { id: 1, url: "u1", description: "romantic couple hugging" },
+      { id: 2, url: "u2", description: "woman back hugging a man" },
+    ]);
+    expect(await findFootage(scene("virada", "father hugging son"), "/w/s.mp4", "KEY", new Set(), judge)).toBeNull();
+    expect(judge).toHaveBeenCalledTimes(3);
+    for (const call of judge.mock.calls) expect(call[1]).toEqual([expect.objectContaining({ id: 2 })]);
+    expect(downloadMock).not.toHaveBeenCalled();
+  });
+
+  it("tries the next query when the approved clip fails to download, and remembers used ones", async () => {
+    const used = new Set<number>();
+    searchMock.mockResolvedValue([{ id: 5, url: "u5", description: "father and son" }]);
+    const judge = vi.fn().mockResolvedValue(5);
+    downloadMock.mockRejectedValueOnce(new Error("503")).mockRejectedValueOnce("texto").mockImplementation(async (_u: string, d: string) => d);
+    expect(await findFootage(scene("virada", "father hugging son"), "/w/s.mp4", "KEY", used, judge)).toBe("/w/s.mp4");
+    expect(downloadMock).toHaveBeenCalledTimes(3);
+    expect(used.has(5)).toBe(true);
+  });
+
 });
 
 describe("bible preview", () => {

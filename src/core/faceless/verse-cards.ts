@@ -10,7 +10,8 @@ import { buildFontEnv } from "../ffmpeg-env.js";
 import { resolveQuizFont } from "../quiz/quiz-fonts.js";
 import { wrapText } from "../quiz/quiz-assets.service.js";
 import type { BibleAct, BibleScript } from "./bible-script.js";
-import { fetchSceneFootage } from "./stock-footage.js";
+import { downloadFootage, searchFootageCandidates } from "./stock-footage.js";
+import { isBlockedFootage, type FootageJudge, type FootageScene } from "./footage-judge.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -57,16 +58,34 @@ export const ACT_FOOTAGE: Record<BibleAct, string> = {
   aplicacao: "praying hands",
 };
 
-/** Palavras do modelo → só as duas primeiras → busca genérica do ato; null sem chave ou sem nenhum match. */
+/**
+ * Palavras do modelo → só as duas primeiras → busca genérica do ato. Cada busca passa pelo filtro de
+ * termos proibidos e pelo juiz de contexto; sem aprovação devolve null (o capítulo vira card liso).
+ */
 export async function findFootage(
-  act: BibleAct, keywords: string, destination: string, apiKey: string | undefined, used: Set<number>,
+  scene: FootageScene & { keywords: string; act: BibleAct },
+  destination: string,
+  apiKey: string | undefined,
+  used: Set<number>,
+  judge: FootageJudge | undefined,
 ): Promise<string | null> {
-  if (!apiKey) return null;
-  const queries = [keywords, keywords.split(/\s+/).slice(0, 2).join(" "), ACT_FOOTAGE[act]];
+  if (!apiKey || !judge) return null;
+  const queries = [scene.keywords, scene.keywords.split(/\s+/).slice(0, 2).join(" "), ACT_FOOTAGE[scene.act]];
   for (const query of new Set(queries)) {
-    const file = await fetchSceneFootage(query, destination, apiKey, used);
-    if (file) return file;
-    logger.info({ query, act }, "Bible footage: no stock match, trying a broader query");
+    const candidates = (await searchFootageCandidates(query, apiKey, used)).filter((c) => !isBlockedFootage(c.description));
+    const pick = candidates.length > 0 ? await judge(scene, candidates) : null;
+    const chosen = candidates.find((c) => c.id === pick);
+    if (!chosen) {
+      logger.info({ query, act: scene.act, candidates: candidates.length }, "Bible footage: nothing in context, trying a broader query");
+      continue;
+    }
+    try {
+      const file = await downloadFootage(chosen.url, destination);
+      used.add(chosen.id);
+      return file;
+    } catch (error) {
+      logger.warn({ query, error: error instanceof Error ? error.message : String(error) }, "Bible footage download failed");
+    }
   }
   return null;
 }
@@ -79,7 +98,12 @@ async function ffmpeg(args: string[]): Promise<void> {
  * Um capítulo por cena: vídeo de acervo (Pexels) com o versículo em overlay quando há
  * footage; sem chave/match, card sólido com vinheta. As legendas karaokê narram por cima.
  */
-export async function buildVerseCardBook(script: BibleScript, workDir: string, pexelsApiKey?: string): Promise<ComicBook> {
+export async function buildVerseCardBook(
+  script: BibleScript,
+  workDir: string,
+  pexelsApiKey?: string,
+  judge?: FootageJudge,
+): Promise<ComicBook> {
   fs.mkdirSync(workDir, { recursive: true });
   const font = resolveQuizFont();
   const used = new Set<number>();
@@ -96,7 +120,7 @@ export async function buildVerseCardBook(script: BibleScript, workDir: string, p
     fs.writeFileSync(refPath, script.reference);
     const text = buildVerseFilters(lines, linePaths, refPath, font);
     const imagePath = path.join(workDir, `${id}.png`);
-    const videoPath = await findFootage(scene.act, scene.keywords, path.join(workDir, `${id}.mp4`), pexelsApiKey, used);
+    const videoPath = await findFootage(scene, path.join(workDir, `${id}.mp4`), pexelsApiKey, used, judge);
     await ffmpeg([
       "-y", "-f", "lavfi", "-i", `color=c=${ACT_BACKGROUND[scene.act]}:s=1080x1920`,
       "-vf", ["vignette=PI/5", ...text].join(","), "-frames:v", "1", imagePath,
