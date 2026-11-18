@@ -172,7 +172,7 @@ describe("bible preview", () => {
     readMock.mockReturnValue(JSON.stringify(meta));
     uploadMock.mockResolvedValue("https://youtube.com/shorts/vid123");
     expect(await publishBiblePreview("/out/v.publish.json", config)).toBe("https://youtube.com/shorts/vid123");
-    expect(uploadMock).toHaveBeenCalledWith("/out/v.mp4", "T | Lucas", "d", config, ["a"]);
+    expect(uploadMock).toHaveBeenCalledWith("/out/v.mp4", "T | Lucas", "d", config, ["a"], { ignoreEnableFlag: true });
     expect(commentMock).toHaveBeenCalledWith("vid123", meta.commentText, config);
   });
 

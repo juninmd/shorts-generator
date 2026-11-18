@@ -68,6 +68,13 @@ describe("youtube-upload.service", () => {
       expect(result).toBeNull();
     });
 
+    it("still goes ahead without ENABLE_YOUTUBE when the caller has explicit approval", async () => {
+      process.env.ENABLE_YOUTUBE = "false";
+      vi.mocked(authService.getYouTubeAuth).mockResolvedValue(null);
+      expect(await uploadToYouTube("path", "title", "desc", mockConfig, undefined, { ignoreEnableFlag: true })).toBeNull();
+      expect(authService.getYouTubeAuth).toHaveBeenCalled();
+    });
+
     it("returns null if getYouTubeAuth returns null", async () => {
       vi.mocked(authService.getYouTubeAuth).mockResolvedValue(null);
       const result = await uploadToYouTube("path", "title", "desc", mockConfig);

@@ -40,7 +40,7 @@ export async function sendBiblePreview(meta: BibleShortMeta, config: PipelineCon
 /** Publica um preview aprovado: upload + comentário com os links. Retorna a URL do vídeo. */
 export async function publishBiblePreview(metaFile: string, config: PipelineConfig): Promise<string> {
   const meta = JSON.parse(fs.readFileSync(metaFile, "utf8")) as BibleShortMeta;
-  const url = await uploadToYouTube(meta.videoPath, meta.title, meta.description, config, meta.tags);
+  const url = await uploadToYouTube(meta.videoPath, meta.title, meta.description, config, meta.tags, { ignoreEnableFlag: true });
   if (!url) throw new Error("Upload falhou (retornou null)");
   const videoId = extractYouTubeVideoId(url);
   if (videoId) await addCommentToVideo(videoId, meta.commentText, config);
