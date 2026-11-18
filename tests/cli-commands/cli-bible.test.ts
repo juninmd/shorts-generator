@@ -27,6 +27,9 @@ describe("cli-bible", () => {
     process.env = { ...env };
     delete process.env.COMIC_TTS_VOICE;
     delete process.env.PEXELS_API_KEY;
+    delete process.env.COMIC_TTS_RATE;
+    delete process.env.COMIC_TTS_PITCH;
+    delete process.env.BGM_VOLUME;
     resolveMock.mockResolvedValue({ watermarkText: "wm", managed: true });
     musicMock.mockReturnValue(undefined);
     runPipelineMock.mockResolvedValue({ videoPath: "/out/v.mp4" });
@@ -54,6 +57,14 @@ describe("cli-bible", () => {
     });
     expect(sendMock).toHaveBeenCalled();
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("--publish /out/v.publish.json"));
+  });
+
+  it("defaults to a solemn voice and a softer track, but respects overrides", async () => {
+    await runBibleCommand(["--managed-channel", "c", "--passage", "p"]);
+    expect([process.env.COMIC_TTS_RATE, process.env.COMIC_TTS_PITCH, process.env.BGM_VOLUME]).toEqual(["-12%", "-6Hz", "0.25"]);
+    process.env.BGM_VOLUME = "0.1";
+    await runBibleCommand(["--managed-channel", "c", "--passage", "p"]);
+    expect(process.env.BGM_VOLUME).toBe("0.1");
   });
 
   it("honors language, voice and music", async () => {
