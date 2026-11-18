@@ -92,7 +92,7 @@ export const runQuizPipeline = async (
     if (enableYouTube) {
       await onProgress?.({ stage: "publishing_youtube", progress: 90, message: "Fazendo upload para o YouTube Shorts..." });
       const meta = buildYoutubeMetadata(quiz, watermarkText);
-      const commentText = buildQuizEngagementComment(quiz);
+      const commentText = buildQuizEngagementComment(quiz, { links: config.managedRun?.affiliateLinks, seed: jobId });
       const channelId = config.managedRun?.channelId || "global";
       if (await isDailyLimitReachedAsync(config.dailyUploadLimit, channelId)) {
         logger.warn({ channelId }, "⚠️ Limite diário atingido — enfileirando quiz para o PVC");

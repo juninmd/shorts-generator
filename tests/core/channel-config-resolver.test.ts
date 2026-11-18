@@ -250,3 +250,32 @@ describe("ChannelConfigResolver", () => {
     expect(config.litellmApiKey).toBe("base-or-token");
   });
 });
+
+describe("ChannelConfigResolver affiliate links", () => {
+  it("carries the channel's active affiliate links into managedRun", async () => {
+    const repository = {
+      getBundle: vi.fn().mockResolvedValue({
+        channel: { id: "akitemquiz", slug: "akitemquiz", name: "Akitem", description: "d", status: "active", logoPath: null, watermarkText: "wm", channelType: "quiz" as const, createdAt: "", updatedAt: "" },
+        profile: { channelId: "akitemquiz", videoLimit: 1, minShortDuration: 15, maxShortDuration: 59, targetShorts: null, videoQuery: null, sortByViews: false, aiProvider: "ollama", aiModel: "gemma3:1b" },
+        focuses: [],
+        sources: [],
+        publishingAccounts: [{
+          id: "acc1", channelId: "akitemquiz", provider: "youtube", label: "YT", status: "active",
+          accountIdentifier: "c@example.com", clientId: "cid", clientSecret: "secret",
+          encryptedToken: { keyVersion: "v1", iv: "iv", authTag: "tag", ciphertext: "cipher" },
+          createdAt: "", updatedAt: "",
+        }],
+      }),
+    };
+    const secretStore = { decryptToken: vi.fn().mockReturnValue("tok"), encryptToken: vi.fn() };
+    const affiliates = { listActive: vi.fn().mockResolvedValue([{ name: "Kindle", url: "https://link.amazon/a" }]) };
+
+    const resolved = await new ChannelConfigResolver(repository as any, secretStore as any, affiliates as any).resolveRunConfig("r", "akitemquiz");
+    const config = buildManagedPipelineConfig(loadConfig(), "r", resolved);
+    expect(affiliates.listActive).toHaveBeenCalledWith("akitemquiz");
+    expect(config.managedRun?.affiliateLinks).toEqual([{ name: "Kindle", url: "https://link.amazon/a" }]);
+
+    const plain = await new ChannelConfigResolver(repository as any, secretStore as any).resolveRunConfig("r", "akitemquiz");
+    expect(buildManagedPipelineConfig(loadConfig(), "r", plain).managedRun?.affiliateLinks).toBeUndefined();
+  });
+});

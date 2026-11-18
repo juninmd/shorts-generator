@@ -7,6 +7,7 @@ import { loadControlPlaneConfig } from "../core/control-plane-config.js";
 import { getControlPlanePool } from "../core/control-plane-db.js";
 import { runPipeline } from "../core/pipeline.js";
 import { runQuizPipeline } from "../core/quiz/quiz-pipeline.js";
+import { ChannelAffiliateRepository } from "../core/channel-affiliate-repository.js";
 import { ManagedRunRepository } from "../core/managed-run-repository.js";
 import { logger } from "../core/logger.js";
 import { createSecretStore } from "../core/secret-store.js";
@@ -18,7 +19,7 @@ export async function runManagedChannel(channelId: string, baseConfig = loadConf
   const db = getControlPlanePool(controlPlaneConfig);
   const repository = new ChannelBundleRepository(db as any);
   const runRepository = new ManagedRunRepository(db as any);
-  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
+  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig), new ChannelAffiliateRepository(db as any));
   const runId = randomUUID();
 
   await runControlPlaneMigrations(db as any);
@@ -54,7 +55,7 @@ export async function runQuizManagedChannel(channelId: string, quizTopic?: strin
   const db = getControlPlanePool(controlPlaneConfig);
   const repository = new ChannelBundleRepository(db as any);
   const runRepository = new ManagedRunRepository(db as any);
-  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig));
+  const resolver = new ChannelConfigResolver(repository, createSecretStore(controlPlaneConfig), new ChannelAffiliateRepository(db as any));
   const runId = randomUUID();
 
   await runControlPlaneMigrations(db as any);

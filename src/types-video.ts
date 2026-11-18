@@ -110,5 +110,6 @@ export interface ManagedRunContext {
   accountId?: string;
   publishingAccounts?: any[]; // For legacy compatibility in youtube.service.ts
   focusLabels: string[];
+  affiliateLinks?: { name: string; url: string }[];
   logoPath?: string | null;
 }
