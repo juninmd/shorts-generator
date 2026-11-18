@@ -24,10 +24,11 @@ export async function renderChapterClip(
 ): Promise<void> {
   if (chapter.videoPath) return renderFootageClip(chapter, chapter.videoPath, outputPath, width, height);
   const frames = Math.max(1, Math.round(chapter.durationSec * 30));
+  // Ease-out cubic: the push-in decelerates and settles instead of drifting linearly (motion-design: entrance = ease-out).
   const zoomFilter =
     `scale=${width * 2}:${height * 2}:force_original_aspect_ratio=increase,` +
     `crop=${width * 2}:${height * 2},` +
-    `zoompan=z='min(zoom+0.0006,1.15)':d=${frames}:s=${width}x${height}:fps=30`;
+    `zoompan=z='1+0.15*(1-pow(1-on/${frames},3))':d=${frames}:s=${width}x${height}:fps=30`;
   const args = [
     "-y",
     "-loop", "1",
