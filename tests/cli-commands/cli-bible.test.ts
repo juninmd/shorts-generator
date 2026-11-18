@@ -35,6 +35,7 @@ describe("cli-bible", () => {
     vi.clearAllMocks();
     process.env = { ...env };
     delete process.env.COMIC_TTS_VOICE;
+    delete process.env.PEXELS_API_KEY;
     musicMock.mockReturnValue(null);
     runPipelineMock.mockResolvedValue({ videoPath: "/out/v.mp4" });
     sendMock.mockResolvedValue("/out/v.publish.json");
@@ -57,7 +58,7 @@ describe("cli-bible", () => {
   it("generates the short and sends the approval card", async () => {
     await runBibleCommand(["--managed-channel", "santidade-catolica", "--passage", "Lucas 15,11-24"]);
     expect(runPipelineMock).toHaveBeenCalledWith("Lucas 15,11-24", expect.objectContaining({ managed: true }), {
-      language: undefined, ttsVoice: "pt-BR-AntonioNeural", musicPath: undefined, watermarkText: "wm",
+      language: undefined, ttsVoice: "pt-BR-AntonioNeural", pexelsApiKey: undefined, musicPath: undefined, watermarkText: "wm",
     });
     expect(sendMock).toHaveBeenCalled();
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("--publish /out/v.publish.json"));
@@ -65,9 +66,10 @@ describe("cli-bible", () => {
 
   it("honors language, voice and music", async () => {
     process.env.COMIC_TTS_VOICE = "en-US-GuyNeural";
+    process.env.PEXELS_API_KEY = "PK";
     musicMock.mockReturnValue("bgm.mp3");
     await runBibleCommand(["--managed-channel", "c", "--passage", "p", "--lang", "en-US"]);
-    expect(runPipelineMock.mock.calls[0]![2]).toMatchObject({ language: "en-US", ttsVoice: "en-US-GuyNeural", musicPath: "bgm.mp3" });
+    expect(runPipelineMock.mock.calls[0]![2]).toMatchObject({ language: "en-US", ttsVoice: "en-US-GuyNeural", pexelsApiKey: "PK", musicPath: "bgm.mp3" });
   });
 
   it("publishes an approved preview", async () => {

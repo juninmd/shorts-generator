@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { execMock, writeMock, readMock, sendVideo, getBotMock, uploadMock, commentMock } = vi.hoisted(() => ({
+const { fetchMock, execMock, writeMock, readMock, sendVideo, getBotMock, uploadMock, commentMock } = vi.hoisted(() => ({
+  fetchMock: vi.fn(),
   execMock: vi.fn(),
   writeMock: vi.fn(),
   readMock: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("node:fs", () => {
   const api = { mkdirSync: vi.fn(), writeFileSync: writeMock, readFileSync: readMock };
   return { ...api, default: api };
 });
+vi.mock("../../../src/core/faceless/stock-footage.js", () => ({ fetchSceneFootage: fetchMock }));
 vi.mock("nanoid", () => ({ nanoid: () => "abc123" }));
 vi.mock("grammy", () => ({ InputFile: class { constructor(public path: string) {} } }));
 vi.mock("../../../src/core/ffmpeg-bin.js", () => ({ ffmpegBin: () => "ffmpeg" }));
@@ -35,7 +37,7 @@ vi.mock("../../../src/core/youtube-comment.service.js", () => ({
 }));
 vi.mock("../../../src/core/logger.js", () => ({ logger: { info: vi.fn(), warn: vi.fn() } }));
 
-import { ACT_BACKGROUND, buildVerseCardBook, buildVerseFilters } from "../../../src/core/faceless/verse-cards.js";
+import { ACT_BACKGROUND, buildVerseCardBook, buildVerseFilters, scrimFilter } from "../../../src/core/faceless/verse-cards.js";
 import { publishBiblePreview, sendBiblePreview } from "../../../src/core/faceless/bible-preview.js";
 
 const script = {
@@ -47,7 +49,10 @@ const script = {
 } as any;
 
 describe("verse cards", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fetchMock.mockResolvedValue(null);
+  });
 
   it("renders one PNG per scene with the act colour, reference and verse inside the safe area", async () => {
     const book = await buildVerseCardBook(script, "/work");
@@ -57,17 +62,33 @@ describe("verse cards", () => {
     const args = execMock.mock.calls[0]![1] as string[];
     expect(args).toContain(`color=c=${ACT_BACKGROUND.gancho}:s=1080x1920`);
     const vf = args[args.indexOf("-vf") + 1]!;
+    expect(execMock).toHaveBeenCalledTimes(2);
+    expect(book.chapters[0]).not.toHaveProperty("videoPath");
     expect(vf).toContain("vignette");
     expect(vf).toContain("y=330");
     expect(vf).toContain("y=440");
     expect(writeMock).toHaveBeenCalledWith(expect.stringMatching(/scene1_ref\.txt$/), "Lucas 15,11-24");
   });
 
-  it("shrinks the type for long verses", () => {
-    const short = buildVerseFilters(["a"], ["/a.txt"], "/r.txt", "f.ttf");
-    const long = buildVerseFilters(Array(6).fill("a"), Array(6).fill("/a.txt"), "/r.txt", "f.ttf");
+  it("uses stock footage with a translucent text overlay when a clip matches", async () => {
+    fetchMock.mockResolvedValueOnce("/work/scene1.mp4");
+    const book = await buildVerseCardBook(script, "/work", "KEY");
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "k", expect.stringMatching(/scene1\.mp4$/), "KEY", expect.any(Set));
+    expect(book.chapters[0]).toMatchObject({ videoPath: "/work/scene1.mp4" });
+    expect(book.chapters[0]!.overlayPath).toMatch(/scene1_overlay\.png$/);
+    expect(book.chapters[1]).not.toHaveProperty("overlayPath");
+    const overlayArgs = execMock.mock.calls[1]![1] as string[];
+    expect(overlayArgs).toContain("color=c=black@0:s=1080x1920,format=rgba");
+    expect(overlayArgs[overlayArgs.indexOf("-vf") + 1]).toContain("drawbox=");
+  });
+
+  it("shrinks the type for long verses and sizes the scrim to the text", () => {
+    const short = buildVerseFilters(["a"], ["/a.txt"], "/r.txt", "f.ttf").join(",");
+    const long = buildVerseFilters(Array(6).fill("a"), Array(6).fill("/a.txt"), "/r.txt", "f.ttf").join(",");
     expect(short).toContain("fontsize=76");
     expect(long).toContain("fontsize=64");
+    expect(scrimFilter(2)).toContain("replace=1");
+    expect(scrimFilter(6)).not.toBe(scrimFilter(2));
   });
 });
 

@@ -85,6 +85,17 @@ describe("comic-video", () => {
     expect(args).not.toContain("-loop");
   });
 
+  it("overlays a transparent PNG (verse text) on the stock footage", async () => {
+    await renderChapterClip({
+      id: "s3", title: "s", imagePath: "", videoPath: "stock.mp4", overlayPath: "ov.png", narrationText: "t",
+      audioPath: "s3.mp3", durationSec: 4, words: [],
+    }, "out.mp4", 1080, 1920);
+    const args = vi.mocked(cp.execFile).mock.calls[0][1] as string[];
+    expect(args).toEqual(expect.arrayContaining(["ov.png", "-filter_complex", "[v]", "1:a"]));
+    expect(args[args.indexOf("-filter_complex") + 1]).toMatch(/^\[0:v\].*\[bg\];\[bg\]\[2:v\]overlay=0:0\[v\]$/);
+    expect(args).not.toContain("-vf");
+  });
+
   it("converts an SD stock clip with its own BT.601 matrix before scaling", async () => {
     vi.mocked(probeVideoStream).mockResolvedValueOnce({ color_space: "smpte170m" } as any);
     await renderChapterClip({

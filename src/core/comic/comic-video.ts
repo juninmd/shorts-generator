@@ -54,13 +54,15 @@ async function renderFootageClip(
   const source = await probeVideoStream(videoPath);
   const colour = await resolveColourPlan(source.color_space, source.color_transfer, "comic-footage");
   const fit = `${colour.filter}scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,fps=30`;
+  const overlay = chapter.overlayPath
+    ? ["-i", chapter.overlayPath, "-filter_complex", `[0:v]${fit}[bg];[bg][2:v]overlay=0:0[v]`, "-map", "[v]"]
+    : ["-vf", fit, "-map", "0:v"];
   const args = [
     "-y",
     "-stream_loop", "-1",
     "-i", videoPath,
     "-i", chapter.audioPath,
-    "-vf", fit,
-    "-map", "0:v",
+    ...overlay,
     "-map", "1:a",
     "-t", String(chapter.durationSec),
     ...buildVideoEncoderArgs({ encoder: "libx264", spec: SPEC, quality: 18, tagBt709: colour.tagBt709 }),
