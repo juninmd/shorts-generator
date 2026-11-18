@@ -10,6 +10,7 @@ export interface BibleOptions {
   language?: string;
   ttsVoice: string;
   musicPath?: string;
+  pexelsApiKey?: string;
   watermarkText?: string;
 }
 
@@ -21,7 +22,7 @@ export async function runBiblePipeline(
 ): Promise<BibleShortMeta> {
   const script = await generateBibleScript(passage, config, options.language);
   logger.info({ passage, title: script.title, scenes: script.scenes.length }, "Bible script ready");
-  const book = await buildVerseCardBook(script, path.join(config.tempDir, "bible"));
+  const book = await buildVerseCardBook(script, path.join(config.tempDir, "bible"), options.pexelsApiKey);
   const result = await runComicPipeline(book, {
     outputDir: config.outputDir,
     verticalWidth: config.verticalWidth,

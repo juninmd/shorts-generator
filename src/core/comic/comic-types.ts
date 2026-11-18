@@ -7,6 +7,8 @@ export interface ComicChapter {
   imagePath: string;
   /** Optional stock/B-roll footage shown instead of the still image (faceless mode). */
   videoPath?: string;
+  /** Transparent PNG drawn over `videoPath` (e.g. on-screen verse text). */
+  overlayPath?: string;
   narrationText: string;
 }
 

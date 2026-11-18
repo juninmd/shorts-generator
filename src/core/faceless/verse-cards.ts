@@ -3,12 +3,13 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { nanoid } from "nanoid";
-import type { ComicBook } from "../comic/comic-types.js";
+import type { ComicBook, ComicChapter } from "../comic/comic-types.js";
 import { ffmpegBin } from "../ffmpeg-bin.js";
 import { buildFontEnv } from "../ffmpeg-env.js";
 import { resolveQuizFont } from "../quiz/quiz-fonts.js";
 import { wrapText } from "../quiz/quiz-assets.service.js";
 import type { BibleAct, BibleScript } from "./bible-script.js";
+import { fetchSceneFootage } from "./stock-footage.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -22,44 +23,65 @@ export const ACT_BACKGROUND: Record<BibleAct, string> = {
 };
 
 const escape = (p: string) => p.replace(/\\/g, "/").replace(/:/g, "\\:");
+const lineStep = (lines: number) => Math.round((lines > 5 ? 64 : 76) * 1.35);
 
 /**
- * Tipografia dentro da área segura 9:16: texto entre y=420 e ~1000, acima da faixa das
+ * Tipografia dentro da área segura 9:16: texto entre y=330 e ~1000, acima da faixa das
  * legendas (≈ 32% de baixo) e longe das bandas de UI. Uma linha por arquivo, centralizada.
  */
-export function buildVerseFilters(lines: string[], linePaths: string[], refPath: string, font: string): string {
+export function buildVerseFilters(lines: string[], linePaths: string[], refPath: string, font: string): string[] {
   const fontFile = escape(font);
   const size = lines.length > 5 ? 64 : 76;
-  const step = Math.round(size * 1.35);
   const verse = linePaths.map((file, i) =>
-    `drawtext=fontfile='${fontFile}':textfile='${escape(file)}':fontsize=${size}:fontcolor=white:borderw=3:bordercolor=black@0.6:x=(w-text_w)/2:y=${440 + i * step}`);
+    `drawtext=fontfile='${fontFile}':textfile='${escape(file)}':fontsize=${size}:fontcolor=white:borderw=3:bordercolor=black@0.6:x=(w-text_w)/2:y=${440 + i * lineStep(lines.length)}`);
   const ref = `drawtext=fontfile='${fontFile}':textfile='${escape(refPath)}':fontsize=44:fontcolor=0xFFE45E:x=(w-text_w)/2:y=330`;
-  return ["vignette=PI/5", ref, ...verse].join(",");
+  return [ref, ...verse];
 }
 
-/** Um card PNG por cena: referência + versículo em tela; as legendas karaokê narram por cima. */
-export async function buildVerseCardBook(script: BibleScript, workDir: string): Promise<ComicBook> {
+/** Faixa escura translúcida atrás do texto para ele ler sobre qualquer vídeo de acervo. */
+export const scrimFilter = (lines: number): string =>
+  `drawbox=x=0:y=290:w=iw:h=${190 + lines * lineStep(lines)}:color=black@0.5:t=fill:replace=1`;
+
+async function ffmpeg(args: string[]): Promise<void> {
+  await execFileAsync(ffmpegBin(), args, { maxBuffer: 8 * 1024 * 1024, env: buildFontEnv() });
+}
+
+/**
+ * Um capítulo por cena: vídeo de acervo (Pexels) com o versículo em overlay quando há
+ * footage; sem chave/match, card sólido com vinheta. As legendas karaokê narram por cima.
+ */
+export async function buildVerseCardBook(script: BibleScript, workDir: string, pexelsApiKey?: string): Promise<ComicBook> {
   fs.mkdirSync(workDir, { recursive: true });
   const font = resolveQuizFont();
-  const id = `bible-${nanoid(6)}`;
-  const chapters = [];
+  const used = new Set<number>();
+  const chapters: ComicChapter[] = [];
   for (const [index, scene] of script.scenes.entries()) {
-    const sceneId = `scene${index + 1}`;
+    const id = `scene${index + 1}`;
     const lines = wrapText(`“${scene.verse}”`, 22).split("\n");
     const linePaths = lines.map((line, i) => {
-      const file = path.join(workDir, `${sceneId}_l${i}.txt`);
+      const file = path.join(workDir, `${id}_l${i}.txt`);
       fs.writeFileSync(file, line);
       return file;
     });
-    const refPath = path.join(workDir, `${sceneId}_ref.txt`);
+    const refPath = path.join(workDir, `${id}_ref.txt`);
     fs.writeFileSync(refPath, script.reference);
-    const imagePath = path.join(workDir, `${sceneId}.png`);
-    await execFileAsync(ffmpegBin(), [
+    const text = buildVerseFilters(lines, linePaths, refPath, font);
+    const imagePath = path.join(workDir, `${id}.png`);
+    const videoPath = await fetchSceneFootage(scene.keywords, path.join(workDir, `${id}.mp4`), pexelsApiKey, used);
+    await ffmpeg([
       "-y", "-f", "lavfi", "-i", `color=c=${ACT_BACKGROUND[scene.act]}:s=1080x1920`,
-      "-vf", buildVerseFilters(lines, linePaths, refPath, font),
-      "-frames:v", "1", imagePath,
-    ], { maxBuffer: 8 * 1024 * 1024, env: buildFontEnv() });
-    chapters.push({ id: sceneId, title: scene.act, narrationText: scene.narration, imagePath });
+      "-vf", ["vignette=PI/5", ...text].join(","), "-frames:v", "1", imagePath,
+    ]);
+    const chapter: ComicChapter = { id, title: scene.act, narrationText: scene.narration, imagePath };
+    if (videoPath) {
+      const overlayPath = path.join(workDir, `${id}_overlay.png`);
+      await ffmpeg([
+        "-y", "-f", "lavfi", "-i", "color=c=black@0:s=1080x1920,format=rgba",
+        "-vf", [scrimFilter(lines.length), ...text].join(","), "-frames:v", "1", overlayPath,
+      ]);
+      Object.assign(chapter, { videoPath, overlayPath });
+    }
+    chapters.push(chapter);
   }
-  return { id, title: script.title, chapters };
+  return { id: `bible-${nanoid(6)}`, title: script.title, chapters };
 }

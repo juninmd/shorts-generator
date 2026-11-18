@@ -49,6 +49,7 @@ export async function runBibleCommand(args: string[]): Promise<void> {
   const meta = await runBiblePipeline(passage!, config, {
     language: arg(args, "--lang"),
     ttsVoice: process.env.COMIC_TTS_VOICE || "pt-BR-AntonioNeural",
+    pexelsApiKey: process.env.PEXELS_API_KEY || undefined,
     musicPath: pickBackgroundMusic() ?? undefined,
     watermarkText: config.watermarkText,
   });
