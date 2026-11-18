@@ -23,6 +23,10 @@ vi.mock("../../src/core/logger.js", () => ({
   },
 }));
 
+vi.mock("../../src/core/config.js", () => ({ loadConfig: vi.fn(() => ({})) }));
+
+vi.mock("../../src/core/faceless/bible-approval.js", () => ({ startBibleApproval: vi.fn() }));
+
 vi.mock("../../src/core/control-plane-config.js", () => ({
   tryLoadControlPlaneConfig: vi.fn(() => null),
 }));
@@ -67,6 +71,13 @@ describe("Server Index", () => {
     expect(serve).toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith({ port: 4000 }, "Starting Shorts Generator API server");
     expect(logger.info).toHaveBeenCalledWith("Server running at http://localhost:3001");
+  });
+
+  it("starts the Telegram approval bot with the loaded config", async () => {
+    const { startBibleApproval } = await import("../../src/core/faceless/bible-approval.js");
+    const { startServer } = await import("../../src/server/index.js");
+    startServer();
+    expect(startBibleApproval).toHaveBeenCalledWith({});
   });
 
   it("should use port 3001 if PORT env is not set", async () => {

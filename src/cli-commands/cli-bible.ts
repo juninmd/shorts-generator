@@ -1,12 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { ChannelAffiliateRepository } from "../core/channel-affiliate-repository.js";
-import { ChannelBundleRepository } from "../core/channel-bundle-repository.js";
-import { ChannelConfigResolver, buildManagedPipelineConfig } from "../core/channel-config-resolver.js";
-import { loadConfig } from "../core/config.js";
-import { loadControlPlaneConfig } from "../core/control-plane-config.js";
-import { getControlPlanePool } from "../core/control-plane-db.js";
-import { createSecretStore } from "../core/secret-store.js";
-import { pickBackgroundMusic } from "../core/audio-ducking.js";
+import { loadManagedConfig } from "../core/managed-config.js";
+import { pickBibleMusic } from "../core/faceless/bible-music.js";
 import { logger } from "../core/logger.js";
 import { runBiblePipeline } from "../core/faceless/bible-pipeline.js";
 import { publishBiblePreview, sendBiblePreview } from "../core/faceless/bible-preview.js";
@@ -31,13 +24,7 @@ export async function runBibleCommand(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const controlPlane = loadControlPlaneConfig();
-  const db = getControlPlanePool(controlPlane) as any;
-  const resolver = new ChannelConfigResolver(
-    new ChannelBundleRepository(db), createSecretStore(controlPlane), new ChannelAffiliateRepository(db),
-  );
-  const resolved = await resolver.resolveRunConfig(randomUUID(), channelId);
-  const config = buildManagedPipelineConfig(loadConfig(), randomUUID(), resolved);
+  const config = await loadManagedConfig(channelId);
 
   if (publish) {
     const url = await publishBiblePreview(publish, config);
@@ -49,7 +36,8 @@ export async function runBibleCommand(args: string[]): Promise<void> {
   const meta = await runBiblePipeline(passage!, config, {
     language: arg(args, "--lang"),
     ttsVoice: process.env.COMIC_TTS_VOICE || "pt-BR-AntonioNeural",
-    musicPath: pickBackgroundMusic() ?? undefined,
+    pexelsApiKey: process.env.PEXELS_API_KEY || undefined,
+    musicPath: pickBibleMusic(),
     watermarkText: config.watermarkText,
   });
   const sidecar = await sendBiblePreview(meta, config);

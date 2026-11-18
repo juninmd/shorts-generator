@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { InputFile } from "grammy";
+import { buildApprovalKeyboard, previewId } from "./bible-approval.js";
 import type { PipelineConfig } from "../../types.js";
 import { logger } from "../logger.js";
 import { getBot } from "../telegram-bot.js";
@@ -28,10 +29,10 @@ export async function sendBiblePreview(meta: BibleShortMeta, config: PipelineCon
     "",
     "💬 <b>Comentário fixo:</b>",
   ].join("\n");
-  const budget = CAPTION_MAX_CHARS - head.length - "\n<i></i>\n\n✅ Aprove para publicar no YouTube".length;
-  const caption = `${head}\n<i>${escapeHtmlWithin(meta.commentText, budget)}</i>\n\n✅ Aprove para publicar no YouTube`;
+  const budget = CAPTION_MAX_CHARS - head.length - "\n<i></i>\n\n👇 Use os botões abaixo para aprovar".length;
+  const caption = `${head}\n<i>${escapeHtmlWithin(meta.commentText, budget)}</i>\n\n👇 Use os botões abaixo para aprovar`;
   await bot.api.sendVideo(config.telegramChatId!, new InputFile(meta.videoPath), {
-    caption, parse_mode: "HTML", supports_streaming: true,
+    caption, parse_mode: "HTML", supports_streaming: true, reply_markup: buildApprovalKeyboard(previewId(meta.videoPath)),
   });
   return file;
 }

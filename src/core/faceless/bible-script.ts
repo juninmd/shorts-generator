@@ -24,6 +24,8 @@ export const BibleScriptSchema = z.object({
 }).superRefine((script, ctx) => {
   const order = script.scenes.map((s) => BIBLE_ACTS.indexOf(s.act));
   const sorted = order.every((n, i) => i === 0 || n >= order[i - 1]!);
+  const words = script.scenes.reduce((sum, s) => sum + s.narration.split(/\s+/).filter(Boolean).length, 0);
+  if (words < 80) ctx.addIssue({ code: "custom", message: `Narração curta demais (${words} palavras; mínimo 80)` });
   const missing = BIBLE_ACTS.filter((act) => !script.scenes.some((s) => s.act === act));
   if (!sorted || missing.length > 0 || order[0] !== 0 || order[order.length - 1] !== BIBLE_ACTS.length - 1) {
     ctx.addIssue({
@@ -47,7 +49,7 @@ export async function generateBibleScript(
     temperature: 0.4,
     prompt: [
       `Escreva o roteiro de um YouTube Short católico narrado sobre a passagem bíblica: "${passage}".`,
-      `Idioma: ${language}. Duração falada: 45 a 58 segundos (~120 a 150 palavras).`,
+      `Idioma: ${language}. Duração falada: 45 a 58 segundos: a narração somada DEVE ter entre 120 e 150 palavras (cada cena com 2 a 3 frases).`,
       "Conte SOMENTE o que a passagem diz, com começo, meio e fim completos; não invente fatos, falas nem personagens.",
       `Use EXATAMENTE ${PROMPT_ACTS.length} cenas, e o campo "act" de cada uma, nesta ordem fixa: ${PROMPT_ACTS.join(", ")}.`,
       "Não pule nenhum ato (a cena de virada é obrigatória) e não repita atos fora dessa sequência.",
