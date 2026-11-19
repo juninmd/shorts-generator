@@ -32,7 +32,7 @@
     "diagnose:cluster": "bun scripts/diagnose-cluster.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.92",
+    "@ai-sdk/openai-compatible": "^3.0.93",
     "@hono/node-server": "^2.1.9",
     "ai": "^7.0.173",
     "better-sqlite3": "^13.1.1",
