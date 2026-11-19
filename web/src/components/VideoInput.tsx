@@ -1,5 +1,13 @@
 import { useState, FormEvent } from "react";
 
+const URL_RE = /^https?:\/\//i;
+
+/** Distinct http(s) URLs from a newline/comma separated blob. */
+export function parseUrls(input: string): string[] {
+  const urls = input.split(/[\n,]/).map((u) => u.trim()).filter((u) => URL_RE.test(u));
+  return [...new Set(urls)];
+}
+
 interface VideoInputProps {
   onSubmit: (urls: string[]) => void;
   isLoading: boolean;
@@ -7,14 +15,12 @@ interface VideoInputProps {
 
 export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
   const [input, setInput] = useState("");
+  const [invalid, setInvalid] = useState(false);
+  const urls = parseUrls(input);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const urls = input
-      .split(/[\n,]/)
-      .map((u) => u.trim())
-      .filter((u) => u.startsWith("http"));
-
+    setInvalid(urls.length === 0);
     if (urls.length > 0) {
       onSubmit(urls);
     }
@@ -35,14 +41,24 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
           className="input min-h-[100px] resize-y"
           placeholder={"https://www.youtube.com/watch?v=...\nhttps://www.youtube.com/watch?v=..."}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setInvalid(false);
+          }}
           disabled={isLoading}
+          aria-label="URLs dos vídeos"
+          aria-invalid={invalid}
+          aria-describedby="video-input-hint"
         />
+        {invalid && (
+          <p role="alert" className="text-sm text-red-400">
+            Nenhuma URL válida: use links que comecem com http:// ou https://.
+          </p>
+        )}
 
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-500">
-            {input.split(/[\n,]/).filter((u) => u.trim().startsWith("http")).length}{" "}
-            URL(s) detectada(s)
+          <p id="video-input-hint" role="status" className="text-xs text-gray-500">
+            {urls.length} URL(s) detectada(s)
           </p>
           <button
             type="submit"
