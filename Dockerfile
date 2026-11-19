@@ -33,7 +33,9 @@ RUN bun install --frozen-lockfile --production
 COPY tests/yt-download/pyproject.toml ./tests/yt-download/
 RUN uv venv tests/yt-download/.venv && \
     uv pip install -r tests/yt-download/pyproject.toml --python tests/yt-download/.venv && \
-    uv pip install --upgrade --pre yt-dlp yt-dlp-ejs --python tests/yt-download/.venv
+    uv pip install --upgrade --pre yt-dlp yt-dlp-ejs --python tests/yt-download/.venv && \
+    uv pip install "opencv-python-headless<5" --python tests/yt-download/.venv && \
+    tests/yt-download/.venv/bin/python -c "import cv2; assert hasattr(cv2, 'FaceDetectorYN'), 'cv2 lacks FaceDetectorYN'; print('✓ opencv', cv2.__version__)"
 
 # Add venv bin to path
 ENV PATH="/app/tests/yt-download/.venv/bin:$PATH"
