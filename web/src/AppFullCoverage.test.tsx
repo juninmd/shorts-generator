@@ -35,7 +35,7 @@ describe("AppFullCoverage", () => {
     render(<App />);
 
     // Refresh button
-    const refreshBtn = screen.getByRole("button", { name: "" }).closest('button');
+    const refreshBtn = screen.getByRole("button", { name: "Atualizar canais" }).closest('button');
     if (refreshBtn && refreshBtn.innerHTML.includes('polyline')) { // Zap icon usually has polygon, refresh has arrow? Let's click all small buttons
         const allBtns = screen.getAllByRole("button");
         for (const b of allBtns) {

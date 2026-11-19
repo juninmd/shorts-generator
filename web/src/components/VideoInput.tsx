@@ -31,6 +31,7 @@ export function VideoInput({ onSubmit, isLoading }: VideoInputProps) {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <textarea
+          aria-label="URLs de vídeos do YouTube"
           className="input min-h-[100px] resize-y"
           placeholder={"https://www.youtube.com/watch?v=...\nhttps://www.youtube.com/watch?v=..."}
           value={input}

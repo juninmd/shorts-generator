@@ -54,7 +54,7 @@ function Field({ label, hint, tip, ...props }: { label: string; hint?: string; t
     <label style={{ display: "block" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
         <Label hint={hint}>{label}</Label>
-        {tip && <Tooltip tip={tip}><span style={{ color: "#475569", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>}
+        {tip && <Tooltip tip={tip}><span style={{ color: "#94a3b8", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>}
       </div>
       <input className="field" {...props} />
     </label>
@@ -66,7 +66,7 @@ function FieldArea({ label, hint, tip, ...props }: { label: string; hint?: strin
     <label style={{ display: "block" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
         <Label hint={hint}>{label}</Label>
-        {tip && <Tooltip tip={tip}><span style={{ color: "#475569", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>}
+        {tip && <Tooltip tip={tip}><span style={{ color: "#94a3b8", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>}
       </div>
       <textarea className="field" style={{ resize: "vertical", minHeight: 90 }} {...props} />
     </label>
@@ -78,7 +78,7 @@ function FieldSelect({ label, hint, tip, children, ...props }: { label: string; 
     <label style={{ display: "block" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
         <Label hint={hint}>{label}</Label>
-        {tip && <Tooltip tip={tip}><span style={{ color: "#475569", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>}
+        {tip && <Tooltip tip={tip}><span style={{ color: "#94a3b8", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>}
       </div>
       <select className="field" {...props}>{children}</select>
     </label>
@@ -95,7 +95,7 @@ function WizardBar({ step, total, labels }: { step: number; total: number; label
             <div className={`step-circle ${i < step ? "step-done" : i === step ? "step-active" : "step-idle"}`}>
               {i < step ? <Ico.Check /> : i + 1}
             </div>
-            <span style={{ fontSize: ".68rem", fontWeight: 600, color: i === step ? "#a5b4fc" : i < step ? "#6ee7b7" : "#334155", whiteSpace: "nowrap" }}>{labels[i]}</span>
+            <span style={{ fontSize: ".68rem", fontWeight: 600, color: i === step ? "#a5b4fc" : i < step ? "#6ee7b7" : "#94a3b8", whiteSpace: "nowrap" }}>{labels[i]}</span>
           </div>
           {i < total - 1 && (
             <div style={{ flex: 1, height: 2, background: i < step ? "rgba(99,102,241,.4)" : "rgba(255,255,255,.06)", margin: "0 8px", marginBottom: 20, borderRadius: 2 }} />
@@ -131,7 +131,7 @@ function SetupChecklist({ hasToken, hasChannel }: { hasToken: boolean; hasChanne
         <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#6366f1,#818cf8)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><Ico.Zap /></div>
         <div>
           <div style={{ fontWeight: 800, fontSize: ".9375rem", color: "#e2e8f0" }}>Primeiros passos</div>
-          <div style={{ fontSize: ".72rem", color: "#475569" }}>Complete os 3 itens para começar a gerar shorts</div>
+          <div style={{ fontSize: ".72rem", color: "#94a3b8" }}>Complete os 3 itens para começar a gerar shorts</div>
         </div>
       </div>
       {items.map((item, i) => (
@@ -140,8 +140,8 @@ function SetupChecklist({ hasToken, hasChannel }: { hasToken: boolean; hasChanne
             {item.done ? <Ico.Check /> : <span style={{ fontSize: ".7rem", fontWeight: 800 }}>{i + 1}</span>}
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: ".8125rem", color: item.done ? "#6ee7b7" : item.current ? "#a5b4fc" : "#475569" }}>{item.label}</div>
-            <div style={{ fontSize: ".73rem", color: "#334155", marginTop: 3, lineHeight: 1.5 }}>{item.desc}</div>
+            <div style={{ fontWeight: 700, fontSize: ".8125rem", color: item.done ? "#6ee7b7" : item.current ? "#a5b4fc" : "#94a3b8" }}>{item.label}</div>
+            <div style={{ fontSize: ".73rem", color: "#94a3b8", marginTop: 3, lineHeight: 1.5 }}>{item.desc}</div>
           </div>
         </div>
       ))}
@@ -199,8 +199,8 @@ function ChannelCard({ bundle, selected, onClick }: { bundle: AdminChannelBundle
           {isQuiz ? <Ico.Sparkles /> : <Ico.Scissors />}
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <div style={{ fontSize: ".875rem", fontWeight: 700, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bundle.channel.name || <span style={{ color: "#334155" }}>Sem nome</span>}</div>
-          <div style={{ fontSize: ".68rem", color: "#334155" }}>{bundle.channel.slug || bundle.channel.id}</div>
+          <div style={{ fontSize: ".875rem", fontWeight: 700, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bundle.channel.name || <span style={{ color: "#94a3b8" }}>Sem nome</span>}</div>
+          <div style={{ fontSize: ".68rem", color: "#94a3b8" }}>{bundle.channel.slug || bundle.channel.id}</div>
         </div>
         <span className={bundle.channel.status === "active" ? "badge badge-green" : "badge badge-slate"}>{bundle.channel.status === "active" ? "ativo" : "inativo"}</span>
       </div>
@@ -226,7 +226,7 @@ function RunCard({ r }: { r: { id: string; channelId: string; status: string; pr
         <span className={badgeClass(r.status)}>{r.status}</span>
       </div>
       <p style={{ margin: 0, fontSize: ".73rem", color: "#64748b", lineHeight: 1.5 }}>{r.progress?.message ?? r.errorMessage ?? "Aguardando progresso…"}</p>
-      <p style={{ margin: "4px 0 0", fontSize: ".68rem", color: "#334155" }}>{timeAgo(r.createdAt)}</p>
+      <p style={{ margin: "4px 0 0", fontSize: ".68rem", color: "#94a3b8" }}>{timeAgo(r.createdAt)}</p>
     </div>
   );
 }
@@ -536,7 +536,7 @@ export default function App() {
           </div>
           <div>
             <div style={{ fontSize: ".9rem", fontWeight: 900, color: "#e2e8f0", letterSpacing: "-.02em" }}>Shorts <span className="grad">Generator</span></div>
-            <div style={{ fontSize: ".65rem", color: "#334155" }}>Painel de controle</div>
+            <div style={{ fontSize: ".65rem", color: "#94a3b8" }}>Painel de controle</div>
           </div>
         </div>
 
@@ -552,11 +552,11 @@ export default function App() {
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
             <Label>Token admin</Label>
-            <Tooltip tip="Bearer token definido em ADMIN_API_TOKEN no .env do servidor."><span style={{ color: "#334155", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>
+            <Tooltip tip="Bearer token definido em ADMIN_API_TOKEN no .env do servidor."><span style={{ color: "#94a3b8", cursor: "help", display: "flex" }}><Ico.Info /></span></Tooltip>
           </div>
           <div style={{ position: "relative" }}>
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#334155" }}><Ico.Key /></span>
-            <input className="field" type="password" value={adminToken} onChange={e => setAdminToken(e.target.value)} placeholder="Bearer …" style={{ paddingLeft: 28, fontSize: ".8rem" }} />
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}><Ico.Key /></span>
+            <input className="field" type="password" aria-label="Token admin" value={adminToken} onChange={e => setAdminToken(e.target.value)} placeholder="Bearer …" style={{ paddingLeft: 28, fontSize: ".8rem" }} />
           </div>
           {!hasToken && <div style={{ fontSize: ".68rem", color: "#6366f1", marginTop: 5 }}>👆 Configure o token para começar</div>}
         </div>
@@ -565,8 +565,8 @@ export default function App() {
 
         {/* Channels */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 4px", marginBottom: 2 }}>
-          <span style={{ fontSize: ".68rem", color: "#334155", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>Canais {channels.length > 0 && `(${channels.length})`}</span>
-          <button className="btn btn-ghost" style={{ padding: "3px 7px", fontSize: ".7rem" }} onClick={() => void refreshNow()}><Ico.Refresh /></button>
+          <span style={{ fontSize: ".68rem", color: "#94a3b8", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>Canais {channels.length > 0 && `(${channels.length})`}</span>
+          <button className="btn btn-ghost" style={{ padding: "3px 7px", fontSize: ".7rem" }} onClick={() => void refreshNow()} aria-label="Atualizar canais" title="Atualizar canais"><Ico.Refresh /></button>
         </div>
 
         {!hasToken && (
@@ -578,7 +578,7 @@ export default function App() {
         {hasToken && channels.length === 0 && (
           <div style={{ padding: "20px 8px", textAlign: "center" }}>
             <div style={{ fontSize: "1.8rem", marginBottom: 8 }}>📺</div>
-            <div style={{ fontSize: ".75rem", color: "#334155", lineHeight: 1.6 }}>Nenhum canal ainda.<br />Crie o primeiro abaixo!</div>
+            <div style={{ fontSize: ".75rem", color: "#94a3b8", lineHeight: 1.6 }}>Nenhum canal ainda.<br />Crie o primeiro abaixo!</div>
           </div>
         )}
 
@@ -598,9 +598,9 @@ export default function App() {
         <header style={{ borderBottom: "1px solid rgba(255,255,255,.06)", padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#e2e8f0" }}>
-              {isNew ? <span style={{ color: "#334155" }}>Novo canal</span> : (draft.channel.name || <span style={{ color: "#475569" }}>Canal sem nome</span>)}
+              {isNew ? <span style={{ color: "#94a3b8" }}>Novo canal</span> : (draft.channel.name || <span style={{ color: "#94a3b8" }}>Canal sem nome</span>)}
             </h1>
-            {!isNew && draft.channel.id && <p style={{ margin: "1px 0 0", fontSize: ".72rem", color: "#334155" }}>ID: {draft.channel.id}</p>}
+            {!isNew && draft.channel.id && <p style={{ margin: "1px 0 0", fontSize: ".72rem", color: "#94a3b8" }}>ID: {draft.channel.id}</p>}
           </div>
           {!isNew && (
             <div style={{ display: "flex", gap: 8 }}>
@@ -666,7 +666,7 @@ export default function App() {
                   <Ico.Activity />
                   <span style={{ fontWeight: 700, fontSize: ".875rem", color: "#e2e8f0" }}>Runs recentes</span>
                 </div>
-                <select className="field" style={{ maxWidth: 130, padding: "4px 8px", fontSize: ".72rem" }} value={selectedChannelId} onChange={e => setSelectedChannelId(e.target.value)}>
+                <select className="field" aria-label="Filtrar runs por canal" style={{ maxWidth: 130, padding: "4px 8px", fontSize: ".72rem" }} value={selectedChannelId} onChange={e => setSelectedChannelId(e.target.value)}>
                   <option value="">Todos</option>
                   {channels.map(c => <option key={c.channel.id} value={c.channel.id}>{c.channel.name}</option>)}
                 </select>
@@ -674,7 +674,7 @@ export default function App() {
               {activeRuns.length === 0 ? (
                 <div style={{ padding: "24px 0", textAlign: "center", color: "#1e293b" }}>
                   <div style={{ fontSize: "1.6rem", marginBottom: 8 }}>🎬</div>
-                  <div style={{ fontSize: ".75rem", lineHeight: 1.6, color: "#334155" }}>Nenhuma execução ainda.<br />Configure e rode um canal para começar.</div>
+                  <div style={{ fontSize: ".75rem", lineHeight: 1.6, color: "#94a3b8" }}>Nenhuma execução ainda.<br />Configure e rode um canal para começar.</div>
                 </div>
               ) : (
                 activeRuns.map(r => <RunCard key={r.id} r={r} />)
