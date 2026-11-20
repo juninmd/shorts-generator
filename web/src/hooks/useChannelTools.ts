@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createCut,
   createScheduleEntry,
@@ -14,27 +14,38 @@ export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function useCuts(adminToken: string, channelId: string) {
-  const [cuts, setCuts] = useState<ManualCut[]>([]);
+// Lista por canal: só a resposta mais recente vale, e trocar de canal limpa a
+// lista antiga para nada de outro canal ficar na tela (nem ser apagado nele).
+function useChannelList<T>(adminToken: string, channelId: string, load: (token: string, channel: string) => Promise<T[]>) {
+  const [items, setItems] = useState<T[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const latest = useRef(0);
 
   const refresh = useCallback(async () => {
+    const request = ++latest.current;
     if (!adminToken || !channelId) {
-      setCuts([]);
+      setItems([]);
       return;
     }
     try {
       setError(null);
-      setCuts(await listCuts(adminToken, channelId));
+      const result = await load(adminToken, channelId);
+      if (request === latest.current) setItems(result);
     } catch (err) {
-      setError(errorMessage(err));
+      if (request === latest.current) setError(errorMessage(err));
     }
-  }, [adminToken, channelId]);
+  }, [adminToken, channelId, load]);
 
   useEffect(() => {
+    setItems([]);
     void refresh();
   }, [refresh]);
 
+  return { items, error, refresh };
+}
+
+export function useCuts(adminToken: string, channelId: string) {
+  const { items: cuts, error, refresh } = useChannelList<ManualCut>(adminToken, channelId, listCuts);
   const add = async (input: ManualCutInput) => {
     await createCut(adminToken, channelId, input);
     await refresh();
@@ -47,26 +58,7 @@ export function useCuts(adminToken: string, channelId: string) {
 }
 
 export function useSchedule(adminToken: string, channelId: string) {
-  const [entries, setEntries] = useState<ScheduleEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (!adminToken || !channelId) {
-      setEntries([]);
-      return;
-    }
-    try {
-      setError(null);
-      setEntries(await listSchedule(adminToken, channelId));
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }, [adminToken, channelId]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
+  const { items: entries, error, refresh } = useChannelList<ScheduleEntry>(adminToken, channelId, listSchedule);
   const add = async (input: ScheduleEntryInput) => {
     await createScheduleEntry(adminToken, channelId, input);
     await refresh();

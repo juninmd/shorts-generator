@@ -48,6 +48,44 @@ describe('useCuts', () => {
   });
 });
 
+describe('channel switch', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('keeps the cuts of the channel now selected when the old response lands last', async () => {
+    let resolveA: (v: unknown) => void = () => {};
+    vi.mocked(api.listCuts)
+      .mockReturnValueOnce(new Promise((r) => { resolveA = r; }) as never)
+      .mockResolvedValueOnce([{ id: 'b1' }] as never);
+    const { result, rerender } = renderHook(({ ch }) => useCuts('t', ch), { initialProps: { ch: 'a' } });
+    rerender({ ch: 'b' });
+    await waitFor(() => expect(result.current.cuts).toEqual([{ id: 'b1' }]));
+    await act(async () => { resolveA([{ id: 'a1' }]); });
+    expect(result.current.cuts).toEqual([{ id: 'b1' }]);
+  });
+
+  it('does not show the previous channel schedule while the new one loads', async () => {
+    vi.mocked(api.listSchedule)
+      .mockResolvedValueOnce([{ id: 'a1' }] as never)
+      .mockReturnValueOnce(new Promise(() => {}) as never);
+    const { result, rerender } = renderHook(({ ch }) => useSchedule('t', ch), { initialProps: { ch: 'a' } });
+    await waitFor(() => expect(result.current.entries).toEqual([{ id: 'a1' }]));
+    rerender({ ch: 'b' });
+    await waitFor(() => expect(result.current.entries).toEqual([]));
+  });
+
+  it('ignores a late error from the previous channel', async () => {
+    let rejectA: (e: unknown) => void = () => {};
+    vi.mocked(api.listSchedule)
+      .mockReturnValueOnce(new Promise((_, r) => { rejectA = r; }) as never)
+      .mockResolvedValueOnce([] as never);
+    const { result, rerender } = renderHook(({ ch }) => useSchedule('t', ch), { initialProps: { ch: 'a' } });
+    rerender({ ch: 'b' });
+    await waitFor(() => expect(api.listSchedule).toHaveBeenCalledWith('t', 'b'));
+    await act(async () => { rejectA(new Error('late')); });
+    expect(result.current.error).toBeNull();
+  });
+});
+
 describe('useSchedule', () => {
   beforeEach(() => vi.clearAllMocks());
 
