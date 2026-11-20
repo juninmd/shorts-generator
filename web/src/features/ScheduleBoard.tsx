@@ -42,6 +42,15 @@ export function ScheduleBoard({ adminToken, channelId, cuts }: { adminToken: str
     }
   };
 
+  const removeEntry = async (entryId: string) => {
+    setFormError(null);
+    try {
+      await remove(entryId);
+    } catch (err) {
+      setFormError(errorMessage(err));
+    }
+  };
+
   if (!adminToken || !channelId) {
     return <p className="glass-inset p-4 text-sm text-slate-400">Escolha um canal e informe o token para ver a agenda.</p>;
   }
@@ -69,7 +78,7 @@ export function ScheduleBoard({ adminToken, channelId, cuts }: { adminToken: str
             {items.map((entry) => (
               <div key={entry.id} className="mt-1 flex items-center justify-between gap-1 rounded bg-white/5 px-1.5 py-1 text-xs text-slate-200">
                 <span className="truncate">{new Date(entry.runAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} {entry.kind === "manual" ? "corte" : "auto"}</span>
-                <button aria-label="Remover agendamento" className="text-rose-300" onClick={() => void remove(entry.id)}>✕</button>
+                <button aria-label="Remover agendamento" className="text-rose-300" onClick={() => void removeEntry(entry.id)}>✕</button>
               </div>
             ))}
           </div>

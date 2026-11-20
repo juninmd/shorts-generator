@@ -74,6 +74,18 @@ describe('ScheduleBoard', () => {
     await waitFor(() => expect(api.deleteScheduleEntry).toHaveBeenCalledWith('t', 'ch', 'e1'));
   });
 
+  it('shows an alert instead of an unhandled rejection when removing fails', async () => {
+    const soon = new Date();
+    soon.setHours(12, 0, 0, 0);
+    vi.mocked(api.listSchedule).mockResolvedValueOnce([
+      { id: 'e1', channelId: 'ch', cutId: null, kind: 'programmed', runAt: soon.toISOString(), createdAt: 'x' },
+    ]);
+    vi.mocked(api.deleteScheduleEntry).mockRejectedValueOnce(new Error('Schedule entry not found'));
+    render(<ScheduleBoard adminToken="t" channelId="ch" cuts={cuts} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Remover agendamento' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('Schedule entry not found');
+  });
+
   it('shows the list error when loading fails', async () => {
     vi.mocked(api.listSchedule).mockRejectedValueOnce(new Error('offline'));
     render(<ScheduleBoard adminToken="t" channelId="ch" cuts={[]} />);
