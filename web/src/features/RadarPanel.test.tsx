@@ -46,6 +46,17 @@ describe('RadarPanel', () => {
     expect(await screen.findByRole('status')).toBeTruthy();
   });
 
+  it('looks the video up once typing pauses, not on every keystroke', async () => {
+    vi.mocked(api.getSourceAnalysis).mockRejectedValue(new Error('Analysis not found'));
+    render(<RadarPanel adminToken="t" channelId="ch" />);
+    const input = screen.getByLabelText('ID do vídeo-fonte');
+    for (const value of ['v', 'vi', 'vid', 'vid1', 'vid12', 'vid123']) fireEvent.change(input, { target: { value } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    await screen.findByRole('alert');
+    expect(api.getSourceAnalysis).toHaveBeenCalledTimes(1);
+    expect(api.getSourceAnalysis).toHaveBeenCalledWith('t', 'ch', 'vid123');
+  });
+
   it('shows the error when no analysis exists yet', async () => {
     vi.mocked(api.getSourceAnalysis).mockRejectedValueOnce(new Error('Analysis not found'));
     render(<RadarPanel adminToken="t" channelId="ch" />);
