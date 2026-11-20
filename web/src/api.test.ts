@@ -6,22 +6,6 @@ describe('api', () => {
     vi.clearAllMocks();
   });
 
-  it('startGeneration throws error', async () => {
-    await expect(api.startGeneration(['url'])).rejects.toThrow('Legacy generation');
-  });
-
-  it('getJobStatus throws error', async () => {
-    await expect(api.getJobStatus('job')).rejects.toThrow('Legacy generation');
-  });
-
-  it('getShorts returns empty array', async () => {
-    await expect(api.getShorts()).resolves.toEqual([]);
-  });
-
-  it('getDownloadUrl returns correct format', () => {
-    expect(api.getDownloadUrl('vid', 'clip')).toBe('/api/shorts/vid/clip');
-  });
-
   it('fetchDashboardData throws correctly on fail', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false, status: 500, text: async () => 'Server error'

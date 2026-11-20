@@ -1,20 +1,3 @@
-export interface ShortItem {
-  id: string;
-  videoId: string;
-  title: string;
-  description: string;
-  viralScore: number;
-  duration: number;
-  startTime: number;
-  endTime: number;
-  originalVideoUrl: string;
-  originalVideoTitle: string;
-  channelName: string;
-  status: string;
-  createdAt: string;
-  downloadUrl: string;
-}
-
 export interface JobStatus {
   jobId: string;
   status: "queued" | "processing" | "completed" | "failed";

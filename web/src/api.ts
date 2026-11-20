@@ -44,22 +44,6 @@ export async function listRuns(adminToken: string, channelId?: string, offset = 
   return request<AdminRunRecord[]>(adminToken, suffix);
 }
 
-export async function startGeneration(_urls: string[]): Promise<{ jobId: string }> {
-  throw new Error("Legacy generation flow was replaced by managed channel runs.");
-}
-
-export async function getJobStatus(_jobId: string): Promise<never> {
-  throw new Error("Legacy generation flow was replaced by managed channel runs.");
-}
-
-export async function getShorts(): Promise<never[]> {
-  return [];
-}
-
-export function getDownloadUrl(videoId: string, clipId: string): string {
-  return `/api/shorts/${videoId}/${clipId}`;
-}
-
 // Mounted outside /api/admin: it accepts a query-string token so the link
 // shared via Telegram works without an Authorization header.
 export async function fetchDashboardData(adminToken: string): Promise<DashboardData> {
