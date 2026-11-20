@@ -35,6 +35,10 @@ export function ScheduleBoard({ adminToken, channelId, cuts }: { adminToken: str
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setFormError(null);
+    if (kind === "manual" && !cutId) {
+      setFormError("Escolha um corte para o agendamento manual.");
+      return;
+    }
     try {
       await add({ runAt: new Date(runAt).toISOString(), kind, cutId: kind === "manual" ? cutId : null });
     } catch (err) {
