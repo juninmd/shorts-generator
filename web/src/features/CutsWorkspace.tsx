@@ -23,6 +23,17 @@ export function CutsWorkspace({ adminToken, channelId }: { adminToken: string; c
     }
   };
 
+  const removeCut = async (cut: ManualCut) => {
+    setFormError(null);
+    try {
+      await remove(cut.id);
+      // The preview must not keep showing a cut that no longer exists.
+      setSelected((current) => (current?.id === cut.id ? null : current));
+    } catch (err) {
+      setFormError(errorMessage(err));
+    }
+  };
+
   if (!adminToken || !channelId) {
     return <p className="glass-inset p-4 text-sm text-slate-400">Escolha um canal e informe o token para montar cortes.</p>;
   }
@@ -45,7 +56,7 @@ export function CutsWorkspace({ adminToken, channelId }: { adminToken: string; c
             <li key={cut.id} className="glass-inset flex items-center gap-3 p-3">
               <button className="flex-1 truncate text-left text-sm text-slate-200" onClick={() => setSelected(cut)}>{cut.title}</button>
               <span className="font-mono text-xs text-slate-500">{cut.startSec}s → {cut.endSec}s</span>
-              <button className="btn btn-red" aria-label={`Excluir ${cut.title}`} onClick={() => void remove(cut.id)}>Excluir</button>
+              <button className="btn btn-red" aria-label={`Excluir ${cut.title}`} onClick={() => void removeCut(cut)}>Excluir</button>
             </li>
           ))}
         </ul>
