@@ -30,6 +30,24 @@ describe('CutsWorkspace', () => {
     expect(screen.getByTestId('short-preview').textContent).toContain('Perdão');
     fireEvent.click(screen.getByRole('button', { name: 'Excluir Perdão' }));
     await waitFor(() => expect(api.deleteCut).toHaveBeenCalledWith('t', 'ch', 'c1'));
+    await waitFor(() => expect(screen.getByTestId('short-preview').textContent).toContain('Escolha um corte'));
+  });
+
+  it('keeps the preview when another cut is deleted', async () => {
+    const other = { ...cut, id: 'c2', title: 'Outro' };
+    vi.mocked(api.listCuts).mockResolvedValue([cut, other]);
+    render(<CutsWorkspace adminToken="t" channelId="ch" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Perdão' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir Outro' }));
+    await waitFor(() => expect(api.deleteCut).toHaveBeenCalledWith('t', 'ch', 'c2'));
+    expect(screen.getByTestId('short-preview').textContent).toContain('Perdão');
+  });
+
+  it('shows an alert instead of an unhandled rejection when deleting fails', async () => {
+    vi.mocked(api.deleteCut).mockRejectedValueOnce(new Error('Cut not found'));
+    render(<CutsWorkspace adminToken="t" channelId="ch" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Excluir Perdão' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('Cut not found');
   });
 
   it('shows the empty state when there are no cuts', async () => {

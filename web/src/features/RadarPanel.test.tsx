@@ -69,7 +69,19 @@ describe('RadarPanel', () => {
     render(<RadarPanel adminToken="t" channelId="ch" />);
     fireEvent.change(screen.getByLabelText('ID do vídeo-fonte'), { target: { value: 'vid123' } });
     fireEvent.click(await screen.findByRole('button', { name: 'Aprovar corte' }));
-    expect(await screen.findByRole('status')).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Duração inválida');
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Duração inválida');
+    expect(alert.className).toContain('text-rose-300');
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('drops the previous save notice when another video is typed', async () => {
+    render(<RadarPanel adminToken="t" channelId="ch" />);
+    const input = screen.getByLabelText('ID do vídeo-fonte');
+    fireEvent.change(input, { target: { value: 'vid123' } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Aprovar corte' }));
+    expect((await screen.findByRole('status')).textContent).toContain('Trecho');
+    fireEvent.change(input, { target: { value: 'outro' } });
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });
