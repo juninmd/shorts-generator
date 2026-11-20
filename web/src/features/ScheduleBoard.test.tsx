@@ -53,6 +53,15 @@ describe('ScheduleBoard', () => {
     await waitFor(() => expect(api.createScheduleEntry).toHaveBeenCalledWith('t', 'ch', expect.objectContaining({ kind: 'manual', cutId: 'c1' })));
   });
 
+  it('blocks a manual schedule without a cut instead of sending an empty cutId', async () => {
+    render(<ScheduleBoard adminToken="t" channelId="ch" cuts={cuts} />);
+    fireEvent.change(screen.getByLabelText('Tipo'), { target: { value: 'manual' } });
+    fireEvent.change(screen.getByLabelText('Quando'), { target: { value: '2026-11-12T09:00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Agendar' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('Escolha um corte');
+    expect(api.createScheduleEntry).not.toHaveBeenCalled();
+  });
+
   it('shows the server message when scheduling fails', async () => {
     vi.mocked(api.createScheduleEntry).mockRejectedValueOnce(new Error('Agendamento manual precisa de um corte'));
     render(<ScheduleBoard adminToken="t" channelId="ch" cuts={cuts} />);
