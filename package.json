@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.93",
-    "@hono/node-server": "^2.1.9",
+    "@hono/node-server": "^2.1.11",
     "ai": "^7.0.177",
     "better-sqlite3": "^13.1.1",
     "bullmq": "^6.7.8",
