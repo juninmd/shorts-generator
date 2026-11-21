@@ -1,0 +1,31 @@
+-- Migration 014: pool global de links de afiliado Amazon (independente de canal).
+-- Os nomes foram extraídos da página de produto de cada link curto.
+INSERT INTO affiliate_links (id, name, url, active, position, created_at) VALUES
+  ('global-affiliate-01', 'Monitor Gamer LG UltraGear 25" 200Hz IPS', 'https://link.amazon/B0dVimpOo', TRUE, 1, NOW()::text),
+  ('global-affiliate-02', 'Maionese Hellmann''s Tradicional 500g (2 potes)', 'https://link.amazon/B05EEiQaR', TRUE, 2, NOW()::text),
+  ('global-affiliate-03', 'Copo Stanley Quencher Cream 1,18L', 'https://link.amazon/B07s1SM6E', TRUE, 3, NOW()::text),
+  ('global-affiliate-04', 'Fire TV Stick HD com Alexa (modelo mais recente)', 'https://link.amazon/A0bFnZGNf', TRUE, 4, NOW()::text),
+  ('global-affiliate-05', 'Cafeteira Nescafé Dolce Gusto Genio S Plus', 'https://link.amazon/B0dJBWeUI', TRUE, 5, NOW()::text),
+  ('global-affiliate-06', 'Pepsi Black Zero Lata 350ml (pack 12)', 'https://link.amazon/B01r51NiE', TRUE, 6, NOW()::text),
+  ('global-affiliate-07', 'Câmera Canon EOS R100 + lente 18-45mm IS STM', 'https://link.amazon/B09O7ogpJ', TRUE, 7, NOW()::text),
+  ('global-affiliate-08', 'Ventilador de Parede Ventisol 60cm Bivolt', 'https://link.amazon/B02uXM3ja', TRUE, 8, NOW()::text),
+  ('global-affiliate-09', 'Airfryer Philips Walita Essential XL 6,2L', 'https://link.amazon/B03VxIcLB', TRUE, 9, NOW()::text),
+  ('global-affiliate-10', 'Kindle Paperwhite 16GB (2024) 7"', 'https://link.amazon/B0g5o6Ybl', TRUE, 10, NOW()::text),
+  ('global-affiliate-11', 'Ar-Condicionado Split Inverter Elgin Eco II 9.000 BTUs', 'https://link.amazon/B0ieLQ6aF', TRUE, 11, NOW()::text),
+  ('global-affiliate-12', 'Notebook Lenovo IdeaPad Slim 3i i5-13420H', 'https://link.amazon/B0aTMszAi', TRUE, 12, NOW()::text),
+  ('global-affiliate-13', 'Nintendo Switch 2 + Mario Kart World + 3 meses online', 'https://link.amazon/B07UQ5Obn', TRUE, 13, NOW()::text),
+  ('global-affiliate-14', 'Geladeira Electrolux Frost Free 380L AutoSense', 'https://link.amazon/B06E974Ws', TRUE, 14, NOW()::text),
+  ('global-affiliate-15', 'Echo Show 8 (nova geração) Grafite', 'https://link.amazon/B0do8DcTY', TRUE, 15, NOW()::text),
+  ('global-affiliate-16', 'Cafeteira Espresso Philips Walita Série 1200', 'https://link.amazon/B09cffPv9', TRUE, 16, NOW()::text),
+  ('global-affiliate-17', 'Lavadora Samsung Digital Inverter 13kg', 'https://link.amazon/B0iZqhnns', TRUE, 17, NOW()::text),
+  ('global-affiliate-18', 'Notebook Dell 15 Core 3 100U 8GB 512GB SSD', 'https://link.amazon/B01n6MwdY', TRUE, 18, NOW()::text),
+  ('global-affiliate-19', 'Robô Aspirador Dreame L40 Ultra AE', 'https://link.amazon/B0fjH9Cq9', TRUE, 19, NOW()::text),
+  ('global-affiliate-20', 'Abajur Nossa Senhora Aparecida LED', 'https://link.amazon/B0eUwK4dy', TRUE, 20, NOW()::text),
+  ('global-affiliate-21', 'Tapete Boho Antiderrapante 2,00 x 1,40m', 'https://link.amazon/B09KXATBA', TRUE, 21, NOW()::text),
+  ('global-affiliate-22', 'Kit 10 Caixas de Presente Nossa Senhora P', 'https://link.amazon/B057ybemt', TRUE, 22, NOW()::text),
+  ('global-affiliate-23', 'Livro Orações do Cristão Católico', 'https://link.amazon/B05MTFTTB', TRUE, 23, NOW()::text),
+  ('global-affiliate-24', 'Doce de Leite Zero Açúcar Flormel (caixa 24)', 'https://link.amazon/B077v1glR', TRUE, 24, NOW()::text),
+  ('global-affiliate-25', 'Detergente Lava-Louças Finish Power Powder 2,5kg', 'https://link.amazon/B02geK9RT', TRUE, 25, NOW()::text),
+  ('global-affiliate-26', 'Interruptor Sensor de Presença Intelbras ESPI 360 A', 'https://link.amazon/B0bKXdMjh', TRUE, 26, NOW()::text),
+  ('global-affiliate-27', 'Whey Protein Concentrado Baunilha Dux 900g', 'https://link.amazon/B0hOdeibX', TRUE, 27, NOW()::text)
+ON CONFLICT (url) DO NOTHING;

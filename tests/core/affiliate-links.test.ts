@@ -100,6 +100,40 @@ describe("ChannelAffiliateRepository", () => {
     expect(await repo.listActive("ch")).toEqual([{ name: "Kindle", url: "https://link.amazon/a" }]);
   });
 
+  it("merges channel links with the global pool, channel first and no duplicate URLs", async () => {
+    const channelRow = { id: "c1", channel_id: "ch", name: "Kindle do canal", url: "https://link.amazon/a", active: true, position: 1, created_at: "t" };
+    const globalRows = [
+      { id: "g1", name: "Kindle global", url: "https://link.amazon/a", active: true, position: 1, created_at: "t" },
+      { id: "g2", name: "Airfryer", url: "https://link.amazon/b", active: true, position: 2, created_at: "t" },
+      { id: "g3", name: "Pausado", url: "https://link.amazon/c", active: false, position: 3, created_at: "t" },
+    ];
+    const db = {
+      query: vi.fn().mockImplementation((sql: string) =>
+        Promise.resolve({ rows: sql.includes("channel_affiliate_links") ? [channelRow] : globalRows }),
+      ),
+    };
+    const repo = new ChannelAffiliateRepository(db);
+    expect(await repo.listActive("ch")).toEqual([
+      { name: "Kindle do canal", url: "https://link.amazon/a" },
+      { name: "Airfryer", url: "https://link.amazon/b" },
+    ]);
+    expect(await repo.listGlobalLinks()).toHaveLength(3);
+  });
+
+  it("add / toggle / delete global links report whether a row changed", async () => {
+    const link = { id: "g1", name: "n", url: "u", active: true, position: 0, createdAt: "t" };
+    expect(await new ChannelAffiliateRepository(fakeDb([], 1)).addGlobalLink(link)).toBe(true);
+    expect(await new ChannelAffiliateRepository(fakeDb([], 0)).addGlobalLink(link)).toBe(false);
+    expect(await new ChannelAffiliateRepository(fakeDb([], 1)).setGlobalActive("g1", false)).toBe(true);
+    expect(await new ChannelAffiliateRepository(fakeDb([], 0)).setGlobalActive("g1", false)).toBe(false);
+    expect(await new ChannelAffiliateRepository(fakeDb([], 1)).deleteGlobalLink("g1")).toBe(true);
+    expect(await new ChannelAffiliateRepository(fakeDb([], 0)).deleteGlobalLink("g1")).toBe(false);
+    const noCount = new ChannelAffiliateRepository({ query: vi.fn().mockResolvedValue({ rows: [] }) });
+    expect(await noCount.addGlobalLink(link)).toBe(false);
+    expect(await noCount.setGlobalActive("g1", true)).toBe(false);
+    expect(await noCount.deleteGlobalLink("g1")).toBe(false);
+  });
+
   it("add / toggle / delete report whether a row changed", async () => {
     const link = { id: "1", channelId: "ch", name: "n", url: "u", active: true, position: 0, createdAt: "t" };
     expect(await new ChannelAffiliateRepository(fakeDb([], 1)).addLink(link)).toBe(true);

@@ -20,8 +20,37 @@ describe("Admin Affiliate Routes", () => {
       addLink: vi.fn().mockResolvedValue(true),
       setActive: vi.fn().mockResolvedValue(true),
       deleteLink: vi.fn().mockResolvedValue(true),
+      listGlobalLinks: vi.fn().mockResolvedValue([{ id: "g1" }]),
+      addGlobalLink: vi.fn().mockResolvedValue(true),
+      setGlobalActive: vi.fn().mockResolvedValue(true),
+      deleteGlobalLink: vi.fn().mockResolvedValue(true),
     };
     registerAffiliateRoutes(app, { affiliateRepository: repo } as any);
+  });
+
+  it("global pool: list, create, toggle and delete without a channel", async () => {
+    expect(await (await app.request("/affiliate-links")).json()).toEqual([{ id: "g1" }]);
+
+    const created = await app.request("/affiliate-links", json(valid));
+    expect(created.status).toBe(201);
+    expect(repo.addGlobalLink).toHaveBeenCalledWith(expect.objectContaining({ ...valid, active: true, position: 0 }));
+
+    expect((await app.request("/affiliate-links", json({ ...valid, position: 7 }))).status).toBe(201);
+    expect(repo.addGlobalLink).toHaveBeenLastCalledWith(expect.objectContaining({ position: 7 }));
+
+    repo.addGlobalLink.mockResolvedValueOnce(false);
+    expect((await app.request("/affiliate-links", json(valid))).status).toBe(409);
+    expect((await app.request("/affiliate-links", json({ ...valid, url: "http://x.com/a" }))).status).toBe(400);
+
+    expect((await app.request("/affiliate-links/g1", json({ active: false }, "PATCH"))).status).toBe(200);
+    expect(repo.setGlobalActive).toHaveBeenCalledWith("g1", false);
+    expect((await app.request("/affiliate-links/g1", json({ active: "no" }, "PATCH"))).status).toBe(400);
+    repo.setGlobalActive.mockResolvedValueOnce(false);
+    expect((await app.request("/affiliate-links/g1", json({ active: true }, "PATCH"))).status).toBe(404);
+
+    expect((await app.request("/affiliate-links/g1", { method: "DELETE" })).status).toBe(200);
+    repo.deleteGlobalLink.mockResolvedValueOnce(false);
+    expect((await app.request("/affiliate-links/g1", { method: "DELETE" })).status).toBe(404);
   });
 
   it("GET lists the channel links", async () => {
