@@ -1,13 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { Readable } from "node:stream";
 import { Hono } from "hono";
 import { registerSocialMediaRoutes } from "../../src/server/social-media-routes.js";
 
 vi.mock("../../src/core/config.js", () => ({ loadConfig: () => ({ outputDir: "/out" }) }));
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
-  return { default: { ...actual, existsSync: vi.fn(), readFileSync: vi.fn() } };
+  return { default: { ...actual, existsSync: vi.fn(), readFileSync: vi.fn(), statSync: vi.fn(), createReadStream: vi.fn() } };
 });
 
 const app = new Hono();
@@ -19,12 +20,15 @@ describe("GET /public/social/:name", () => {
 
   it("serves an issued file as video/mp4", async () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from("mp4bytes"));
+    vi.mocked(fs.statSync).mockReturnValue({ size: 8 } as fs.Stats);
+    vi.mocked(fs.createReadStream).mockReturnValue(Readable.from([Buffer.from("mp4bytes")]) as any);
     const response = await app.request(`/public/social/${NAME}`);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("video/mp4");
+    expect(response.headers.get("content-length")).toBe("8");
     expect(await response.text()).toBe("mp4bytes");
-    expect(fs.readFileSync).toHaveBeenCalledWith(path.join("/out", "social", NAME));
+    expect(fs.createReadStream).toHaveBeenCalledWith(path.join("/out", "social", NAME));
+    expect(fs.readFileSync).not.toHaveBeenCalled();
   });
 
   it("404s for names that were not issued by the queue (no traversal, wrong shape)", async () => {
