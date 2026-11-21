@@ -3,6 +3,7 @@ import path from "node:path";
 import type { Hono } from "hono";
 import { loadConfig } from "../core/config.js";
 import { socialDir } from "../core/social-publish.js";
+import { videoFileResponse } from "./video-response.js";
 
 const PUBLIC_NAME = /^[A-Za-z0-9_-]{16,64}\.mp4$/;
 
@@ -16,8 +17,6 @@ export function registerSocialMediaRoutes(app: Hono): void {
     const { name } = c.req.param();
     const file = PUBLIC_NAME.test(name) ? path.join(socialDir(loadConfig()), name) : null;
     if (!file || !fs.existsSync(file)) return c.json({ error: "Not found" }, 404);
-    return new Response(fs.readFileSync(file), {
-      headers: { "Content-Type": "video/mp4", "Cache-Control": "public, max-age=3600" },
-    });
+    return videoFileResponse(file, { "Cache-Control": "public, max-age=3600" });
   });
 }

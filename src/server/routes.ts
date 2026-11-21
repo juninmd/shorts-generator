@@ -10,6 +10,7 @@ import { loadConfig } from "../core/config.js";
 import { runPipeline } from "../core/pipeline.js";
 import { logger } from "../core/logger.js";
 import { assertPublicUrl } from "../core/network-policy.js";
+import { videoFileResponse } from "./video-response.js";
 import { cancelJob } from "../core/run-context.js";
 import { startJob } from "./job-runner.js";
 import { registerAdminRoutes } from "./admin-routes.js";
@@ -114,12 +115,8 @@ app.get("/api/shorts/:videoId/:clipId", async (c) => {
     return c.json({ error: "Short not found" }, 404);
   }
 
-  const file = fs.readFileSync(filePath);
-  return new Response(file, {
-    headers: {
-      "Content-Type": "video/mp4",
-      "Content-Disposition": `attachment; filename="${clipId}.mp4"`,
-    },
+  return videoFileResponse(filePath, {
+    "Content-Disposition": `attachment; filename="${clipId}.mp4"`,
   });
 });
 

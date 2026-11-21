@@ -4,6 +4,7 @@ import { jobs } from "../../src/server/job-store.js";
 import { runPipeline } from "../../src/core/pipeline.js";
 import { loadConfig } from "../../src/core/config.js";
 import fs from "node:fs";
+import { Readable } from "node:stream";
 
 vi.mock("../../src/core/pipeline.js", () => ({
   runPipeline: vi.fn(),
@@ -21,6 +22,8 @@ vi.mock("node:fs", () => ({
   default: {
     existsSync: vi.fn(),
     readFileSync: vi.fn(),
+    statSync: vi.fn(),
+    createReadStream: vi.fn(),
   },
 }));
 
@@ -238,10 +241,14 @@ describe("Server Routes", () => {
 
     it("should return file contents if it exists", async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from("fake-video-content"));
+      vi.mocked(fs.statSync).mockReturnValue({ size: 18 } as fs.Stats);
+      vi.mocked(fs.createReadStream).mockReturnValue(Readable.from([Buffer.from("fake-video-content")]) as any);
 
       const res = await app.request("/api/shorts/vid1/clip1");
       expect(res.status).toBe(200);
+      expect(res.headers.get("content-length")).toBe("18");
+      expect(fs.readFileSync).not.toHaveBeenCalled();
+      expect(fs.createReadStream).toHaveBeenCalledWith(expect.stringContaining("clip1.mp4"));
       expect(res.headers.get("content-type")).toBe("video/mp4");
       expect(res.headers.get("content-disposition")).toBe('attachment; filename="clip1.mp4"');
 
