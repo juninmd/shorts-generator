@@ -58,6 +58,16 @@ describe("utils", () => {
     vi.useRealTimers();
   });
 
+  // A server clock slightly ahead of the browser, or a missing date, must not render "-5s atrás" / "NaNh atrás".
+  it("clamps future timestamps and hides invalid dates", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2023-01-01T10:00:00.000Z"));
+    expect(timeAgo("2023-01-01T10:00:05.000Z")).toBe("0s atrás");
+    expect(timeAgo("not-a-date")).toBe("—");
+    expect(timeAgo("2023-01-01T09:59:59.700Z")).toBe("0s atrás");
+    vi.useRealTimers();
+  });
+
   it("should parse sources null value", () => {
     const res = parseSources("||");
     expect(res[0].label).toBe("");
