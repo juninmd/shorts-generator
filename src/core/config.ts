@@ -42,7 +42,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     .map((u) => u.trim())
     .filter(Boolean);
 
-  const maxVideoSizeMb = parseInt(optionalEnv("MAX_VIDEO_SIZE_MB", "500"), 10);
+  const maxVideoSizeMb = intEnv("MAX_VIDEO_SIZE_MB", 500, 1);
   const skipVideoSizeCheck = optionalEnv("SKIP_VIDEO_SIZE_CHECK", "false") === "true";
   const keepTempFiles = optionalEnv("KEEP_TEMP_FILES", "false") === "true";
   // Default lowered from 70: flooding uploads triggers YouTube's mass-produced
@@ -61,15 +61,15 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     videoLimit: intEnv("VIDEO_LIMIT", 1, 1),
     maxCutsPerBlock: 10,
     minuteBlockSize: 20,
-    maxShortDuration: Math.min(59, parseInt(optionalEnv("MAX_SHORT_DURATION", "59"), 10)),
-    minShortDuration: parseInt(optionalEnv("MIN_SHORT_DURATION", "15"), 10),
+    maxShortDuration: Math.min(59, intEnv("MAX_SHORT_DURATION", 59, 1)),
+    minShortDuration: intEnv("MIN_SHORT_DURATION", 15, 1),
     maxVideoSizeBytes: maxVideoSizeMb * 1024 * 1024,
     skipVideoSizeCheck,
     keepTempFiles,
     dailyUploadLimit,
     maxVideoDurationSec,
     videoQuery,
-    minShortsPerVideo: parseInt(optionalEnv("MIN_SHORTS_PER_VIDEO", "1"), 10),
+    minShortsPerVideo: intEnv("MIN_SHORTS_PER_VIDEO", 1, 0),
     // Two ffmpeg renders at once peak near 2 GB; 1 serializes them on small pods.
     clipConcurrency,
     minViralScore: parseFloat(optionalEnv("MIN_VIRAL_SCORE", "7")),
@@ -81,7 +81,7 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
     outputDir,
     tempDir,
     aiModel: optionalEnv("AI_MODEL", "cloud/auto"),
-    aiTimeoutMs: parseInt(optionalEnv("AI_TIMEOUT_MS", "600000"), 10),
+    aiTimeoutMs: intEnv("AI_TIMEOUT_MS", 600000, 1),
     litellmApiKey: optionalEnv("LITELLM_KEY", optionalEnv("OPENAI_API_KEY", "")),
     litellmBaseUrl: optionalEnv("LITELLM_BASE_URL", optionalEnv("OPENAI_BASE_URL", "http://localhost:4000/v1")),
     whisperBaseUrl: optionalEnv("WHISPER_BASE_URL", ""),
@@ -120,7 +120,7 @@ export function getMaxCuts(videoDurationSeconds: number): number {
   // Ceiling is configurable (MAX_CLIPS_PER_VIDEO) to scale output; defaults to 6.
   // Lowered from 20: dozens of near-duplicate clips from the same source video
   // feed YouTube's inauthentic-content detection and cannibalize each other.
-  const ceiling = parseInt(process.env.MAX_CLIPS_PER_VIDEO || "6", 10);
+  const ceiling = intEnv("MAX_CLIPS_PER_VIDEO", 6, 1);
   // Rule: 1 cut every 2 minutes, at least minCuts + 1, capped at ceiling
   return Math.min(ceiling, Math.max(minCuts + 1, Math.floor(durationMinutes / 2)));
 }

@@ -95,6 +95,17 @@ describe("config", () => {
       expect(loadConfig().videoLimit).toBe(1);
     });
 
+    // NaN here silently disables the size cap, rejects every clip (duration >= NaN) or breaks the AI timeout.
+    it("falls back to defaults when size, duration and timeout envs are not numbers", () => {
+      for (const k of ["MAX_VIDEO_SIZE_MB", "MAX_SHORT_DURATION", "MIN_SHORT_DURATION", "MIN_SHORTS_PER_VIDEO", "AI_TIMEOUT_MS"]) process.env[k] = "abc";
+      const config = loadConfig();
+      expect(config.maxVideoSizeBytes).toBe(500 * 1024 * 1024);
+      expect(config.maxShortDuration).toBe(59);
+      expect(config.minShortDuration).toBe(15);
+      expect(config.minShortsPerVideo).toBe(1);
+      expect(config.aiTimeoutMs).toBe(600_000);
+    });
+
     it("should read VIDEO_QUERY from env", () => {
       process.env.VIDEO_QUERY = "evangelho";
       const config = loadConfig();
@@ -137,6 +148,13 @@ describe("config", () => {
       process.env.MAX_CLIPS_PER_VIDEO = "50";
       // 120 min: floor(120/2)=60 cuts, capped at 50
       expect(getMaxCuts(7200)).toBe(50);
+    });
+  });
+
+  describe("getMaxCuts with an invalid ceiling", () => {
+    it("uses the default ceiling of 6 when MAX_CLIPS_PER_VIDEO is not a number", () => {
+      process.env.MAX_CLIPS_PER_VIDEO = "abc";
+      expect(getMaxCuts(7200)).toBe(6);
     });
   });
 
