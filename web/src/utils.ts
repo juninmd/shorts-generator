@@ -21,7 +21,10 @@ export function dotClass(s: string) { return s === "processing" ? "dot dot-proce
 export function badgeClass(s: string) { return s === "processing" ? "badge badge-amber" : s === "completed" ? "badge badge-green" : s === "failed" ? "badge badge-red" : "badge badge-slate"; }
 
 export function timeAgo(iso: string) {
-  const d = (Date.now() - new Date(iso).getTime()) / 1000;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "—";
+  // Clock skew can put the server's timestamp slightly in the future.
+  const d = Math.max(0, (Date.now() - t) / 1000);
   if (d < 60) return `${Math.round(d)}s atrás`;
   if (d < 3600) return `${Math.round(d / 60)}m atrás`;
   return `${Math.round(d / 3600)}h atrás`;
