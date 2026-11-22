@@ -69,6 +69,32 @@ describe("config", () => {
       expect(loadConfig().clipConcurrency).toBe(2);
     });
 
+    // NaN would make `count >= limit` always false and silently remove the anti-spam cap.
+    it("keeps the daily upload cap when MAX_DAILY_UPLOADS is not a number", () => {
+      process.env.MAX_DAILY_UPLOADS = "abc";
+      expect(loadConfig().dailyUploadLimit).toBe(4);
+
+      process.env.MAX_DAILY_UPLOADS = "";
+      expect(loadConfig().dailyUploadLimit).toBe(4);
+
+      process.env.MAX_DAILY_UPLOADS = "-1";
+      expect(loadConfig().dailyUploadLimit).toBe(4);
+
+      process.env.MAX_DAILY_UPLOADS = "0";
+      expect(loadConfig().dailyUploadLimit).toBe(0);
+
+      process.env.MAX_DAILY_UPLOADS = "7";
+      expect(loadConfig().dailyUploadLimit).toBe(7);
+    });
+
+    it("falls back to 1 video when VIDEO_LIMIT is not a positive integer", () => {
+      process.env.VIDEO_LIMIT = "x";
+      expect(loadConfig().videoLimit).toBe(1);
+
+      process.env.VIDEO_LIMIT = "0";
+      expect(loadConfig().videoLimit).toBe(1);
+    });
+
     it("should read VIDEO_QUERY from env", () => {
       process.env.VIDEO_QUERY = "evangelho";
       const config = loadConfig();

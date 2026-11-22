@@ -17,6 +17,12 @@ export function optionalEnv(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
+// A non-numeric or out-of-range value falls back instead of leaking NaN into limits.
+function intEnv(key: string, fallback: number, min: number): number {
+  const raw = parseInt(optionalEnv(key, String(fallback)), 10);
+  return Number.isInteger(raw) && raw >= min ? raw : fallback;
+}
+
 export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig {
   const outputDir = path.resolve(optionalEnv("OUTPUT_DIR", "./output"));
   const tempDir = path.resolve(path.join(outputDir, "temp"));
@@ -41,19 +47,18 @@ export function loadConfig(overrides?: Partial<PipelineConfig>): PipelineConfig 
   const keepTempFiles = optionalEnv("KEEP_TEMP_FILES", "false") === "true";
   // Default lowered from 70: flooding uploads triggers YouTube's mass-produced
   // content suppression (channel-wide distribution collapse). Quality > volume.
-  const dailyUploadLimit = parseInt(optionalEnv("MAX_DAILY_UPLOADS", "4"), 10);
+  const dailyUploadLimit = intEnv("MAX_DAILY_UPLOADS", 4, 0);
   const maxVideoDurationMinutes = optionalEnv("MAX_VIDEO_DURATION_MINUTES", "");
   const maxVideoDurationSec = maxVideoDurationMinutes
     ? parseFloat(maxVideoDurationMinutes) * 60
     : parseFloat(optionalEnv("MAX_VIDEO_DURATION_HOURS", "1")) * 3600;
   const videoQuery = optionalEnv("VIDEO_QUERY", "") || undefined;
-  const clipConcurrencyRaw = parseInt(optionalEnv("CLIP_CONCURRENCY", "2"), 10);
-  const clipConcurrency = Number.isFinite(clipConcurrencyRaw) && clipConcurrencyRaw > 0 ? clipConcurrencyRaw : 2;
+  const clipConcurrency = intEnv("CLIP_CONCURRENCY", 2, 1);
 
   const config: PipelineConfig = {
     channels,
     specificUrls,
-    videoLimit: parseInt(optionalEnv("VIDEO_LIMIT", "1"), 10),
+    videoLimit: intEnv("VIDEO_LIMIT", 1, 1),
     maxCutsPerBlock: 10,
     minuteBlockSize: 20,
     maxShortDuration: Math.min(59, parseInt(optionalEnv("MAX_SHORT_DURATION", "59"), 10)),
