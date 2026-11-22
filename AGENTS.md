@@ -1,92 +1,70 @@
-# 🧠 AGENTS.md - Shorts Generator Intelligence System
+# AGENTS.md
 
-## 👤 AI Personas
+Shorts Generator: automated YouTube Shorts pipeline (download, faster-whisper transcription, LLM clip selection via LiteLLM, FFmpeg vertical cuts, Telegram/YouTube delivery) plus a Hono + React admin panel backed by PostgreSQL.
 
-### 1. Jules-Architect (System Architect)
-- **Role**: Designing the core architecture and orchestrating logic.
-- **Focus**: Scalability, process integrity, and high-level design.
-- **Vibe**: Direct, analytical, and strategic.
+## Stack
 
-### 2. Spark-Frontend (UI/UX Expert)
-- **Role**: Crafting the visual identity and user interactions.
-- **Focus**: Aesthetics, responsiveness, and accessibility.
-- **Vibe**: Creative, detail-oriented, and user-focused.
+- Bun 1.4.4 (`packageManager`), TypeScript (strict), Hono API, React/Vite admin in `web/`
+- FFmpeg and yt-dlp on `PATH`; faster-whisper over HTTP; LiteLLM gateway; PostgreSQL; Redis (BullMQ)
+- Optional Python: `opencv-python` (<5) for speaker framing, `edge-tts` for narrated modes
+- Vitest for tests, with a 100% coverage gate
 
-### 3. Bolt-Automation (DevOps)
-- **Role**: Managing CI/CD, scripts, and automation.
-- **Focus**: Build pipelines, testing, and deployment.
-- **Vibe**: Fast, technical, and "automation-first".
+## Commands
 
-## 📜 Development Rules (Antigravity)
-
-1. **Size Limit**: **Max 150 lines per file**.
-2. **Clean Logic**: Separation of concerns enforced across all layers.
-3. **Validation**: All changes require `bun run build` (typecheck), `bun run test:coverage` (100% gate) and, when the pipeline changes, `bun run smoke-test`. There is no separate linter.
-4. **Security**: Sensitive data must be excluded from context.
-5. **Source Attribution**: Every video generated from another video MUST include the original link in the YouTube description.
-
-## 🤝 Interaction Protocol
-- Follow the **Plan -> Act -> Validate** cycle for every task.
-- Consult `CLAUDE.md` (architecture, pipeline, env vars) and `README.md` (commands) for project-specific instructions.
-- CI gates (`.github/workflows/validate.yml`): tracked-secret check, gitleaks, `bun run build`, `bun run test:coverage`. `security.yml` runs gitleaks; `deploy.yml` builds the Docker image on push to master.
-
-## 🔑 YouTube Token Renewal
-
-Tokens por canal ficam no PostgreSQL do cluster (`publishing_accounts`), criptografados com AES-256-GCM. O k8s secret `shorts-generator-secret` contém `CONTROL_PLANE_ENCRYPTION_KEY`, `YOUTUBE_CLIENT_ID`/`YOUTUBE_CLIENT_SECRET`, `DATABASE_URL`, `ADMIN_API_TOKEN` e `TELEGRAM_*`.
-
-**Sintoma:** upload falha com `invalid_grant` (não confundir com crash do pod — `invalid_grant` cancela apenas o upload).
-
-### 1. Caminho preferido — botão no Telegram (não exige acesso ao cluster)
-
-O pipeline detecta `invalid_grant` e envia um botão **🔗 Autorizar YouTube** no Telegram do canal. Clique e escolha a conta Google **do canal**; o callback grava o novo token no banco e confirma no Telegram qual conta do YouTube foi vinculada.
-
-- O callback é `${SERVER_PUBLIC_URL}/api/youtube/callback` e **precisa ser público**. Ele vem de um redirect do navegador (sem header `Authorization` e sem `Origin`), então não pode ficar atrás de middleware de auth — se responder `401 {"error":"Unauthorized"}`, alguma rota/middleware está interceptando-o.
-- Reenviar o botão manualmente: `npx tsx scripts/send-reauth-button.ts <channelId>` (requer `SERVER_PUBLIC_URL` + config do control plane abaixo).
-
-### 2. Gerar um refresh_token novo (por canal, localmente)
-
-`scripts/get-youtube-token.ts` sobe um servidor em `localhost:3000/callback` e imprime o token. Exige `YOUTUBE_CLIENT_ID`/`YOUTUBE_CLIENT_SECRET` no `.env`. Use `prompt=consent`; se o Google não devolver `refresh_token`, revogue o acesso do app na conta e repita.
-
-### 3. Gravar no cluster
-
-`scripts/update-cluster-tokens.ts` aceita um token por canal via env e **preserva as demais contas** (Telegram/OpenRouter) do canal. Só os canais com env var preenchida são alterados.
-
-```powershell
-# Port-forward postgres
-kubectl port-forward svc/postgres 5433:5432 -n databases &
-Start-Sleep 3
-
-cd D:\Solutions\pessoal\shorts-generator
-# As 3 variáveis abaixo são obrigatórias (loadControlPlaneConfig):
-$env:DATABASE_URL = "postgresql://postgres:<DB_PASSWORD>@localhost:5433/shorts_generator"
-$env:ADMIN_API_TOKEN = "<valor do secret shorts-generator-secret → ADMIN_API_TOKEN>"
-$env:CONTROL_PLANE_ENCRYPTION_KEY = "<valor do secret shorts-generator-secret → CONTROL_PLANE_ENCRYPTION_KEY>"
-$env:YOUTUBE_CLIENT_ID = "<valor do secret>"
-$env:YOUTUBE_CLIENT_SECRET = "<valor do secret>"
-
-# Só os canais que você quer renovar:
-$env:SANTIDADE_REFRESH_TOKEN = "1//..."
-$env:QUIZ_REFRESH_TOKEN = "1//..."
-$env:AKITEMQUIZ_REFRESH_TOKEN = "1//..."
-
-npx tsx scripts/update-cluster-tokens.ts
+```bash
+bun install --frozen-lockfile   # setup (same as CI)
+bun run dev                     # API with hot reload (src/server/index.ts)
+bun run cli generate            # run the pipeline for configured channels
+bun run web:dev                 # admin UI (Vite)
+bun run build                   # typecheck (scripts/typecheck.cjs)
+bun run test                    # Vitest, single run
+bun run test tests/core/pipeline.test.ts   # single file
+bun run test:coverage           # Vitest with the 100% gate
+bun run smoke-test              # run when the pipeline changes (not in CI)
 ```
 
-> Não monte `publishingAccounts` só com a conta do YouTube: `saveBundle` apaga as contas cujo provider não está no bundle. Use `upsertPublishingAccount` (`src/core/publishing-accounts.ts`).
+## Structure
 
-### 4. Validar (read-only)
+- Architecture, pipeline flow, and the full env reference: `CLAUDE.md`.
+- `src/cli.ts`, `src/cli-commands/`: CLI entrypoints, one file per command group
+- `src/core/`: pipeline (analyzer, audio, loudness, delivery-check, publishers, quiz, comic, faceless)
+- `src/server/`: Hono admin API, including the YouTube OAuth routes
+- `web/`: React/Vite admin panel
+- `db/migrations/`: SQL migrations
+- `tests/`: Vitest suites; `scripts/`: ops and diagnostic scripts; `k8s/`: cron and job manifests
+- `prototypes/`: standalone prototypes with their own `package.json`
 
-```powershell
-npx tsx scripts/check-youtube-identity.ts   # valida os 3 canais e mostra o canal do YouTube de cada token
-```
+## Conventions
 
-### Canais gerenciados
+- Max 150 lines per file; split by responsibility when a file approaches the limit.
+- Strict TypeScript; shared types live in `src/types.ts`.
+- Process videos sequentially (no parallelism across videos).
+- Work in Plan, Act, Validate order.
+- Done means `bun run build` and `bun run test:coverage` pass; `bun run smoke-test` too when the pipeline changes.
+- Keep secrets and sensitive data out of context, logs, and commits.
+- Every video generated from another video MUST include the original link in the YouTube description.
+- Commits: conventional style (`type(scope): subject`), as in `git log`.
+- PRs: follow `.github/pull_request_template.md`.
+- Dependencies: `bun.lock` is the lockfile; install with `--frozen-lockfile`. Dependabot opens weekly grouped PRs.
 
-| `channelId` | Nome | Tipo |
-|---|---|---|
-| `santidade-catolica` | Santidade Católica | cuts |
-| `quiz-channel` | Quiz Channel | quiz |
-| `akitemquiz` | Aki Tem Quiz | cuts |
+## Gotchas
+
+- Env var names are in `.env.example`; values never go in the repo. The control plane needs `PORT`, `DATABASE_URL`, `ADMIN_API_TOKEN`, `ADMIN_ALLOWED_ORIGINS`, `CONTROL_PLANE_ENCRYPTION_KEY` (base64 of 32 bytes), and `CONTROL_PLANE_ENCRYPTION_KEY_VERSION`.
+- Migrations run automatically when `ADMIN_API_TOKEN`, `DATABASE_URL`, and `CONTROL_PLANE_ENCRYPTION_KEY` are set.
+- `CHANNEL_FLOW_MODE=cuts` and `VITE_CHANNEL_FLOW_MODE=cuts` block quiz runs and creation (cluster mode).
+- Per-channel YouTube tokens live encrypted in `publishing_accounts`. Never call `saveBundle` with only some providers: it deletes the accounts missing from the bundle. Use `upsertPublishingAccount` (`src/core/publishing-accounts.ts`).
+- `/api/youtube/callback` must stay public. It is reached by a browser redirect with no `Authorization` header, so a 401 means auth middleware is intercepting it.
+
+### YouTube token renewal
+
+Symptom: upload fails with `invalid_grant`. This cancels only that upload, not the pod.
+
+1. Preferred: the pipeline sends a "Autorizar YouTube" button to the channel's Telegram. The owner picks the channel's Google account and the callback saves the new token. Resend manually with `npx tsx scripts/send-reauth-button.ts <channelId>`.
+2. Local token: `scripts/get-youtube-token.ts` (serves `localhost:3000/callback`). Use `prompt=consent`. If Google returns no `refresh_token`, revoke the app's access on the account and retry.
+3. Write to the cluster: `scripts/update-cluster-tokens.ts` takes one token per channel from env vars and changes only the channels that have one set. Set `DATABASE_URL`, `ADMIN_API_TOKEN`, `CONTROL_PLANE_ENCRYPTION_KEY`, `YOUTUBE_CLIENT_ID`, and `YOUTUBE_CLIENT_SECRET` from the k8s secret `shorts-generator-secret`, through a port-forward to postgres. Never paste the values into the repo or a PR.
+4. Validate (read-only): `npx tsx scripts/check-youtube-identity.ts`.
+
+Managed channels: `santidade-catolica` (cuts), `quiz-channel` (quiz), `akitemquiz` (cuts).
 
 <!-- base-actions-main-policy -->
 ## GitHub Actions — padrão obrigatório (@main)
