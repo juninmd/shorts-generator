@@ -130,6 +130,10 @@ topic → quiz-content.service  → generate (zod: lengths, option distinctness,
 `QUIZ_AUDIT=false` skips the second-opinion call (offline gateways); the deterministic checks always run. Font is the bundled `assets/fonts/Poppins-ExtraBold.ttf` when present, Arial otherwise.
 
 
+### Video skills, open-source voice and QA
+
+Repo skills in `.claude/skills/`: `shorts-video-director` (storyboard → engine → voice → gates) and `shorts-frame-critic` (design + pt-BR copy rubric). `TTS_ENGINE=kokoro` / `ANIMATED_VOICE=kokoro` narrate with Kokoro-82M on CPU (`scripts/kokoro_tts.py`, `KOKORO_MODEL_DIR`, `KOKORO_VOICE`). `scripts/video_qa.py <mp4>` gates idle stretches (≤2.5s), final hold (≤1.4s) and loudness. Measured eases: `scripts/stickman/eases.py`. HTML/GSAP/three.js PoC: `prototypes/html-motion`. Sources and licences: `docs/VIDEO_SKILLS_RESEARCH.md`.
+
 ### Configuration
 
 All config is environment-driven via `src/core/config.ts`. Copy `.env.example` to `.env`. Key variables:

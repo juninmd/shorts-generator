@@ -1,0 +1,19 @@
+{
+  "name": "html-motion-prototype",
+  "private": true,
+  "type": "module",
+  "description": "Prototype: HyperFrames-style HTML scene (GSAP timeline + three.js) narrated with Kokoro and captured frame by frame",
+  "scripts": {
+    "narrate": "node scripts/narrate.mjs",
+    "render": "node scripts/render.mjs",
+    "build": "node scripts/narrate.mjs && node scripts/render.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "gsap": "3.15.1",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

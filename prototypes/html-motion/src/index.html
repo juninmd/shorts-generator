@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/gsap.min.js"></script>
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+  <!-- HyperFrames-style contract: one paused GSAP timeline in window.__timelines.main, seek(t) renders t -->
+  <div id="root" data-composition-id="main" data-width="1080" data-height="1920">
+    <canvas id="gl" width="1080" height="1920"></canvas>
+    <div id="scenes"></div>
+    <div id="progress"><i></i></div>
+    <div id="caption"></div>
+  </div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

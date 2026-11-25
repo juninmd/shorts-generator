@@ -29,11 +29,15 @@ its `at` fraction. It may set `pose`, `face`, `prop` (`slot`, `id`, `lines`, `it
 
 | `ANIMATED_VOICE` | Behaviour |
 |---|---|
-| unset | ElevenLabs if `ELEVENLABS_API_KEY` **and** `ELEVENLABS_VOICE_ID` are set, else edge-tts |
-| `elevenlabs` / `edge` / `silent` | forces that provider |
+| unset | ElevenLabs if `ELEVENLABS_API_KEY` **and** `ELEVENLABS_VOICE_ID` are set, else Kokoro if `KOKORO_MODEL_DIR` is set, else edge-tts |
+| `elevenlabs` / `kokoro` / `edge` / `silent` | forces that provider |
+
+Kokoro is the open-source local voice (`scripts/kokoro_tts.py`, `KOKORO_VOICE` = `pm_alex`,
+`pm_santa` or `pf_dora`); word timings are estimated per clause. Setup in
+`docs/VIDEO_SKILLS_RESEARCH.md`.
 
 A failing provider is logged and the rest of the run stays on the fallback (ElevenLabs → edge-tts →
-silent), so one short never mixes voices. Silent chapters keep evenly spaced word timings.
+silent, or Kokoro → silent), so one short never mixes voices. Silent chapters keep evenly spaced word timings.
 Deployment secret: `ELEVENLABS_API_KEY` (optional), with `ELEVENLABS_VOICE_ID`.
 
 ## Requirements and checks
