@@ -9,34 +9,51 @@ import { getVideoDuration } from "../video-processor.js";
 
 const execFileAsync = promisify(execFile);
 
-function scriptPath(): string {
-  return path.resolve(process.cwd(), "scripts", "comic_tts.py");
+export type TtsEngine = "edge" | "kokoro";
+
+/** TTS_ENGINE=kokoro switches the edge-tts flows built on narrateChapter (comic, faceless, bible) to Kokoro. */
+export function resolveTtsEngine(env: NodeJS.ProcessEnv = process.env): TtsEngine {
+  return env.TTS_ENGINE?.trim().toLowerCase() === "kokoro" ? "kokoro" : "edge";
+}
+
+// Kokoro synthesizes on CPU and loads a 325 MB model per call, so it gets a longer ceiling.
+const ENGINES: Record<TtsEngine, { script: string; ext: string; timeoutMs: number }> = {
+  edge: { script: "comic_tts.py", ext: "mp3", timeoutMs: 120_000 },
+  kokoro: { script: "kokoro_tts.py", ext: "wav", timeoutMs: 600_000 },
+};
+
+/** Kokoro has its own voice ids (pm_alex, pm_santa, pf_dora), so edge voice names never leak into it. */
+function voiceFor(engine: TtsEngine, voice: string): string {
+  return engine === "kokoro" ? process.env.KOKORO_VOICE || "pm_alex" : voice;
 }
 
 /**
- * Synthesize narration audio (edge-tts, free/offline-key) with word-level
- * timestamps for one comic chapter. Requires Python + the `edge-tts` package.
+ * Synthesize narration audio with word-level timestamps for one comic chapter.
+ * edge-tts (default) needs the `edge-tts` package; Kokoro needs `kokoro-onnx` and KOKORO_MODEL_DIR.
  */
 export async function narrateChapter(
   chapter: ComicChapter,
   outputDir: string,
-  voice: string,
+  edgeVoice: string,
+  engine: TtsEngine = resolveTtsEngine(),
 ): Promise<NarratedChapter> {
-  const script = scriptPath();
+  const { script: scriptName, ext, timeoutMs } = ENGINES[engine];
+  const script = path.resolve(process.cwd(), "scripts", scriptName);
+  const voice = voiceFor(engine, edgeVoice);
   if (!fs.existsSync(script)) {
     throw new Error(`Missing TTS helper script: ${script}`);
   }
 
   fs.mkdirSync(outputDir, { recursive: true });
   const textPath = path.join(outputDir, `${chapter.id}.txt`);
-  const audioPath = path.join(outputDir, `${chapter.id}.mp3`);
+  const audioPath = path.join(outputDir, `${chapter.id}.${ext}`);
   const wordsPath = path.join(outputDir, `${chapter.id}.words.json`);
   fs.writeFileSync(textPath, chapter.narrationText, "utf-8");
 
   const python = process.env.PYTHON_BIN || "python";
-  logger.info({ chapterId: chapter.id, voice }, "Synthesizing chapter narration");
+  logger.info({ chapterId: chapter.id, engine, voice }, "Synthesizing chapter narration");
   await execFileAsync(python, [script, textPath, audioPath, wordsPath, voice], {
-    timeout: 120_000,
+    timeout: timeoutMs,
     maxBuffer: 8 * 1024 * 1024,
   });
 

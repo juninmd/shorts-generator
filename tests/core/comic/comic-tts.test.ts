@@ -26,8 +26,9 @@ vi.mock("node:fs", async (importOriginal) => {
 
 vi.mock("../../../src/core/video-processor.js", () => ({ getVideoDuration: vi.fn().mockResolvedValue(5) }));
 
-import { narrateChapter, narrateChapters } from "../../../src/core/comic/comic-tts.js";
+import { narrateChapter, narrateChapters, resolveTtsEngine } from "../../../src/core/comic/comic-tts.js";
 import * as nodeFs from "node:fs";
+import * as childProcess from "node:child_process";
 import { getVideoDuration } from "../../../src/core/video-processor.js";
 
 describe("comic-tts", () => {
@@ -79,5 +80,31 @@ describe("comic-tts", () => {
 
     const chapter = { id: "ch1", title: "Ch1", imagePath: "ch1.png", narrationText: "test narration" };
     await expect(narrateChapter(chapter, "/out", "voice")).rejects.toThrow("ffprobe error");
+  });
+
+  it("TTS_ENGINE=kokoro selects the local engine; anything else stays on edge-tts", () => {
+    expect(resolveTtsEngine({ TTS_ENGINE: " Kokoro " })).toBe("kokoro");
+    expect(resolveTtsEngine({ TTS_ENGINE: "piper" })).toBe("edge");
+    expect(resolveTtsEngine({})).toBe("edge");
+  });
+
+  it("Kokoro runs its own script, writes wav and uses KOKORO_VOICE instead of the edge voice name", async () => {
+    process.env.KOKORO_VOICE = "pf_dora";
+    try {
+      const chapter = { id: "k1", title: "", imagePath: "", narrationText: "olá" };
+      const result = await narrateChapter(chapter, "/out", "pt-BR-AntonioNeural", "kokoro");
+      const args = vi.mocked(childProcess.execFile).mock.calls[0]?.[1] as string[];
+      expect(args[0]).toMatch(/kokoro_tts\.py$/);
+      expect(args.slice(2)).toEqual([expect.stringMatching(/k1\.wav$/), expect.stringMatching(/k1\.words\.json$/), "pf_dora"]);
+      expect(result.audioPath).toMatch(/k1\.wav$/);
+    } finally {
+      delete process.env.KOKORO_VOICE;
+    }
+  });
+
+  it("Kokoro defaults to the pm_alex voice when KOKORO_VOICE is unset", async () => {
+    delete process.env.KOKORO_VOICE;
+    await narrateChapter({ id: "k2", title: "", imagePath: "", narrationText: "oi" }, "/out", "edge-voice", "kokoro");
+    expect((vi.mocked(childProcess.execFile).mock.calls[0]?.[1] as string[]).at(-1)).toBe("pm_alex");
   });
 });

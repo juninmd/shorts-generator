@@ -4,7 +4,7 @@ import { logger } from "../logger.js";
 import { elevenLabsNarrate, type ElevenLabsOptions } from "./elevenlabs.js";
 import { silentNarration } from "./silent-narration.js";
 
-export type VoiceProvider = "elevenlabs" | "edge" | "silent";
+export type VoiceProvider = "elevenlabs" | "kokoro" | "edge" | "silent";
 
 export interface NarrationConfig {
   provider: VoiceProvider;
@@ -13,14 +13,20 @@ export interface NarrationConfig {
   elevenLabs?: ElevenLabsOptions;
 }
 
-const PROVIDERS: readonly VoiceProvider[] = ["elevenlabs", "edge", "silent"];
+const PROVIDERS: readonly VoiceProvider[] = ["elevenlabs", "kokoro", "edge", "silent"];
 
-/** Reads ANIMATED_VOICE; otherwise ElevenLabs when its key and voice id are set, else local edge-tts. */
+/** Reads ANIMATED_VOICE; otherwise ElevenLabs (key + voice id), then Kokoro (KOKORO_MODEL_DIR), else edge-tts. */
 export function resolveNarrationConfig(env: NodeJS.ProcessEnv): NarrationConfig {
   const requested = env.ANIMATED_VOICE?.trim().toLowerCase() as VoiceProvider | undefined;
   const hasElevenLabs = Boolean(env.ELEVENLABS_API_KEY && env.ELEVENLABS_VOICE_ID);
   const provider: VoiceProvider =
-    requested && PROVIDERS.includes(requested) ? requested : hasElevenLabs ? "elevenlabs" : "edge";
+    requested && PROVIDERS.includes(requested)
+      ? requested
+      : hasElevenLabs
+        ? "elevenlabs"
+        : env.KOKORO_MODEL_DIR
+          ? "kokoro"
+          : "edge";
   return {
     provider,
     edgeVoice: env.COMIC_TTS_VOICE || "pt-BR-AntonioNeural",
@@ -37,6 +43,7 @@ export function resolveNarrationConfig(env: NodeJS.ProcessEnv): NarrationConfig 
 /** Providers tried in order; the last one (silent) cannot fail, so it is the guaranteed floor. */
 export function narrationChain(provider: VoiceProvider): VoiceProvider[] {
   if (provider === "elevenlabs") return ["elevenlabs", "edge", "silent"];
+  if (provider === "kokoro") return ["kokoro", "silent"];
   if (provider === "edge") return ["edge", "silent"];
   return ["silent"];
 }
@@ -51,7 +58,8 @@ async function narrateWith(
     if (!config.elevenLabs) throw new Error("ElevenLabs is not configured");
     return elevenLabsNarrate(chapter, outputDir, config.elevenLabs);
   }
-  if (provider === "edge") return narrateChapter(chapter, outputDir, config.edgeVoice);
+  if (provider === "kokoro") return narrateChapter(chapter, outputDir, config.edgeVoice, "kokoro");
+  if (provider === "edge") return narrateChapter(chapter, outputDir, config.edgeVoice, "edge");
   return silentNarration(chapter);
 }
 

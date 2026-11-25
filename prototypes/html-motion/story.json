@@ -1,0 +1,15 @@
+{
+  "id": "historia-da-ia",
+  "title": "A história da IA em 40 segundos",
+  "credit": "Pauta inspirada no prompt kloss-xyz-067876 do catálogo yihui-dev/awesome-opus5-5-videos (MIT); roteiro e visual próprios.",
+  "scenes": [
+    { "id": "hook", "kicker": "Em 40 segundos", "title": "Como a IA chegou até aqui?", "text": "Como a inteligência artificial saiu do papel e chegou no seu celular? Seis datas explicam tudo." },
+    { "id": "turing", "year": 1950, "title": "Turing pergunta", "body": "Máquinas podem pensar?", "text": "Em mil novecentos e cinquenta, Alan Turing pergunta se máquinas podem pensar." },
+    { "id": "dartmouth", "year": 1956, "title": "Nasce o nome", "body": "Conferência de Dartmouth", "text": "Em cinquenta e seis, na conferência de Dartmouth, o termo inteligência artificial ganha nome." },
+    { "id": "deepblue", "year": 1997, "title": "Xeque-mate", "body": "Deep Blue vence Kasparov", "text": "Em noventa e sete, o Deep Blue vence o campeão mundial de xadrez." },
+    { "id": "alexnet", "year": 2012, "title": "Deep learning", "body": "AlexNet domina o ImageNet", "text": "Em dois mil e doze, a AlexNet mostra que redes profundas enxergam melhor." },
+    { "id": "transformer", "year": 2017, "title": "Atenção é tudo", "body": "Nasce o Transformer", "text": "Em dois mil e dezessete, o Transformer muda a forma de processar linguagem." },
+    { "id": "chatgpt", "year": 2022, "title": "A IA no bolso", "body": "ChatGPT chega ao público", "text": "E em dois mil e vinte e dois, o ChatGPT coloca tudo isso no bolso de milhões de pessoas." },
+    { "id": "cta", "kicker": "Antonio Code", "title": "Qual é a próxima data?", "text": "Qual vai ser a próxima data dessa lista? Comenta aqui e segue o Antonio Code." }
+  ]
+}
