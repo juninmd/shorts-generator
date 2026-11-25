@@ -1,10 +1,29 @@
 # Animated stick-figure shorts (Antonio Code)
 
-`bun run cli generate:animated --demo` renders a vertical short where each chapter is a
-procedurally animated stick figure (`scripts/stick_pose.py`, `scripts/stick_render.py`) with a
-prop (database, warning, shield), narrated and captioned by the shared comic pipeline.
-Inspired by [stickman-video-director](https://github.com/kaomei/stickman-video-director): one
-character, pose presets, captions. No LLM or external asset is needed for the demo.
+`bun run cli generate:animated --demo --style pop|line` renders a 9:16 short where every chapter is an
+acted scene: a rigged stick figure changes pose and expression, props appear as their words are
+spoken, captions and effects follow the voice. The look follows two styles of
+[stickman-video-director](https://github.com/kaomei/stickman-video-director) (MIT), re-implemented as
+local code:
+
+| `--style` | Reference | Look |
+|---|---|---|
+| `pop` (default) | A2 · Modern Pop (Style 2A) | high-key white studio, perspective grid floor, red-beanie / yellow-tee figure, cyan glass holograms |
+| `line` | B1 · Minimal Line Art | warm paper with a faint grid, fine irregular pen figure, crayon props drawn stroke by stroke, handwritten heading with red emphasis |
+
+Both share one rig (13 poses, eased transitions, breathing, talk gestures, walk-in), seven expressions
+with blinking and word-driven lip movement, nine props (terminal, database, shield, warning,
+checklist, approval, robot, lock, x) with states (`danger`, `aprovar`, `negar`), single-line semantic
+captions in the style's own font, and synthesized effects (pop, scribble, alarm, ding, whoosh).
+Frames are drawn at 2x and downsampled; `STICK_SUPERSAMPLE` and `STICK_WORKERS` tune cost.
+
+## Writing a book
+
+`--book <path.json>` takes an `AnimatedBook` (`src/core/animated/animated-types.ts`):
+`{ id, title, style?, chapters: [{ id, title, imagePath, heading, emphasis?, enter?, narrationText, beats }] }`.
+A beat fires when the narration speaks a word starting with `cue` (accents and case ignored), else at
+its `at` fraction. It may set `pose`, `face`, `prop` (`slot`, `id`, `lines`, `items`, `label`, `title`),
+`set: { id, state }` or `sfx`. `imagePath` is replaced by a generated poster.
 
 ## Voice
 
@@ -13,23 +32,17 @@ character, pose presets, captions. No LLM or external asset is needed for the de
 | unset | ElevenLabs if `ELEVENLABS_API_KEY` **and** `ELEVENLABS_VOICE_ID` are set, else edge-tts |
 | `elevenlabs` / `edge` / `silent` | forces that provider |
 
-A failing provider is logged and the chapter falls back (ElevenLabs → edge-tts → silent). Silent
-chapters keep evenly spaced word timings so captions still sync.
+A failing provider is logged and the rest of the run stays on the fallback (ElevenLabs → edge-tts →
+silent), so one short never mixes voices. Silent chapters keep evenly spaced word timings.
+Deployment secret: `ELEVENLABS_API_KEY` (optional), with `ELEVENLABS_VOICE_ID`.
 
-Secret name for deployment: `ELEVENLABS_API_KEY` (optional), with `ELEVENLABS_VOICE_ID`.
+## Requirements and checks
 
-## Requirements
-
-Python 3 with Pillow (`pip install pillow`), FFmpeg, and `edge-tts` only for the local voice.
-`PYTHON_BIN` overrides the interpreter.
-
-## Custom books
-
-`--book <path.json>` takes an `AnimatedBook`: `{ id, title, chapters: [{ id, title, imagePath, pose, prop, narrationText }] }`.
-`imagePath` is overwritten with a generated poster, so any value works. `pose` is one of
-`idle | talk | point | alarm | typing`; `prop` is one of `none | database | warning | shield`.
+Python 3 with Pillow, FFmpeg, `edge-tts` only for that voice; `PYTHON_BIN` overrides the interpreter.
+Fonts: bundled Poppins ExtraBold and Caveat (OFL, `assets/fonts`). Renderer tests:
+`python -m unittest discover -s tests/python`.
 
 ## Status
 
-PoC. The ElevenLabs HTTP flow is unit-tested against mocks only; verify it against the live API
-before relying on it. Scripts are not generated from a topic yet (the demo script is hand-written).
+PoC. ElevenLabs is unit-tested against mocks only. Scripts are hand-written (no topic → script step
+yet). Layouts are drawn for 1080x1920 only.

@@ -73,6 +73,7 @@ describe("comic-pipeline", () => {
       chapters.map((chapter) => ({ ...chapter, audioPath: "", durationSec: 4, words: [] })),
     );
     const renderChapter = vi.fn(async () => {});
+    const buildSubtitles = vi.fn(() => "[Script Info]");
     const result = await runComicPipeline(book, {
       outputDir: "output",
       verticalWidth: 1080,
@@ -80,8 +81,10 @@ describe("comic-pipeline", () => {
       ttsVoice: "pt-BR-AntonioNeural",
       narrate,
       renderChapter,
+      buildSubtitles,
     });
 
+    expect(buildSubtitles).toHaveBeenCalledWith(expect.objectContaining({ duration: 8 }));
     expect(narrate).toHaveBeenCalledTimes(1);
     expect(renderChapter).toHaveBeenCalledTimes(2);
     expect(result.durationSec).toBe(8);

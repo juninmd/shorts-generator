@@ -41,6 +41,15 @@ describe("cli-animated", () => {
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("o.mp4"));
   });
 
+  it("passes a valid --style through and ignores an unknown one", async () => {
+    await runAnimatedCommand(["generate:animated", "--demo", "--style", "line"]);
+    expect(vi.mocked(runAnimatedPipeline).mock.calls[0]![1].style).toBe("line");
+    await runAnimatedCommand(["generate:animated", "--demo", "--style", "neon"]);
+    expect(vi.mocked(runAnimatedPipeline).mock.calls[1]![1].style).toBeUndefined();
+    await runAnimatedCommand(["generate:animated", "--demo"]);
+    expect(vi.mocked(runAnimatedPipeline).mock.calls[2]![1].style).toBeUndefined();
+  });
+
   it("renders a user-supplied book from --book", async () => {
     await runAnimatedCommand(["generate:animated", "--book", "book.json"]);
     expect(fs.readFileSync).toHaveBeenCalledWith(expect.stringContaining("book.json"), "utf-8");

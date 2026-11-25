@@ -22,6 +22,8 @@ export interface ComicPipelineConfig {
   narrate?: (chapters: ComicChapter[], workDir: string) => Promise<NarratedChapter[]>;
   /** Replaces the Ken Burns still clip (e.g. an animated stick-figure chapter). */
   renderChapter?: (chapter: NarratedChapter, clipPath: string) => Promise<void>;
+  /** Replaces the karaoke ASS (e.g. when chapter clips already carry their own captions). */
+  buildSubtitles?: (clip: ShortClip) => string;
 }
 
 /** Offsets each chapter's word timestamps onto the shared, concatenated timeline. */
@@ -101,7 +103,9 @@ export async function runComicPipeline(
   const subtitlePath = path.join(workDir, `${book.id}.ass`);
   fs.writeFileSync(
     subtitlePath,
-    generateASSSubtitles(syntheticClip, config.verticalWidth, config.verticalHeight, config.watermarkText),
+    config.buildSubtitles
+      ? config.buildSubtitles(syntheticClip)
+      : generateASSSubtitles(syntheticClip, config.verticalWidth, config.verticalHeight, config.watermarkText),
     "utf-8",
   );
 
