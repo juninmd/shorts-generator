@@ -25,6 +25,15 @@ A beat fires when the narration speaks a word starting with `cue` (accents and c
 its `at` fraction. It may set `pose`, `face`, `prop` (`slot`, `id`, `lines`, `items`, `label`, `title`),
 `set: { id, state }` or `sfx`. `imagePath` is replaced by a generated poster.
 
+## Daily short
+
+`bun run cli generate:animated --daily [--managed-channel <id>] [--style pop|line]` writes the day's script with LiteLLM
+(theme: code best practices and coding with AI; the evo-agent feed `https://juninmd.github.io/evo-agent/feed.xml` only
+suggests the subject), renders it (style alternates pop/line by day unless `--style` is given) and sends the preview to
+Telegram. The same approve/discard buttons as the Bible flow publish it to the channel in the sidecar `channelId`
+(`global` when no `--managed-channel` is given: publish then fails until the channel is authenticated).
+`generate:bible --passage auto` picks the day's passage from a fixed rotation (`bible-daily.ts`).
+
 ## Voice
 
 | `ANIMATED_VOICE` | Behaviour |
@@ -44,5 +53,4 @@ Fonts: bundled Poppins ExtraBold and Caveat (OFL, `assets/fonts`). Renderer test
 
 ## Status
 
-PoC. ElevenLabs is unit-tested against mocks only. Scripts are hand-written (no topic → script step
-yet). Layouts are drawn for 1080x1920 only.
+PoC. ElevenLabs is unit-tested against mocks only. Scripts are hand-written, except `--daily` (topic → script via LiteLLM). Layouts are drawn for 1080x1920 only.
