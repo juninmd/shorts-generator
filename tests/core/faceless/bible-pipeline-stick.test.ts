@@ -34,5 +34,7 @@ describe("bible pipeline, stick visual", () => {
   it("refuses the stick visual without a narration config", async () => {
     vi.mocked(generateBibleScript).mockResolvedValue({ title: "T", reference: "Lc 15,20", scenes: [] } as any);
     await expect(runBiblePipeline("Lc 15,20", {} as any, { ttsVoice: "v", visual: "stick" })).rejects.toThrow("narration config");
+    expect(generateBibleScript).not.toHaveBeenCalled();
+    expect(runAnimatedPipeline).not.toHaveBeenCalled();
   });
 });

@@ -28,15 +28,17 @@ export async function runBiblePipeline(
   config: PipelineConfig,
   options: BibleOptions,
 ): Promise<BibleShortMeta> {
+  // Fail before the paid LLM call: a stick short cannot be narrated without a voice config.
+  const narration = options.narration;
+  if (options.visual === "stick" && !narration) throw new Error("Stick bible short needs a narration config");
   const script = await generateBibleScript(passage, config, options.language);
   logger.info({ passage, title: script.title, scenes: script.scenes.length }, "Bible script ready");
-  if (options.visual === "stick") {
-    if (!options.narration) throw new Error("Stick bible short needs a narration config");
+  if (narration && options.visual === "stick") {
     const result = await runAnimatedPipeline(buildBibleStickBook(script), {
       outputDir: config.outputDir,
       verticalWidth: config.verticalWidth,
       verticalHeight: config.verticalHeight,
-      narration: options.narration,
+      narration,
       style: "line",
       watermarkText: options.watermarkText,
       musicPath: options.musicPath,
