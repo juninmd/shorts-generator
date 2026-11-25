@@ -18,6 +18,7 @@ export default defineConfig({
         'src/types-pipeline.ts',
         'src/types-video.ts',
         'src/core/comic/comic-types.ts',
+        'src/core/animated/animated-types.ts',
         'src/core/publishers/types.ts',
       ],
       all: true,

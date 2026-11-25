@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { nanoid } from "nanoid";
 import type { ShortClip, TranscriptSegment } from "../../types.js";
-import type { ComicBook, ComicShortResult, NarratedChapter } from "./comic-types.js";
+import type { ComicBook, ComicChapter, ComicShortResult, NarratedChapter } from "./comic-types.js";
 import { narrateChapters } from "./comic-tts.js";
 import { renderChapterClip, concatChapterClips, burnSubtitles } from "./comic-video.js";
 import { generateASSSubtitles } from "../subtitle.js";
@@ -18,6 +18,10 @@ export interface ComicPipelineConfig {
   watermarkText?: string;
   /** Background track; mixed under the narration with ducking when set. */
   musicPath?: string;
+  /** Replaces the edge-tts narration (e.g. ElevenLabs with fallback, or silent). */
+  narrate?: (chapters: ComicChapter[], workDir: string) => Promise<NarratedChapter[]>;
+  /** Replaces the Ken Burns still clip (e.g. an animated stick-figure chapter). */
+  renderChapter?: (chapter: NarratedChapter, clipPath: string) => Promise<void>;
 }
 
 /** Offsets each chapter's word timestamps onto the shared, concatenated timeline. */
@@ -61,12 +65,18 @@ export async function runComicPipeline(
   fs.mkdirSync(workDir, { recursive: true });
 
   logger.info({ bookId: book.id, chapters: book.chapters.length }, "Narrating comic chapters");
-  const narrated = await narrateChapters(book.chapters, workDir, config.ttsVoice);
+  const narrated = config.narrate
+    ? await config.narrate(book.chapters, workDir)
+    : await narrateChapters(book.chapters, workDir, config.ttsVoice);
 
   const clipPaths: string[] = [];
   for (const chapter of narrated) {
     const clipPath = path.join(workDir, `${chapter.id}.clip.mp4`);
-    await renderChapterClip(chapter, clipPath, config.verticalWidth, config.verticalHeight);
+    if (config.renderChapter) {
+      await config.renderChapter(chapter, clipPath);
+    } else {
+      await renderChapterClip(chapter, clipPath, config.verticalWidth, config.verticalHeight);
+    }
     clipPaths.push(clipPath);
   }
 

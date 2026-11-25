@@ -67,6 +67,26 @@ describe("comic-pipeline", () => {
     expect(finishDelivery).toHaveBeenCalledWith(result.outputPath, { duration: 5, width: 1080, height: 1920 }, DELIVERY_SPECS.custom);
   });
 
+  it("uses injected narration and chapter rendering when provided", async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    const narrate = vi.fn(async (chapters: any[]) =>
+      chapters.map((chapter) => ({ ...chapter, audioPath: "", durationSec: 4, words: [] })),
+    );
+    const renderChapter = vi.fn(async () => {});
+    const result = await runComicPipeline(book, {
+      outputDir: "output",
+      verticalWidth: 1080,
+      verticalHeight: 1920,
+      ttsVoice: "pt-BR-AntonioNeural",
+      narrate,
+      renderChapter,
+    });
+
+    expect(narrate).toHaveBeenCalledTimes(1);
+    expect(renderChapter).toHaveBeenCalledTimes(2);
+    expect(result.durationSec).toBe(8);
+  });
+
   it("rejects a book with no chapters", async () => {
     await expect(
       runComicPipeline({ id: "empty", title: "Empty", chapters: [] }, {
