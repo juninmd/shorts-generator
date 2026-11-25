@@ -43,6 +43,12 @@ async function main() {
       break;
     }
 
+    case "generate:animated": {
+      const { runAnimatedCommand } = await import("./cli-commands/cli-animated.js");
+      await runAnimatedCommand(args);
+      break;
+    }
+
     case "generate:trending": {
       const { runTrendingCommand } = await import("./cli-commands/cli-trending.js");
       await runTrendingCommand();

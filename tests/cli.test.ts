@@ -22,6 +22,7 @@ vi.mock("../src/core/logger.js", () => ({ logger: { fatal: vi.fn(), info: vi.fn(
 vi.mock("../src/core/queue-client.js", () => ({ closeQueueConnections: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../src/core/queue.js", () => ({ processQueueUntilEmpty: vi.fn().mockResolvedValue(undefined), retryFailedWithExistingFiles: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../src/cli-commands/cli-comic.js", () => ({ runComicCommand: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("../src/cli-commands/cli-animated.js", () => ({ runAnimatedCommand: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../src/core/social-queue.js", () => ({ processSocialQueue: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../src/core/config.js", () => ({ loadConfig: vi.fn(() => ({ outputDir: "out" })) }));
 vi.mock("../src/cli-commands/cli-faceless.js", () => ({ runFacelessCommand: vi.fn().mockResolvedValue(undefined) }));
@@ -88,6 +89,12 @@ describe("cli", () => {
   it("should run generate:trending command", async () => {
     await runCli(["generate:trending"]);
     expect(trending.runTrendingCommand).toHaveBeenCalled();
+  });
+
+  it("should run generate:animated command", async () => {
+    const animated = await import("../src/cli-commands/cli-animated.js");
+    await runCli(["generate:animated", "--demo"]);
+    expect(animated.runAnimatedCommand).toHaveBeenCalledWith(["generate:animated", "--demo"]);
   });
 
   it("should run generate:comic command", async () => {
