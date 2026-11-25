@@ -86,7 +86,16 @@ def strike(spec, state):
     return [("line", [(-0.85, -0.85), (0.85, 0.85)], "danger"), ("line", [(0.85, -0.85), (-0.85, 0.85)], "danger")]
 
 
-KINDS = {"terminal": terminal, "database": database, "shield": shield, "warning": warning, "checklist": checklist,
+def scroll(spec, state):
+    """Verse card: the quoted lines are drawn word for word, never trimmed."""
+    lines = spec.get("lines", [""])
+    shapes = [("poly", _rect(-1, -0.86, 1, 0.86), "paper"), ("line", _rect(-1, -0.86, 1, 0.86), "ink")]
+    for i, text in enumerate(lines[:8]):
+        shapes.append(("text", (0, -0.7 + i * 0.2), text, 0.14, "ink"))
+    return shapes
+
+
+KINDS = {"scroll": scroll, "terminal": terminal, "database": database, "shield": shield, "warning": warning, "checklist": checklist,
          "approval": approval, "robot": robot, "lock": lock, "x": strike}
 
 
