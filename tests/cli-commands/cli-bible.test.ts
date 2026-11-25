@@ -50,10 +50,16 @@ describe("cli-bible", () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Usage"));
   });
 
+  it("--visual stick switches the bible short to stick-figure acting", async () => {
+    await runBibleCommand(["--managed-channel", "santidade-catolica", "--passage", "Lucas 15,11-24", "--visual", "stick"]);
+    expect(runPipelineMock).toHaveBeenLastCalledWith("Lucas 15,11-24", expect.anything(), expect.objectContaining({ visual: "stick" }));
+  });
+
   it("generates the short and sends the approval card", async () => {
     await runBibleCommand(["--managed-channel", "santidade-catolica", "--passage", "Lucas 15,11-24"]);
     expect(runPipelineMock).toHaveBeenCalledWith("Lucas 15,11-24", expect.objectContaining({ managed: true }), {
       language: undefined, ttsVoice: "pt-BR-ThalitaMultilingualNeural", pexelsApiKey: undefined, musicPath: undefined, watermarkText: "wm",
+      visual: "footage", narration: expect.objectContaining({ provider: "edge" }),
     });
     expect(sendMock).toHaveBeenCalled();
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("--publish /out/v.publish.json"));
