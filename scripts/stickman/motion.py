@@ -2,6 +2,8 @@
 import math
 import unicodedata
 
+from .eases import soft_land
+
 TRANSITION = 0.38  # seconds a pose change takes
 
 
@@ -11,16 +13,6 @@ def clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
 
 def lerp(a: float, b: float, k: float) -> float:
     return a + (b - a) * k
-
-
-def ease_in_out(k: float) -> float:
-    k = clamp(k)
-    return 4 * k ** 3 if k < 0.5 else 1 - (-2 * k + 2) ** 3 / 2
-
-
-def ease_out_back(k: float, s: float = 1.6) -> float:
-    k = clamp(k) - 1
-    return 1 + (s + 1) * k ** 3 + s * k ** 2
 
 
 def ease_out(k: float) -> float:
@@ -62,7 +54,7 @@ class Timeline:
             return default, default, 1.0
         i = fired[-1]
         prev = track[i - 1][1] if i else default
-        return prev, track[i][1], ease_in_out((t - track[i][0]) / TRANSITION)
+        return prev, track[i][1], soft_land((t - track[i][0]) / TRANSITION)
 
     def props(self, t: float) -> list:
         """Every prop beat already fired, with seconds since it appeared."""

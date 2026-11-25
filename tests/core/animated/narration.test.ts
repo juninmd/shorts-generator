@@ -42,11 +42,19 @@ describe("resolveNarrationConfig", () => {
     expect(resolveNarrationConfig({ ...env, ANIMATED_VOICE: "edge" }).elevenLabs?.modelId).toBe("m2");
     expect(resolveNarrationConfig({ ...env, ANIMATED_VOICE: "edge" }).edgeVoice).toBe("x");
   });
+
+  it("prefers the local Kokoro voice over edge-tts once its model dir is set, but never over ElevenLabs", () => {
+    expect(resolveNarrationConfig({ KOKORO_MODEL_DIR: "/m" }).provider).toBe("kokoro");
+    const all = { KOKORO_MODEL_DIR: "/m", ELEVENLABS_API_KEY: "k", ELEVENLABS_VOICE_ID: "v" };
+    expect(resolveNarrationConfig(all).provider).toBe("elevenlabs");
+    expect(resolveNarrationConfig({ ANIMATED_VOICE: "kokoro" }).provider).toBe("kokoro");
+  });
 });
 
 describe("narrationChain", () => {
   it("ends every chain at silent so a run never fails for lack of a voice", () => {
     expect(narrationChain("elevenlabs")).toEqual(["elevenlabs", "edge", "silent"]);
+    expect(narrationChain("kokoro")).toEqual(["kokoro", "silent"]);
     expect(narrationChain("edge")).toEqual(["edge", "silent"]);
     expect(narrationChain("silent")).toEqual(["silent"]);
   });
@@ -80,6 +88,12 @@ describe("narrateWithFallback", () => {
     expect(out.audioPath).toBe("");
     expect(elevenLabsNarrate).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledTimes(2);
+  });
+
+  it("routes Kokoro through the shared TTS helper with the kokoro engine", async () => {
+    vi.mocked(narrateChapter).mockResolvedValue(fakeNarrated);
+    await narrateWithFallback(chapter, "dir", { provider: "kokoro", edgeVoice: "v" });
+    expect(narrateChapter).toHaveBeenCalledWith(chapter, "dir", "v", "kokoro");
   });
 
   it("narrates with the requested provider directly when it is silent", async () => {

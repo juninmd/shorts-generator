@@ -71,6 +71,9 @@ export function buildAntonioCodeDemoBook(): AnimatedBook {
             pose: "point",
             items: ["permissão mínima", "prod: só leitura", "bloquear DROP", "log de comandos"],
           },
+          // a gesture every ~2 s keeps the character under the 2.5 s idle ceiling (video_qa.py)
+          { cue: "credencial", pose: "explain" },
+          { cue: "bloqueio", pose: "stop", face: "determined" },
           { cue: "destrutivos", pose: "thumbs", face: "happy" },
         ],
       },

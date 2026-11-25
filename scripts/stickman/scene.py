@@ -1,6 +1,7 @@
 """Per-frame scene state shared by the styles: pose, face, gaze, props with states, captions."""
 from . import captions
-from .motion import Timeline, ease_out, ease_out_back, lerp
+from .eases import pop_over
+from .motion import Timeline, ease_out, lerp
 from .rig import add_life, joints, pose_at
 
 
@@ -43,7 +44,7 @@ class Scene:
                 if change.get("id") == pid:
                     state, since = change.get("state", state), t - bt
             out.append({"kind": kind, "age": age, "beat": beat, "state": state, "since": since,
-                        "slot": beat.get("slot", "right"), "appear": ease_out_back(age / 0.45), "alpha": ease_out(age / 0.3)})
+                        "slot": beat.get("slot", "right"), "appear": pop_over(age / 0.5), "alpha": ease_out(age / 0.3)})
         return out
 
     def caption(self, t: float):
