@@ -101,7 +101,7 @@ Usage:
   bun run generate:quiz [options]
   bun run generate:metrics-digest
   bun run generate:faceless --topic "assunto"
-  bun run generate:bible --managed-channel <id> --passage "Livro 1,1-10"
+  bun run generate:bible --managed-channel <id> --passage "Livro 1,1-10" [--visual stick]
   bun run generate:trending                  # repositório trending da semana (sem repetir)
   bun run queue:process
   bun run queue:retry

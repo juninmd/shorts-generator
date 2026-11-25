@@ -6,7 +6,7 @@ export type StickPose =
   | "stand" | "talk" | "explain" | "point" | "present" | "alarm" | "facepalm"
   | "think" | "shrug" | "type" | "cheer" | "thumbs" | "stop";
 export type StickFace = "neutral" | "happy" | "worried" | "shocked" | "angry" | "determined" | "smug";
-export type StickProp = "terminal" | "database" | "shield" | "warning" | "checklist" | "approval" | "robot" | "lock" | "x";
+export type StickProp = "terminal" | "database" | "shield" | "warning" | "checklist" | "approval" | "robot" | "lock" | "x" | "scroll";
 export type StickSlot = "right" | "top" | "low" | "left";
 export type StickSound = "pop" | "ding" | "alarm" | "scribble" | "whoosh";
 
