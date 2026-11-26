@@ -1,6 +1,7 @@
 import { loadManagedConfig } from "../core/managed-config.js";
 import { pickBibleMusic } from "../core/faceless/bible-music.js";
 import { logger } from "../core/logger.js";
+import { pickDailyPassage } from "../core/faceless/bible-daily.js";
 import { runBiblePipeline } from "../core/faceless/bible-pipeline.js";
 import { resolveNarrationConfig } from "../core/animated/narration.js";
 import { publishBiblePreview, sendBiblePreview } from "../core/faceless/bible-preview.js";
@@ -18,7 +19,9 @@ const arg = (args: string[], name: string): string | undefined => {
  */
 export async function runBibleCommand(args: string[]): Promise<void> {
   const channelId = arg(args, "--managed-channel");
-  const passage = arg(args, "--passage");
+  const passageArg = arg(args, "--passage");
+  // `--passage auto` escolhe a passagem do dia (rotação fixa), para rodar em CronJob.
+  const passage = passageArg === "auto" ? pickDailyPassage(new Date()) : passageArg;
   const publish = arg(args, "--publish");
   if (!channelId || (!passage && !publish)) {
     console.log('Usage: generate:bible --managed-channel <id> (--passage "Livro 1,1-10" [--visual stick] | --publish <arquivo.publish.json>)');
