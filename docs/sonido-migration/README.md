@@ -74,7 +74,7 @@ node node_modules/vite/bin/vite.js --config docs/sonido-migration/vite.preview.c
 As capturas foram feitas em Chromium, viewport 1180×900 com `deviceScaleFactor: 2` e página
 inteira (`fullPage`), com dados fictícios:
 
-- `antes-depois.png` — os 9 primitivos, antes/depois.
+- `antes-depois.png` — os 10 primitivos, antes/depois.
 - `app-console.png` — o console real depois da troca (sem backend, token vazio).
 
 ```bash

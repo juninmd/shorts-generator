@@ -4,7 +4,9 @@ import {
   Alert,
   Badge,
   Button,
+  Card,
   EmptyState,
+  Skeleton,
   StatTile,
   Stepper,
   Tabs,
@@ -22,6 +24,7 @@ import { LegacyAlert } from "./legacy/Alert";
 import { LegacyBadge } from "./legacy/Badge";
 import { LegacyButton } from "./legacy/Button";
 import { LegacyEmptyState } from "./legacy/EmptyState";
+import { LegacyNotice } from "./legacy/Notice";
 import { LegacyStatRow } from "./legacy/StatRow";
 import { LegacyTabs } from "./legacy/Tabs";
 import { LegacyToast } from "./legacy/Toast";
@@ -230,6 +233,30 @@ function App() {
         hint="Mediana de views por janela etária no dashboard."
         before={<div className="glass-inset" style={{ padding: 14 }}><LegacyStatRow value="12.480" /></div>}
         after={<div className="glass-inset" style={{ padding: 14 }}><StatTile label="Mediana de views" value="12.480" tone="accent" /></div>}
+      />
+
+      <Row
+        title="Skeleton"
+        hint="Carregamento das métricas do dashboard."
+        before={<LegacyNotice>Carregando métricas…</LegacyNotice>}
+        after={<Skeleton label="Carregando métricas…" rows={3} />}
+      />
+
+      <Row
+        title="Card"
+        hint="Seção de um canal no dashboard de métricas."
+        before={
+          <section className="glass" style={{ padding: 22 }}>
+            <strong style={{ fontSize: 15 }}>Canal Exemplo</strong>
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "#64748b" }}>cuts · 7 dias de série</p>
+          </section>
+        }
+        after={
+          <Card surface="glass" padding="lg">
+            <strong style={{ fontSize: 15 }}>Canal Exemplo</strong>
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "#a6a8b2" }}>cuts · 7 dias de série</p>
+          </Card>
+        }
       />
     </div>
   );
