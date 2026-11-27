@@ -3,6 +3,8 @@ import { runAnimatedCommand } from "../../src/cli-commands/cli-animated.js";
 import { loadConfig } from "../../src/core/config.js";
 import { runAnimatedPipeline } from "../../src/core/animated/animated-pipeline.js";
 import { buildAntonioCodeDemoBook } from "../../src/core/animated/animated-demo.js";
+import { fetchFeedEntries, generateAnimatedScript, buildAnimatedMeta } from "../../src/core/animated/animated-topic.js";
+import { sendBiblePreview } from "../../src/core/faceless/bible-preview.js";
 import fs from "node:fs";
 
 vi.mock("node:fs");
@@ -10,6 +12,14 @@ vi.mock("../../src/core/config.js");
 vi.mock("../../src/core/animated/animated-pipeline.js");
 vi.mock("../../src/core/animated/animated-demo.js", () => ({ buildAntonioCodeDemoBook: vi.fn(() => ({ id: "demo" })) }));
 vi.mock("../../src/core/logger.js", () => ({ logger: { info: vi.fn(), warn: vi.fn() } }));
+vi.mock("../../src/core/animated/animated-topic.js", () => ({
+  fetchFeedEntries: vi.fn(),
+  generateAnimatedScript: vi.fn(),
+  buildAnimatedMeta: vi.fn(),
+  styleForDate: vi.fn(() => "pop"),
+  scriptToBook: vi.fn(() => ({ id: "book" })),
+}));
+vi.mock("../../src/core/faceless/bible-preview.js", () => ({ sendBiblePreview: vi.fn() }));
 
 describe("cli-animated", () => {
   let exitSpy: any;
@@ -63,5 +73,21 @@ describe("cli-animated", () => {
     await expect(runAnimatedCommand(["generate:animated"])).rejects.toThrow("exit");
     expect(exitSpy).toHaveBeenCalledWith(1);
     expect(runAnimatedPipeline).not.toHaveBeenCalled();
+  });
+
+  it("renders daily short from feed entries", async () => {
+    vi.mocked(fetchFeedEntries).mockResolvedValue([
+      { title: "Test entry", link: "http://example.com", summary: "Test summary", categories: ["test"] },
+    ] as any);
+    vi.mocked(generateAnimatedScript).mockResolvedValue({
+      title: "Test",
+      hashtags: [],
+      chapters: [
+        { heading: "Regra 1", emphasis: "Regra", narration: "Test narration", beats: [{ cue: "test", at: 0 }] },
+      ],
+    } as any);
+    vi.mocked(runAnimatedPipeline).mockResolvedValue({ outputPath: "o.mp4", durationSec: 9, chapters: 1 } as any);
+    const result = await runAnimatedCommand(["generate:animated", "--daily"]);
+    expect(result).toBeUndefined();
   });
 });
