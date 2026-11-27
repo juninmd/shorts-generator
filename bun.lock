@@ -34,6 +34,7 @@
       "name": "shorts-generator-web",
       "version": "1.0.0",
       "dependencies": {
+        "@juninmd/sonido": "^2.2.1",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
       },
@@ -108,6 +109,8 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.6.0", "", {}, "sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
+
+    "@juninmd/sonido": ["@juninmd/sonido@2.2.1", "", { "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-e/KIJDPL2MNiRSaor3Ks6TeFNphfROD37Q/QYsZehfKUOfkj/zlxnOw2vOGMchti1NwnQ1fYYXGvted6ncT8yA=="],
 
     "@msgpackr-extract/msgpackr-extract-darwin-arm64": ["@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.7", "", { "os": "darwin", "cpu": "arm64" }, "sha512-2zPHLn+MuGJ6GP/5jDrwa9Jy0CI+D3Ibpvopf5SFfmc1G9gdofR4uB7YrJAAp4vodn/7iDOciyv8bgkRPLw7cA=="],
 

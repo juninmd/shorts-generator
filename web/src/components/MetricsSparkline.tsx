@@ -1,3 +1,4 @@
+import { EmptyState } from "@juninmd/sonido";
 import type { DailyMetricPoint } from "../types";
 
 const W = 640;
@@ -7,7 +8,7 @@ const PAD = 12;
 /** Dependency-free area+line chart for a channel's daily view series. */
 export function MetricsSparkline({ series }: { series: DailyMetricPoint[] }) {
   if (series.length === 0) {
-    return <EmptyState />;
+    return <EmptySeries />;
   }
   const values = series.map((p) => p.totalViews);
   const max = Math.max(...values, 1);
@@ -41,10 +42,6 @@ export function MetricsSparkline({ series }: { series: DailyMetricPoint[] }) {
   );
 }
 
-function EmptyState() {
-  return (
-    <div style={{ padding: "36px 0", textAlign: "center", color: "#334155", fontSize: ".8rem" }}>
-      Ainda sem snapshots suficientes para desenhar a curva.
-    </div>
-  );
+function EmptySeries() {
+  return <EmptyState title="Ainda sem snapshots suficientes para desenhar a curva." description="A série aparece depois da primeira coleta diária de views." />;
 }

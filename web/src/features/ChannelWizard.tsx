@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Alert, Button } from "@juninmd/sonido";
 import type { AdminChannelBundle } from "../types";
 import { errorMessage } from "../hooks/useChannelTools";
 import { createDraft, validateStep } from "./wizardDraft";
@@ -53,12 +54,12 @@ export function ChannelWizard({ onSave }: { onSave: (bundle: AdminChannelBundle)
           ))}
         </ol>
         {body}
-        {problem && <p role="alert" className="mt-4 text-sm text-rose-300">⚠ {problem}</p>}
+        {problem && <Alert tone="danger" className="mt-4">{problem}</Alert>}
         <div className="mt-6 flex justify-between gap-2">
-          <button className="btn btn-ghost" type="button" disabled={step === 0} onClick={() => { setProblem(null); setStep((s) => s - 1); }}>← Voltar</button>
+          <Button variant="secondary" type="button" disabled={step === 0} onClick={() => { setProblem(null); setStep((s) => s - 1); }}>← Voltar</Button>
           {last
-            ? <button className="btn btn-green" type="button" disabled={saving} onClick={() => void finish()}>Criar canal</button>
-            : <button className="btn btn-brand" type="button" onClick={next}>Continuar →</button>}
+            ? <Button type="button" disabled={saving} onClick={() => void finish()}>Criar canal</Button>
+            : <Button type="button" onClick={next}>Continuar →</Button>}
         </div>
       </section>
       <aside className="glass p-5">

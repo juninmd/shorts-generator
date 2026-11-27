@@ -39,8 +39,12 @@ describe("AppMissingBranchesPart7", () => {
 
     render(<App />);
 
+    // Seleciona o canal para sair do wizard e abrir as abas do editor.
+    const c1Btn = screen.getAllByText(/C1/i).find(el => el.tagName === 'DIV');
+    if (c1Btn) fireEvent.click(c1Btn.closest('button') || c1Btn);
+
     // step 3
-    const pubTab = screen.getAllByRole("button").find(t => t.textContent?.includes("Publicação"));
+    const pubTab = screen.getByRole("tab", { name: /Publicação/ });
     if (pubTab) fireEvent.click(pubTab);
 
     const ytId = screen.queryByPlaceholderText(/@MeuCanal/i);

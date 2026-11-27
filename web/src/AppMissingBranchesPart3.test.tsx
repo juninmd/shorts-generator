@@ -41,7 +41,7 @@ describe("AppMissingBranchesPart3", () => {
     render(<App />);
 
     const tabs = screen.getAllByRole("button");
-    const pubTab = tabs.find(t => t.textContent?.includes("Publicação"));
+    const pubTab = tabs.find(t => t.getAttribute("role") === "tab" && t.textContent?.includes("Publicação"));
     if (pubTab) fireEvent.click(pubTab);
 
     // Youtube

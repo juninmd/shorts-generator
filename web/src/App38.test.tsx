@@ -46,7 +46,7 @@ describe("App Parse Focuses Branch Fill", () => {
     fireEvent.click(chs[0]);
 
     // Go to Identity tab
-    const tabs = screen.getAllByRole("button", { name: /Identidade/i });
+    const tabs = screen.getAllByRole("tab", { name: /Identidade/i });
     const tab = tabs.find(t => t.className.includes("tab"));
     if (tab) {
         fireEvent.click(tab);

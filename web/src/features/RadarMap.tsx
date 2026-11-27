@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@juninmd/sonido";
 import { bandGeometry, energyPath, formatTime, RADAR_H, RADAR_W } from "./radarGeometry";
 import type { SourceAnalysisPayload, SuggestedCut } from "../types";
 import { ShortPreview } from "./ShortPreview";
@@ -37,7 +38,7 @@ export function RadarMap({ durationSec, analysis, onApprove }: { durationSec: nu
             <p className="font-mono text-xs text-slate-500">{formatTime(suggestion.startSec)} → {formatTime(suggestion.endSec)}</p>
             <h3 className="mt-1 font-bold text-slate-100">{suggestion.title}</h3>
             <p className="mt-1 text-sm text-slate-400">{suggestion.reason}</p>
-            <button className="btn btn-green mt-3" onClick={() => onApprove(suggestion)}>Aprovar corte</button>
+            <Button className="mt-3" onClick={() => onApprove(suggestion)}>Aprovar corte</Button>
           </div>
         )}
       </div>

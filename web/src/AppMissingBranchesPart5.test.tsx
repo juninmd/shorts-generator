@@ -42,7 +42,7 @@ describe("AppMissingBranchesPart5", () => {
     if (c1Btn) fireEvent.click(c1Btn.closest('button') || c1Btn);
 
     // Fontes de video
-    const fTab = screen.getAllByRole("button").find(t => t.textContent?.includes("Identidade"));
+    const fTab = screen.getByRole("tab", { name: /Identidade/ });
     if (fTab) fireEvent.click(fTab);
     const textareas = document.querySelectorAll('textarea');
     const fontsText = Array.from(textareas).find(ta => ta.placeholder.includes('youtube_channel'));
@@ -55,7 +55,7 @@ describe("AppMissingBranchesPart5", () => {
     if (logoInput) fireEvent.change(logoInput, { target: { value: '/new/logo.png' } });
     if (logoInput) fireEvent.change(logoInput, { target: { value: '' } });
 
-    const pipeTab = screen.getAllByRole("button").find(t => t.textContent?.includes("Pipeline"));
+    const pipeTab = screen.getByRole("tab", { name: /Pipeline/ });
     if (pipeTab) fireEvent.click(pipeTab);
 
     // fields
@@ -88,7 +88,7 @@ describe("AppMissingBranchesPart5", () => {
     if(aiModel) fireEvent.change(aiModel, { target: { value: 'gemini' } });
 
     // step 3
-    const pubTab = screen.getAllByRole("button").find(t => t.textContent?.includes("Publicação"));
+    const pubTab = screen.getByRole("tab", { name: /Publicação/ });
     if (pubTab) fireEvent.click(pubTab);
 
     const ytId = screen.queryByPlaceholderText(/@MeuCanal/i);

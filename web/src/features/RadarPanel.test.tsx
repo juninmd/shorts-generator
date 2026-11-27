@@ -71,7 +71,7 @@ describe('RadarPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Aprovar corte' }));
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Duração inválida');
-    expect(alert.className).toContain('text-rose-300');
+    expect(alert.className).toContain('sn-alert--danger');
     expect(screen.queryByRole('status')).toBeNull();
   });
 

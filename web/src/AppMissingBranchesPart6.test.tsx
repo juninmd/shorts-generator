@@ -39,7 +39,7 @@ describe("AppMissingBranchesPart6", () => {
     const c1Btn = screen.getAllByText(/C1/i).find(el => el.tagName === 'DIV');
     if (c1Btn) fireEvent.click(c1Btn.closest('button') || c1Btn);
 
-    const pipeTab = screen.getAllByRole("button").find(t => t.textContent?.includes("Pipeline"));
+    const pipeTab = screen.getByRole("tab", { name: /Pipeline/ });
     if (pipeTab) fireEvent.click(pipeTab);
 
     // fields
@@ -56,7 +56,7 @@ describe("AppMissingBranchesPart6", () => {
     if(aiModel) fireEvent.change(aiModel, { target: { value: 'gemini3' } });
 
     // step 3
-    const pubTab = screen.getAllByRole("button").find(t => t.textContent?.includes("Publicação"));
+    const pubTab = screen.getByRole("tab", { name: /Publicação/ });
     if (pubTab) fireEvent.click(pubTab);
 
     const ytId = screen.queryByPlaceholderText(/@MeuCanal/i);

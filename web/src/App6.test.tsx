@@ -56,9 +56,6 @@ describe("App extended coverage 6", () => {
     }
 
     // Test refresh button
-    const ghostBtns = document.querySelectorAll('.btn-ghost');
-    if (ghostBtns.length > 1) {
-       fireEvent.click(ghostBtns[1]); // Often the refresh button is one of these
-    }
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar canais' }));
   });
 });

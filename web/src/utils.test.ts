@@ -1,4 +1,4 @@
-import { parseSources, stringifySources, parseFocuses, stringifyFocuses, dotClass, badgeClass, timeAgo } from "./utils";
+import { parseSources, stringifySources, parseFocuses, stringifyFocuses, dotClass, badgeTone, timeAgo } from "./utils";
 import { describe, expect, it, vi } from "vitest";
 
 describe("utils", () => {
@@ -42,11 +42,11 @@ describe("utils", () => {
     expect(dotClass("other")).toBe("dot dot-pending");
   });
 
-  it("should return correct badge class", () => {
-    expect(badgeClass("processing")).toBe("badge badge-amber");
-    expect(badgeClass("completed")).toBe("badge badge-green");
-    expect(badgeClass("failed")).toBe("badge badge-red");
-    expect(badgeClass("other")).toBe("badge badge-slate");
+  it("should map a run status to a Sonido badge tone", () => {
+    expect(badgeTone("processing")).toBe("warning");
+    expect(badgeTone("completed")).toBe("success");
+    expect(badgeTone("failed")).toBe("danger");
+    expect(badgeTone("other")).toBe("neutral");
   });
 
   it("should return time ago", () => {
