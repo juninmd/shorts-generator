@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Alert } from "@juninmd/sonido";
 import { createCut } from "../api";
 import { errorMessage, useAnalysis } from "../hooks/useChannelTools";
 import type { SuggestedCut } from "../types";
@@ -38,10 +39,10 @@ export function RadarPanel({ adminToken, channelId }: { adminToken: string; chan
     <section className="space-y-4">
       <input className="field max-w-md" aria-label="ID do vídeo-fonte" placeholder="ID do vídeo-fonte no YouTube" value={videoId} onChange={(e) => { setVideoId(e.target.value); setNotice(null); setSaveError(null); }} />
       {!videoId.trim() && <p className="text-sm text-slate-500">Informe o ID de um vídeo já analisado.</p>}
-      {lookupId && settled && error && <p role="alert" className="text-sm text-amber-300">Ainda não há análise para este vídeo. ({error})</p>}
+      {lookupId && settled && error && <Alert tone="danger">Ainda não há análise para este vídeo. ({error})</Alert>}
       {analysis && <RadarMap durationSec={analysis.durationSec} analysis={analysis.analysis} onApprove={(cut) => void approve(cut)} />}
-      {notice && <p role="status" className="text-sm text-emerald-300">{notice}</p>}
-      {saveError && <p role="alert" className="text-sm text-rose-300">⚠ {saveError}</p>}
+      {notice && <Alert tone="success">{notice}</Alert>}
+      {saveError && <Alert tone="danger">{saveError}</Alert>}
     </section>
   );
 }

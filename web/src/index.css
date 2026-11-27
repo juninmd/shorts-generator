@@ -31,45 +31,10 @@
   .field:focus { border-color: rgba(99,102,241,0.7); box-shadow: 0 0 0 3px rgba(99,102,241,0.14); }
   .field option { background: #1e293b; color: #f1f5f9; }
 
-  /* ─── Buttons ─── */
-  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:10px; font-size:0.8125rem; font-weight:600; border:none; cursor:pointer; transition:transform .12s, opacity .18s, box-shadow .18s; letter-spacing:.01em; }
-  .btn:active:not(:disabled) { transform: scale(.97); }
-  .btn:disabled { opacity:.4; cursor:not-allowed; }
-
-  .btn-brand   { background:linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; box-shadow:0 4px 16px rgba(99,102,241,.35); }
-  .btn-brand:hover:not(:disabled)   { box-shadow:0 6px 24px rgba(99,102,241,.5); }
-  .btn-ghost   { background:rgba(255,255,255,.06); color:#cbd5e1; border:1.5px solid rgba(255,255,255,.08); }
-  .btn-ghost:hover:not(:disabled)   { background:rgba(255,255,255,.1); color:#e2e8f0; }
-  .btn-green   { background:linear-gradient(135deg,#10b981,#059669); color:#fff; box-shadow:0 4px 14px rgba(16,185,129,.3); }
-  .btn-green:hover:not(:disabled)   { box-shadow:0 6px 20px rgba(16,185,129,.45); }
-  .btn-red     { background:rgba(244,63,94,.1); color:#fda4af; border:1.5px solid rgba(244,63,94,.2); }
-  .btn-red:hover:not(:disabled)     { background:rgba(244,63,94,.18); }
-  .btn-amber   { background:rgba(245,158,11,.12); color:#fcd34d; border:1.5px solid rgba(245,158,11,.2); }
-  .btn-amber:hover:not(:disabled)   { background:rgba(245,158,11,.2); }
-
-  /* ─── Badges ─── */
-  .badge { display:inline-flex; align-items:center; gap:4px; padding:2px 9px; border-radius:99px; font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
-  .badge-brand   { background:rgba(99,102,241,.15); color:#a5b4fc; border:1px solid rgba(99,102,241,.25); }
-  .badge-amber   { background:rgba(245,158,11,.15); color:#fcd34d; border:1px solid rgba(245,158,11,.25); }
-  .badge-green   { background:rgba(16,185,129,.15);  color:#6ee7b7; border:1px solid rgba(16,185,129,.25); }
-  .badge-red     { background:rgba(239,68,68,.15);   color:#fca5a5; border:1px solid rgba(239,68,68,.25); }
-  .badge-slate   { background:rgba(100,116,139,.15); color:#94a3b8; border:1px solid rgba(100,116,139,.25); }
-
-  /* ─── Wizard step ─── */
-  .step-circle { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:800; flex-shrink:0; transition:all .25s; }
-  .step-done   { background:linear-gradient(135deg,#6366f1,#818cf8); color:#fff; box-shadow:0 4px 12px rgba(99,102,241,.4); }
-  .step-active { background:linear-gradient(135deg,#6366f1,#818cf8); color:#fff; box-shadow:0 4px 16px rgba(99,102,241,.5), 0 0 0 4px rgba(99,102,241,.15); }
-  .step-idle   { background:rgba(255,255,255,.06); color:#475569; border:1.5px solid rgba(255,255,255,.08); }
-
   /* ─── Sidebar nav ─── */
   .nav-item { display:flex; align-items:center; gap:10px; width:100%; padding:10px 13px; border-radius:12px; font-size:.875rem; font-weight:500; color:#64748b; background:transparent; border:none; cursor:pointer; transition:all .15s; text-align:left; }
   .nav-item:hover { background:rgba(255,255,255,.06); color:#e2e8f0; }
   .nav-item.active { background:rgba(99,102,241,.15); color:#a5b4fc; }
-
-  /* ─── Tab bar ─── */
-  .tab     { padding:7px 16px; border-radius:8px; font-size:.8125rem; font-weight:600; cursor:pointer; border:none; background:transparent; color:#475569; transition:all .15s; }
-  .tab.active { background:rgba(99,102,241,.18); color:#a5b4fc; }
-  .tab:hover:not(.active) { color:#cbd5e1; }
 
   /* ─── Tooltip ─── */
   .tooltip-wrap { position:relative; display:inline-flex; }

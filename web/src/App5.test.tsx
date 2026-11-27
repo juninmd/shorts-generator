@@ -32,13 +32,13 @@ describe("App extended coverage 5", () => {
     fireEvent.click(channelCardBtn);
 
     // The form has "Identidade" and other tabs.
-    const identityTabs = screen.getAllByText(/Identidade/i).filter(el => el.tagName === 'BUTTON');
+    const identityTabs = screen.getAllByRole('tab', { name: /Identidade/i });
     if (identityTabs.length > 0) fireEvent.click(identityTabs[0]);
 
-    const pipelineTabs = screen.getAllByText(/Pipeline/i).filter(el => el.tagName === 'BUTTON');
+    const pipelineTabs = screen.getAllByRole('tab', { name: /Pipeline/i });
     if (pipelineTabs.length > 0) fireEvent.click(pipelineTabs[0]);
 
-    const pubTabs = screen.getAllByText(/Publicação/i).filter(el => el.tagName === 'BUTTON');
+    const pubTabs = screen.getAllByRole('tab', { name: /Publicação/i });
     if (pubTabs.length > 0) fireEvent.click(pubTabs[0]);
   });
 });

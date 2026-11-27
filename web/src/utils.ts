@@ -18,7 +18,12 @@ export function stringifyFocuses(d: any) { return d.focuses.map((f: any) => `${f
 
 export function dotClass(s: string) { return s === "processing" ? "dot dot-processing" : s === "completed" ? "dot dot-completed" : s === "failed" ? "dot dot-failed" : "dot dot-pending"; }
 
-export function badgeClass(s: string) { return s === "processing" ? "badge badge-amber" : s === "completed" ? "badge badge-green" : s === "failed" ? "badge badge-red" : "badge badge-slate"; }
+/** Tom do `Badge` do Sonido para o status de uma execução. */
+export type BadgeTone = "neutral" | "accent" | "success" | "warning" | "danger";
+
+export function badgeTone(s: string): BadgeTone {
+  return s === "processing" ? "warning" : s === "completed" ? "success" : s === "failed" ? "danger" : "neutral";
+}
 
 export function timeAgo(iso: string) {
   const t = new Date(iso).getTime();

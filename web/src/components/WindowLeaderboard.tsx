@@ -1,3 +1,4 @@
+import { StatTile } from "@juninmd/sonido";
 import type { WindowGroup } from "../types";
 
 /** Top/flop videos for one age-comparable window (24h/72h/7d). */
@@ -8,18 +9,9 @@ export function WindowLeaderboard({ group }: { group: WindowGroup }) {
         <span style={{ fontWeight: 700, fontSize: ".78rem", color: "#e2e8f0" }}>Janela {group.window}</span>
         <span style={{ fontSize: ".68rem", color: "#334155" }}>{group.sampleSize} vídeos maduros{group.immature > 0 ? ` · ${group.immature} aguardando` : ""}</span>
       </div>
-      <Row label="Mediana de views" value={group.medianViews?.toLocaleString("pt-BR") ?? "—"} />
+      <StatTile className="mb-2" label="Mediana de views" value={group.medianViews?.toLocaleString("pt-BR") ?? "—"} tone="accent" />
       <List title="🔥 Top" items={group.top} color="#4ade80" />
       <List title="📉 Abaixo da mediana" items={group.flop} color="#f87171" />
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: ".72rem", color: "#64748b", marginBottom: 8 }}>
-      <span>{label}</span>
-      <span style={{ color: "#e2e8f0", fontWeight: 700 }}>{value}</span>
     </div>
   );
 }

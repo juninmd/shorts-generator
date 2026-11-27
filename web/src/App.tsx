@@ -1,7 +1,8 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { Alert, Badge, Button, EmptyState, Stepper, Tabs, ToastProvider, useToast } from "@juninmd/sonido";
 import { DashboardPage } from "./components/DashboardPage";
 import { ToolPage } from "./features/ToolPage";
-import { parseSources, stringifySources, parseFocuses, stringifyFocuses, dotClass, badgeClass, timeAgo } from "./utils";
+import { parseSources, stringifySources, parseFocuses, stringifyFocuses, dotClass, badgeTone, timeAgo } from "./utils";
 import { useAdminConsole } from "./hooks/useAdminConsole";
 import type { AdminChannelBundle } from "./types";
 
@@ -86,22 +87,11 @@ function FieldSelect({ label, hint, tip, children, ...props }: { label: string; 
 }
 
 // ─── Wizard step indicator ────────────────────────────────────────────────────
-function WizardBar({ step, total, labels }: { step: number; total: number; labels: string[] }) {
+function WizardBar({ step, labels }: { step: number; labels: string[] }) {
+  // O CSS do Sonido não vive em @layer, então a margem vem do wrapper (utilitário Tailwind perderia).
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 32 }}>
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", flex: i < total - 1 ? 1 : 0 }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <div className={`step-circle ${i < step ? "step-done" : i === step ? "step-active" : "step-idle"}`}>
-              {i < step ? <Ico.Check /> : i + 1}
-            </div>
-            <span style={{ fontSize: ".68rem", fontWeight: 600, color: i === step ? "#a5b4fc" : i < step ? "#6ee7b7" : "#94a3b8", whiteSpace: "nowrap" }}>{labels[i]}</span>
-          </div>
-          {i < total - 1 && (
-            <div style={{ flex: 1, height: 2, background: i < step ? "rgba(99,102,241,.4)" : "rgba(255,255,255,.06)", margin: "0 8px", marginBottom: 20, borderRadius: 2 }} />
-          )}
-        </div>
-      ))}
+    <div style={{ marginBottom: 32 }}>
+      <Stepper steps={labels.map((label) => ({ label }))} current={step} />
     </div>
   );
 }
@@ -202,13 +192,13 @@ function ChannelCard({ bundle, selected, onClick }: { bundle: AdminChannelBundle
           <div style={{ fontSize: ".875rem", fontWeight: 700, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bundle.channel.name || <span style={{ color: "#94a3b8" }}>Sem nome</span>}</div>
           <div style={{ fontSize: ".68rem", color: "#94a3b8" }}>{bundle.channel.slug || bundle.channel.id}</div>
         </div>
-        <span className={bundle.channel.status === "active" ? "badge badge-green" : "badge badge-slate"}>{bundle.channel.status === "active" ? "ativo" : "inativo"}</span>
+        <Badge tone={bundle.channel.status === "active" ? "success" : "neutral"}>{bundle.channel.status === "active" ? "ativo" : "inativo"}</Badge>
       </div>
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-        <span className={isQuiz ? "badge badge-amber" : "badge badge-brand"}>{isQuiz ? "Quiz" : "Cortes"}</span>
+        <Badge tone={isQuiz ? "warning" : "accent"}>{isQuiz ? "Quiz" : "Cortes"}</Badge>
 /* v8 ignore start */
-        {!isQuiz && bundle.sources.length > 0 && <span className="badge badge-slate">{bundle.sources.length} fonte{bundle.sources.length !== 1 ? "s" : ""}</span>}
-        {bundle.focuses.map(f => <span key={f.key} className="badge badge-slate">{f.label}</span>)}
+        {!isQuiz && bundle.sources.length > 0 && <Badge>{bundle.sources.length} fonte{bundle.sources.length !== 1 ? "s" : ""}</Badge>}
+        {bundle.focuses.map(f => <Badge key={f.key}>{f.label}</Badge>)}
 /* v8 ignore stop */
       </div>
     </button>
@@ -223,7 +213,7 @@ function RunCard({ r }: { r: { id: string; channelId: string; status: string; pr
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
         <span className={dotClass(r.status)} />
         <span style={{ flex: 1, fontSize: ".8125rem", fontWeight: 700, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.channelId}</span>
-        <span className={badgeClass(r.status)}>{r.status}</span>
+        <Badge tone={badgeTone(r.status)} dot live={r.status === "processing"}>{r.status}</Badge>
       </div>
       <p style={{ margin: 0, fontSize: ".73rem", color: "#64748b", lineHeight: 1.5 }}>{r.progress?.message ?? r.errorMessage ?? "Aguardando progresso…"}</p>
       <p style={{ margin: "4px 0 0", fontSize: ".68rem", color: "#94a3b8" }}>{timeAgo(r.createdAt)}</p>
@@ -232,21 +222,7 @@ function RunCard({ r }: { r: { id: string; channelId: string; status: string; pr
 }
 
 // ─── Toast ───────────────────────────────────────────────────────────────────
-function Toast({ msg, type }: { msg: string; type: "ok" | "err" }) {
-  return (
-    <div style={{
-      position: "fixed", bottom: 24, right: 24, padding: "13px 20px", borderRadius: 14, zIndex: 9999,
-      background: type === "ok" ? "rgba(16,185,129,.15)" : "rgba(239,68,68,.15)",
-      border: `1px solid ${type === "ok" ? "rgba(16,185,129,.3)" : "rgba(239,68,68,.3)"}`,
-      color: type === "ok" ? "#6ee7b7" : "#fca5a5",
-      fontSize: ".875rem", fontWeight: 600,
-      boxShadow: "0 10px 40px rgba(0,0,0,.5)",
-      backdropFilter: "blur(20px)",
-    }}>
-      {type === "ok" ? "✓ " : "✗ "}{msg}
-    </div>
-  );
-}
+// O toast agora é o do Sonido: `ToastProvider` no topo e `useToast()` em quem dispara.
 
 // ─── Wizard steps ─────────────────────────────────────────────────────────────
 /* v8 ignore start */
@@ -412,7 +388,7 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
             <div style={{ fontWeight: 800, fontSize: ".875rem", color: "#e2e8f0" }}>YouTube</div>
             <div style={{ fontSize: ".7rem", color: "#64748b" }}>Destino principal dos shorts gerados</div>
           </div>
-          <span className="badge badge-brand">Obrigatório</span>
+          <Badge tone="accent">Obrigatório</Badge>
         </div>
         <div className="info-box" style={{ marginBottom: 14 }}>
           <div style={{ fontSize: ".73rem", color: "#a5b4fc", lineHeight: 1.7 }}>
@@ -440,7 +416,7 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
             <div style={{ fontWeight: 800, fontSize: ".875rem", color: "#e2e8f0" }}>Telegram</div>
             <div style={{ fontSize: ".7rem", color: "#64748b" }}>Publicação espelho no Telegram (canal ou grupo)</div>
           </div>
-          <span className="badge badge-slate">Opcional</span>
+          <Badge>Opcional</Badge>
         </div>
 /* v8 ignore start */
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -460,7 +436,7 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
             <div style={{ fontWeight: 800, fontSize: ".875rem", color: "#e2e8f0" }}>OpenRouter API</div>
             <div style={{ fontSize: ".7rem", color: "#64748b" }}>Sobrescreve a chave global do LLM apenas para este canal</div>
           </div>
-          <span className="badge badge-slate">Opcional</span>
+          <Badge>Opcional</Badge>
 /* v8 ignore start */
         </div>
         <Field label="Chave de API" type="password" tip="Obtenha em openrouter.ai → Keys. Prefixo: sk-or-v1-..." value={or.refreshToken ?? ""} onChange={e => upd("openrouter", "refreshToken", e.target.value)} placeholder={or.hasStoredToken ? "••••• (salvo)" : "sk-or-v1-..."} />
@@ -472,19 +448,24 @@ function Step3Publishing({ draft, setDraft }: { draft: AdminChannelBundle; setDr
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
+  return (
+    <ToastProvider>
+      <Console />
+    </ToastProvider>
+  );
+}
+
+function Console() {
   const { adminToken, setAdminToken, channels, runs, selectedChannelId, setSelectedChannelId, error, isPending, save, remove, test, run, refreshNow } = useAdminConsole();
+  const toast = useToast();
 
   const [draft, setDraft] = useState<AdminChannelBundle>(createEmptyBundle);
   const [wizardStep, setWizardStep] = useState(0);
   const [isNew, setIsNew] = useState(true);
-  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [view, setView] = useState<"console" | "dashboard" | "tools">("console");
   const activeRuns = useMemo(() => runs.slice(0, 10), [runs]);
-/* v8 ignore start */
 
-  function toast$(msg: string, type: "ok" | "err") { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); }
-
-/* v8 ignore stop */
+  function toast$(msg: string, type: "ok" | "err") { toast({ title: msg, tone: type === "ok" ? "success" : "danger" }); }
   async function handleSave() {
     try { await save(draft); toast$("Canal salvo!", "ok"); }
     catch (e) { toast$(String(e), "err"); }
@@ -540,13 +521,13 @@ export default function App() {
           </div>
         </div>
 
-        <button className="btn btn-ghost" style={{ justifyContent: "flex-start", gap: 8, marginBottom: 8 }} onClick={() => setView("dashboard")}>
-          <Ico.Activity /> Dashboard de métricas
-        </button>
+        <Button variant="secondary" iconStart={<Ico.Activity />} style={{ justifyContent: "flex-start", marginBottom: 8 }} onClick={() => setView("dashboard")}>
+          Dashboard de métricas
+        </Button>
 
-        <button className="btn btn-ghost" style={{ justifyContent: "flex-start", gap: 8, marginBottom: 8 }} onClick={() => setView("tools")}>
-          <Ico.Scissors /> Cortes, agenda e Radar
-        </button>
+        <Button variant="secondary" iconStart={<Ico.Scissors />} style={{ justifyContent: "flex-start", marginBottom: 8 }} onClick={() => setView("tools")}>
+          Cortes, agenda e Radar
+        </Button>
 
         {/* Token */}
         <div style={{ marginBottom: 8 }}>
@@ -566,7 +547,7 @@ export default function App() {
         {/* Channels */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 4px", marginBottom: 2 }}>
           <span style={{ fontSize: ".68rem", color: "#94a3b8", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>Canais {channels.length > 0 && `(${channels.length})`}</span>
-          <button className="btn btn-ghost" style={{ padding: "3px 7px", fontSize: ".7rem" }} onClick={() => void refreshNow()} aria-label="Atualizar canais" title="Atualizar canais"><Ico.Refresh /></button>
+          <Button variant="ghost" size="icon" onClick={() => void refreshNow()} aria-label="Atualizar canais" title="Atualizar canais"><Ico.Refresh /></Button>
         </div>
 
         {!hasToken && (
@@ -576,18 +557,15 @@ export default function App() {
         )}
 
         {hasToken && channels.length === 0 && (
-          <div style={{ padding: "20px 8px", textAlign: "center" }}>
-            <div style={{ fontSize: "1.8rem", marginBottom: 8 }}>📺</div>
-            <div style={{ fontSize: ".75rem", color: "#94a3b8", lineHeight: 1.6 }}>Nenhum canal ainda.<br />Crie o primeiro abaixo!</div>
-          </div>
+          <EmptyState icon={<Ico.Channel />} title="Nenhum canal ainda." description="Crie o primeiro abaixo!" />
         )}
 
         {channels.map(c => <ChannelCard key={c.channel.id} bundle={c} selected={selectedChannelId === c.channel.id} onClick={() => selectChannel(c)} />)}
 
         <div style={{ marginTop: "auto", paddingTop: 12 }}>
-          <button className="btn btn-brand" style={{ width: "100%", justifyContent: "center" }} onClick={newChannel}>
-            <Ico.Plus /> Novo canal
-          </button>
+          <Button className="w-full" iconStart={<Ico.Plus />} onClick={newChannel}>
+            Novo canal
+          </Button>
         </div>
       </aside>
 
@@ -604,26 +582,26 @@ export default function App() {
           </div>
           {!isNew && (
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn-ghost" disabled={isPending || !draft.channel.id} onClick={() => void test(draft.channel.id)}>
-                <Ico.Wifi /> Testar conexão
-              </button>
-              <button className="btn btn-green" disabled={isPending || !draft.channel.id} onClick={() => void handleRun()}>
-                <Ico.Play /> Rodar pipeline
-              </button>
-              <button className="btn btn-brand" disabled={isPending} onClick={() => void handleSave()}>
-                <Ico.Save /> Salvar
-              </button>
-              <button className="btn btn-red" disabled={isPending || !draft.channel.id} onClick={() => void handleRemove()}>
+              <Button variant="ghost" iconStart={<Ico.Wifi />} disabled={isPending || !draft.channel.id} onClick={() => void test(draft.channel.id)}>
+                Testar conexão
+              </Button>
+              <Button variant="secondary" iconStart={<Ico.Play />} disabled={isPending || !draft.channel.id} onClick={() => void handleRun()}>
+                Rodar pipeline
+              </Button>
+              <Button variant="primary" iconStart={<Ico.Save />} disabled={isPending} onClick={() => void handleSave()}>
+                Salvar
+              </Button>
+              <Button variant="danger" size="icon" aria-label="Excluir canal" disabled={isPending || !draft.channel.id} onClick={() => void handleRemove()}>
                 <Ico.Trash />
-              </button>
+              </Button>
             </div>
           )}
           {isNew && (
             <div style={{ display: "flex", gap: 8 }}>
-              {wizardStep > 0 && <button className="btn btn-ghost" onClick={() => setWizardStep(s => s - 1)}>← Anterior</button>}
+              {wizardStep > 0 && <Button variant="secondary" onClick={() => setWizardStep(s => s - 1)}>← Anterior</Button>}
               {wizardStep < WIZARD_LABELS.length - 1
-                ? <button className="btn btn-brand" onClick={() => setWizardStep(s => s + 1)}>Próximo →</button>
-                : <button className="btn btn-green" disabled={isPending} onClick={() => void handleSave()}><Ico.Save /> Salvar canal</button>
+                ? <Button onClick={() => setWizardStep(s => s + 1)}>Próximo →</Button>
+                : <Button disabled={isPending} iconStart={<Ico.Save />} onClick={() => void handleSave()}>Salvar canal</Button>
               }
             </div>
           )}
@@ -632,17 +610,20 @@ export default function App() {
         <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
           {/* ── Editor ── */}
           <div>
-            {error && <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", color: "#fca5a5", fontSize: ".8125rem" }}>⚠ {error}</div>}
+            {error && <Alert tone="danger" title="Falha no painel" className="mb-5">{error}</Alert>}
 
-            {isNew && <WizardBar step={wizardStep} total={WIZARD_LABELS.length} labels={WIZARD_LABELS} />}
+            {isNew && <WizardBar step={wizardStep} labels={WIZARD_LABELS} />}
 
             {!isNew && (
-              <div style={{ display: "flex", gap: 4, marginBottom: 24, background: "rgba(255,255,255,.04)", borderRadius: 10, padding: 4, width: "fit-content" }}>
-                {EDITOR_TABS.map((k, index) => (
-                  <button key={k} className={`tab ${wizardStep === index ? "active" : ""}`}
-                    onClick={() => setWizardStep(index)}>{WIZARD_LABELS[index + STEP_OFFSET]}</button>
-                ))}
-              </div>
+              <Tabs
+                idPrefix="editor"
+                label="Seções do canal"
+                variant="pill"
+                className="mb-6 w-fit"
+                items={EDITOR_TABS.map((key, index) => ({ key, label: WIZARD_LABELS[index + STEP_OFFSET] }))}
+                value={EDITOR_TABS[wizardStep] ?? "identity"}
+                onChange={(key) => setWizardStep(EDITOR_TABS.indexOf(key))}
+              />
             )}
 
             {!IS_CUTS_ONLY_MODE && isNew && editorStep === 0 && <Step0FlowType draft={draft} setDraft={setDraft} />}
@@ -672,10 +653,7 @@ export default function App() {
                 </select>
               </div>
               {activeRuns.length === 0 ? (
-                <div style={{ padding: "24px 0", textAlign: "center", color: "#1e293b" }}>
-                  <div style={{ fontSize: "1.6rem", marginBottom: 8 }}>🎬</div>
-                  <div style={{ fontSize: ".75rem", lineHeight: 1.6, color: "#94a3b8" }}>Nenhuma execução ainda.<br />Configure e rode um canal para começar.</div>
-                </div>
+                <EmptyState icon={<Ico.Activity />} title="Nenhuma execução ainda." description="Configure e rode um canal para começar." />
               ) : (
                 activeRuns.map(r => <RunCard key={r.id} r={r} />)
               )}
@@ -684,7 +662,6 @@ export default function App() {
         </div>
       </main>
 
-      {toast && <Toast msg={toast.msg} type={toast.type} />}
     </div>
   );
 }

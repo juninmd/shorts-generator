@@ -81,6 +81,11 @@ describe("cli-bible", () => {
     expect(runPipelineMock.mock.calls[0]![2]).toMatchObject({ language: "en-US", ttsVoice: "en-US-GuyNeural", pexelsApiKey: "PK", musicPath: "bgm.mp3" });
   });
 
+  it("uses auto passage when --passage auto is provided", async () => {
+    await runBibleCommand(["--managed-channel", "c", "--passage", "auto"]);
+    expect(runPipelineMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ managed: true }), expect.any(Object));
+  });
+
   it("publishes an approved preview", async () => {
     await runBibleCommand(["--managed-channel", "c", "--publish", "/out/v.publish.json"]);
     expect(publishMock).toHaveBeenCalledWith("/out/v.publish.json", expect.objectContaining({ managed: true }));

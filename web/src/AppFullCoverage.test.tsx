@@ -39,7 +39,7 @@ describe("AppFullCoverage", () => {
     if (refreshBtn && refreshBtn.innerHTML.includes('polyline')) { // Zap icon usually has polygon, refresh has arrow? Let's click all small buttons
         const allBtns = screen.getAllByRole("button");
         for (const b of allBtns) {
-            if (b.className.includes("btn-ghost") && !b.textContent) fireEvent.click(b);
+            if (b.getAttribute('aria-label') === 'Atualizar canais') fireEvent.click(b);
         }
     }
 
@@ -153,7 +153,7 @@ describe("AppFullCoverage", () => {
         if (focosArea) fireEvent.change(focosArea, { target: { value: 'politica|Nova Politica' } });
     }
 
-    const pipelineTab = screen.getAllByText(/Pipeline/i).filter(el => el.tagName === 'BUTTON')[0];
+    const pipelineTab = screen.getByRole('tab', { name: /Pipeline/i });
     fireEvent.click(pipelineTab);
 
     // Pipeline step
@@ -201,7 +201,7 @@ describe("AppFullCoverage", () => {
     }
 
 
-    const pubTab = screen.getAllByText(/Publicação/i).filter(el => el.tagName === 'BUTTON')[0];
+    const pubTab = screen.getByRole('tab', { name: /Publicação/i });
     fireEvent.click(pubTab);
 
     const textareas = screen.getAllByRole('textbox');
@@ -213,7 +213,7 @@ describe("AppFullCoverage", () => {
     const runBtn = screen.getAllByText(/Rodar pipeline/i)[0];
     fireEvent.click(runBtn.closest('button') || runBtn);
 
-    const removeBtn = screen.getAllByText(/Salvar/i)[0].parentElement?.querySelector('.btn-red');
+    const removeBtn = screen.getByRole('button', { name: 'Excluir canal' });
     if(removeBtn) {
         // Mock window.confirm
         const spy = vi.spyOn(window, 'confirm').mockImplementation(() => false);
@@ -230,7 +230,7 @@ describe("AppFullCoverage", () => {
       fireEvent.click(dashBtns[0].closest('button') || dashBtns[0]);
     }
 
-    const refreshBtnDash = screen.getAllByRole("button").find(b => b.className.includes("btn-ghost") && !b.textContent);
+    const refreshBtnDash = screen.queryByRole("button", { name: 'Atualizar canais' });
     if (refreshBtnDash) fireEvent.click(refreshBtnDash);
   });
 

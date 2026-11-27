@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Alert, Button } from "@juninmd/sonido";
 import { useSchedule, errorMessage } from "../hooks/useChannelTools";
 import type { ManualCut, ScheduleEntry } from "../types";
 
@@ -71,10 +72,10 @@ export function ScheduleBoard({ adminToken, channelId, cuts }: { adminToken: str
           <option value="">Escolha um corte</option>
           {cuts.map((cut) => <option key={cut.id} value={cut.id}>{cut.title}</option>)}
         </select>
-        <button className="btn btn-brand" type="submit">Agendar</button>
-        {formError && <p role="alert" className="text-sm text-rose-300 sm:col-span-4">⚠ {formError}</p>}
+        <Button type="submit">Agendar</Button>
+        {formError && <Alert tone="danger" className="sm:col-span-4">{formError}</Alert>}
       </form>
-      {error && <p role="alert" className="text-sm text-rose-300">⚠ {error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         {Object.entries(grouped).map(([day, items]) => (
           <div key={day} className="glass-inset min-h-[90px] p-2">
@@ -82,7 +83,7 @@ export function ScheduleBoard({ adminToken, channelId, cuts }: { adminToken: str
             {items.map((entry) => (
               <div key={entry.id} className="mt-1 flex items-center justify-between gap-1 rounded bg-white/5 px-1.5 py-1 text-xs text-slate-200">
                 <span className="truncate">{new Date(entry.runAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} {entry.kind === "manual" ? "corte" : "auto"}</span>
-                <button aria-label="Remover agendamento" className="text-rose-300" onClick={() => void removeEntry(entry.id)}>✕</button>
+                <Button variant="ghost" size="icon" aria-label="Remover agendamento" style={{ height: 24, width: 24, minHeight: 0, color: "#fda4af" }} onClick={() => void removeEntry(entry.id)}>✕</Button>
               </div>
             ))}
           </div>

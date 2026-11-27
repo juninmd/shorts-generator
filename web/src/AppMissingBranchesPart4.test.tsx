@@ -50,7 +50,7 @@ describe("AppMissingBranchesPart4", () => {
     if (saveBtn) {
         fireEvent.click(saveBtn.closest('button') || saveBtn);
     }
-    const remBtn = document.querySelector('.btn-red');
+    const remBtn = screen.getByRole('button', { name: 'Excluir canal' });
     if (remBtn) {
         vi.spyOn(window, 'confirm').mockReturnValue(true);
         fireEvent.click(remBtn);
@@ -73,7 +73,7 @@ describe("AppMissingBranchesPart4", () => {
 
     // Switch to step 2 (Pipeline)
     const tabs = screen.getAllByRole("button");
-    const pipeTab = tabs.find(t => t.textContent?.includes("Pipeline"));
+    const pipeTab = tabs.find(t => t.getAttribute("role") === "tab" && t.textContent?.includes("Pipeline"));
     if (pipeTab) fireEvent.click(pipeTab);
 
     const lims = screen.queryAllByDisplayValue(/1/i).find(s => s.tagName === 'INPUT');

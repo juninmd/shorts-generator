@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Alert, Button, EmptyState } from "@juninmd/sonido";
 import { useCuts, errorMessage } from "../hooks/useChannelTools";
 import type { ManualCut } from "../types";
 import { ShortPreview } from "./ShortPreview";
@@ -47,20 +48,20 @@ export function CutsWorkspace({ adminToken, channelId }: { adminToken: string; c
           <input className="field" aria-label="Título do corte" placeholder="Título do corte" value={title} onChange={(e) => setTitle(e.target.value)} />
           <input className="field" aria-label="Início (s)" type="number" min={0} value={startSec} onChange={(e) => setStartSec(e.target.value)} />
           <input className="field" aria-label="Fim (s)" type="number" min={0} value={endSec} onChange={(e) => setEndSec(e.target.value)} />
-          <button className="btn btn-brand sm:col-span-2" type="submit">Salvar corte</button>
+          <Button className="sm:col-span-2" type="submit">Salvar corte</Button>
         </form>
-        {formError && <p role="alert" className="mt-3 text-sm text-rose-300">⚠ {formError}</p>}
-        {error && <p role="alert" className="mt-3 text-sm text-rose-300">⚠ {error}</p>}
+        {formError && <Alert tone="danger" className="mt-3">{formError}</Alert>}
+        {error && <Alert tone="danger" className="mt-3">{error}</Alert>}
         <ul className="mt-5 space-y-2">
           {cuts.map((cut) => (
             <li key={cut.id} className="glass-inset flex items-center gap-3 p-3">
               <button className="flex-1 truncate text-left text-sm text-slate-200" onClick={() => setSelected(cut)}>{cut.title}</button>
               <span className="font-mono text-xs text-slate-500">{cut.startSec}s → {cut.endSec}s</span>
-              <button className="btn btn-red" aria-label={`Excluir ${cut.title}`} onClick={() => void removeCut(cut)}>Excluir</button>
+              <Button variant="danger" size="sm" aria-label={`Excluir ${cut.title}`} onClick={() => void removeCut(cut)}>Excluir</Button>
             </li>
           ))}
         </ul>
-        {cuts.length === 0 && <p className="mt-4 text-sm text-slate-500">Nenhum corte manual ainda.</p>}
+        {cuts.length === 0 && <EmptyState className="mt-4" title="Nenhum corte manual ainda." description="Marque o início e o fim de um trecho para montar o primeiro." />}
       </section>
       <aside className="glass p-5">
         <h3 className="mb-3 text-sm font-bold text-slate-300">Prévia</h3>
